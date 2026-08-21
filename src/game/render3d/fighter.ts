@@ -15,7 +15,7 @@
 
 import * as THREE from 'three';
 import type { Hero, HeroRole } from '@/game/heroes';
-import { flatMaterial } from './stage';
+import { surfaceMaterial } from './stage';
 
 export interface Fighter {
   group: THREE.Group;
@@ -42,10 +42,12 @@ export function createFighter(hero: Hero): Fighter {
   group.name = `fighter:${hero.id}`;
 
   const r = ROLE_RADIUS[hero.role];
-  const clothMat = flatMaterial(hero.palette.cloth);
-  const skinMat = flatMaterial(hero.palette.skin);
-  const accentMat = flatMaterial(hero.palette.accent);
-  const hairMat = flatMaterial(hero.palette.hair);
+  const clothMat = surfaceMaterial(hero.palette.cloth, { roughness: 0.72 });
+  const skinMat = surfaceMaterial(hero.palette.skin, { roughness: 0.85 });
+  // Low roughness and a little metal: the accent is the one surface allowed to
+  // catch the sun, which is what gives it a rim bright enough to bloom.
+  const accentMat = surfaceMaterial(hero.palette.accent, { roughness: 0.34, metalness: 0.35 });
+  const hairMat = surfaceMaterial(hero.palette.hair, { roughness: 0.9 });
   const materials = [clothMat, skinMat, accentMat, hairMat];
 
   // The body. A tapered prism rather than a capsule: flat faces catch the light
@@ -97,6 +99,22 @@ export function createFighter(hero: Hero): Fighter {
   ring.rotation.x = -Math.PI / 2;
   ring.position.y = 0.06;
   group.add(ring);
+
+  // Contact shadow. The shadow map handles the cast shadow; this is the dark
+  // patch directly under the feet that the map is too coarse to resolve, and it
+  // is what makes a body look planted rather than placed.
+  const contact = new THREE.Mesh(
+    new THREE.CircleGeometry(r * 1.25, 18),
+    new THREE.MeshBasicMaterial({
+      color: 0x0d1b1e,
+      transparent: true,
+      opacity: 0.28,
+      depthWrite: false,
+    })
+  );
+  contact.rotation.x = -Math.PI / 2;
+  contact.position.y = 0.045;
+  group.add(contact);
 
   let bob = 0;
   let flashT = 0;
