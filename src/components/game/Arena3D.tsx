@@ -11,9 +11,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { HEROES, heroById, type Hero } from '@/game/heroes';
-import { BASES, HALF, SURFACE_SPEED, heightAt, surfaceAt } from '@/game/arena/map';
+import { SPAWNS, resolvePosition } from '@/game/arena/layout';
 import { createStage } from '@/game/render3d/stage';
-import { buildMap } from '@/game/render3d/mapMesh';
+import { buildArena, fadeCanopies } from '@/game/render3d/arena';
 import { loadModel } from '@/game/render3d/models';
 import { createSantelmo } from '@/game/render3d/santelmo';
 import { ROLE_RADIUS } from '@/game/render3d/fighter';
@@ -28,7 +28,7 @@ import { createCharacter, type Character } from '@/game/render3d/character';
  * that is a map view, not a fight. The character wins the argument, because a
  * game whose characters cannot be seen has no reason to have good ones.
  */
-const VIEW_HEIGHT = 26;
+const VIEW_HEIGHT = 15;
 
 export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -48,8 +48,8 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     // judge a body that is thirty pixels tall in normal play.
     const zoomParam = Number(new URLSearchParams(window.location.search).get('zoom'));
     stage.setViewHeight(Number.isFinite(zoomParam) && zoomParam > 0 ? zoomParam : VIEW_HEIGHT);
-    const map = buildMap();
-    stage.scene.add(map.group);
+    const arena = buildArena();
+    stage.scene.add(arena);
 
     const santelmo = createSantelmo();
     stage.scene.add(santelmo.group);
@@ -96,9 +96,8 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     // somewhere that is not behind a bush.
     const atParam = new URLSearchParams(window.location.search).get('at');
     const at = atParam?.split(',').map(Number);
-    // Spawn on the celestial fountain, a little in front of the core.
-    let px = at && at.length === 2 && at.every(Number.isFinite) ? at[0] : BASES.diwata.x + 6;
-    let pz = at && at.length === 2 && at.every(Number.isFinite) ? at[1] : BASES.diwata.z - 6;
+    let px = at && at.length === 2 && at.every(Number.isFinite) ? at[0] : SPAWNS.home.x;
+    let pz = at && at.length === 2 && at.every(Number.isFinite) ? at[1] : SPAWNS.home.z;
     let heading = Math.PI * 0.75;
 
     const keys = new Set<string>();
@@ -149,29 +148,26 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         const dx = ix * cos - iz * sin;
         const dz = ix * sin + iz * cos;
         const len = Math.hypot(dx, dz) || 1;
-        // The ground decides the pace: lanes are the fast way round, the
-        // jungle is slower, and the river is slow enough that crossing it is a
-        // decision rather than a shortcut.
-        const surface = surfaceAt(px, pz);
-        const step = want.speed * SURFACE_SPEED[surface] * dt;
-        const nx = px + (dx / len) * step;
-        const nz = pz + (dz / len) * step;
-        // Clamped to the map rather than collided against props, for now: the
-        // set pieces that will block movement are not placed yet.
-        const edge = HALF - ROLE_RADIUS[want.role];
-        px = Math.max(-edge, Math.min(edge, nx));
-        pz = Math.max(-edge, Math.min(edge, nz));
+        const step = want.speed * dt;
+        const next = resolvePosition(
+          px + (dx / len) * step,
+          pz + (dz / len) * step,
+          ROLE_RADIUS[want.role]
+        );
+        px = next.x;
+        pz = next.z;
         heading = Math.atan2(dx, dz);
       }
 
       if (character) {
-        character.setPosition(px, heightAt(px, pz), pz);
+        character.setPosition(px, 0, pz);
         character.setFacing(heading);
         // Run is the only speed for now; walk comes back when there is a reason
         // to move slowly, which is aiming.
         character.play(moving ? 'run' : 'idle');
         character.update(dt);
       }
+      fadeCanopies(px, pz, dt);
       santelmo.update(clock);
       stage.lookAtGround(px, pz);
       stage.render();
@@ -193,7 +189,6 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       window.removeEventListener('keyup', onUp);
       window.removeEventListener('resize', onResize);
       santelmo.dispose();
-      map.dispose();
       character?.dispose();
       stage.dispose();
     };
