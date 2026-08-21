@@ -61,6 +61,34 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     // generated CREATURES work and generated SCENERY does not. The credits
     // belong to the Bakunawa and the Kapre, not to trees.
 
+    // Loaded asynchronously, so the frame loop has to cope with there being no
+    // body yet. It starts immediately and the arena is already on screen.
+    let character: Character | null = null;
+    let builtFor = hero.id;
+    let disposed = false;
+
+    const swapTo = (h: typeof hero) => {
+      builtFor = h.id;
+      createCharacter('/models/characters/adventurer.glb', h).then((next) => {
+        if (disposed) {
+          next.dispose();
+          return;
+        }
+        // A second swap may have been requested while this one was loading.
+        if (builtFor !== h.id) {
+          next.dispose();
+          return;
+        }
+        if (character) {
+          stage.scene.remove(character.object);
+          character.dispose();
+        }
+        character = next;
+        stage.scene.add(next.object);
+      });
+    };
+    swapTo(hero);
+
     let px = SPAWNS.home.x;
     let pz = SPAWNS.home.z;
     let heading = Math.PI * 0.75;
