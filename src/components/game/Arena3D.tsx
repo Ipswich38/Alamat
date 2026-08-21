@@ -11,7 +11,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { HEROES, heroById, type Hero } from '@/game/heroes';
-import { BASES, HALF, SURFACE_SPEED, surfaceAt } from '@/game/arena/map';
+import { BASES, HALF, SURFACE_SPEED, heightAt, surfaceAt } from '@/game/arena/map';
 import { createStage } from '@/game/render3d/stage';
 import { buildMap } from '@/game/render3d/mapMesh';
 import { loadModel } from '@/game/render3d/models';
@@ -165,7 +165,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       }
 
       if (character) {
-        character.setPosition(px, 0, pz);
+        character.setPosition(px, heightAt(px, pz), pz);
         character.setFacing(heading);
         // Run is the only speed for now; walk comes back when there is a reason
         // to move slowly, which is aiming.

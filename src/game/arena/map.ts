@@ -179,6 +179,67 @@ export function surfaceAt(x: number, z: number): Surface {
   return 'jungle';
 }
 
+/**
+ * How high the ground is at a point.
+ *
+ * ── WHY THIS EXISTS, AND WHY IT IS THE MOST IMPORTANT FUNCTION HERE ─────────
+ * The first version of this map was FLAT, and flat is why it read as a board
+ * game rather than as a place. Everything that makes an arena look like
+ * somewhere real comes from height: cliffs you cannot see over, plateaus that
+ * hide a jungle camp, a river running through a cut, bases raised so a team
+ * looks down on the approach.
+ *
+ * It is also gameplay and not only scenery. High ground you cannot climb is
+ * what turns four open wedges into four jungles with entrances.
+ *
+ * ── THE LEVELS ──────────────────────────────────────────────────────────────
+ *   -2.2  the river bed
+ *    0    the lanes, the floor everything is measured from
+ *    3.5  the jungle plateaus between the lanes
+ *    2.2  the base platforms
+ */
+export function heightAt(x: number, z: number): number {
+  // The river cuts deepest and wins over everything, because a river that runs
+  // over a plateau is not a river.
+  const river = riverDepth(x, z);
+  if (river > 0) return -2.2 * smooth(river);
+
+  // A lane is a level road. Its shoulders ramp up to whatever is beside them,
+  // which is what makes a lane read as cut INTO the terrain.
+  const lane = laneRamp(x, z);
+
+  // Base platforms, raised so each team looks down its own approach.
+  let base = 0;
+  for (const b of Object.values(BASES)) {
+    const d = Math.hypot(x - b.x, z - b.z);
+    base = Math.max(base, 2.2 * smooth(Math.max(0, 1 - d / (b.radius + 4))));
+  }
+
+  // The jungle stands high between the lanes. Its own gentle roll on top, or a
+  // plateau is just a table.
+  const roll = Math.sin(x * 0.09) * Math.cos(z * 0.11) * 0.7;
+  const plateau = 3.5 + roll;
+
+  // The lane wins where it is strong and the plateau wins where it is not.
+  return Math.max(base, plateau * (1 - lane) + 0 * lane);
+}
+
+/** 1 on the lane's centre line, easing to 0 at the top of its shoulder. */
+function laneRamp(x: number, z: number): number {
+  let best = 0;
+  for (const lane of LANES) {
+    const d = laneDistance(x, z, lane.path);
+    // The shoulder is twice the lane's half-width, so the climb out of a lane
+    // is a slope rather than a wall.
+    const k = Math.max(0, 1 - d / (LANE_WIDTH / 2 + LANE_WIDTH));
+    if (k > best) best = k;
+  }
+  return smooth(best);
+}
+
+/** Smoothstep. Straight lerps give creases where two surfaces meet. */
+const smooth = (t: number): number => t * t * (3 - 2 * t);
+
 /** Movement multiplier per surface. Lanes are the fast way round for a reason. */
 export const SURFACE_SPEED: Record<Surface, number> = {
   lane: 1.12,

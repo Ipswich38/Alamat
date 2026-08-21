@@ -19,6 +19,7 @@ import {
   LANES,
   LANE_WIDTH,
   buildTowers,
+  heightAt,
   laneDistance,
   realmAt,
   riverDepth,
@@ -129,10 +130,9 @@ export function buildMap(): GameMap {
     colours[i * 3 + 1] = c.g;
     colours[i * 3 + 2] = c.b;
 
-    // The river is cut DOWN into the ground, and the banks lift slightly. A
-    // river painted flat on a floor reads as a blue road.
-    const river = riverDepth(x, z);
-    pos.setY(i, river > 0 ? -river * 1.1 : noise(x, z, 3) * 0.12);
+    // Real elevation, from the map's own heightfield. This is what separates a
+    // place from a painted board.
+    pos.setY(i, heightAt(x, z) + noise(x, z, 3) * 0.16);
   }
   geo.setAttribute('color', new THREE.BufferAttribute(colours, 3));
   geo.computeVertexNormals();
@@ -194,15 +194,16 @@ function towers(): THREE.Group {
     // Later tiers stand taller, so how deep you are in enemy ground is legible
     // from the skyline.
     const h = 0.85 + t.tier * 0.18;
-    o.position.set(t.x, 0.7, t.z);
+    const g0 = heightAt(t.x, t.z);
+    o.position.set(t.x, g0 + 0.7, t.z);
     o.scale.set(1, 1, 1);
     o.updateMatrix();
     bases.setMatrixAt(i, o.matrix);
-    o.position.set(t.x, 1.4 + 3 * h, t.z);
+    o.position.set(t.x, g0 + 1.4 + 3 * h, t.z);
     o.scale.set(1, h, 1);
     o.updateMatrix();
     shafts.setMatrixAt(i, o.matrix);
-    o.position.set(t.x, 1.4 + 6 * h + 1.1, t.z);
+    o.position.set(t.x, g0 + 1.4 + 6 * h + 1.1, t.z);
     o.scale.set(1, 1, 1);
     o.updateMatrix();
     crowns.setMatrixAt(i, o.matrix);
@@ -226,7 +227,8 @@ function fountains(): THREE.Group {
       new THREE.CylinderGeometry(b.radius * 0.55, b.radius * 0.7, 1.6, 12),
       surfaceMaterial(b.realm === 'diwata' ? 0xe8dcb4 : 0x2a252c, { roughness: 0.8 })
     );
-    dais.position.set(b.x, 0.8, b.z);
+    const gb = heightAt(b.x, b.z);
+    dais.position.set(b.x, gb + 0.8, b.z);
     dais.castShadow = true;
     dais.receiveShadow = true;
     g.add(dais);
@@ -239,7 +241,7 @@ function fountains(): THREE.Group {
         toneMapped: false,
       })
     );
-    core.position.set(b.x, 4.4, b.z);
+    core.position.set(b.x, gb + 4.4, b.z);
     core.name = `core:${b.realm}`;
     g.add(core);
   }
