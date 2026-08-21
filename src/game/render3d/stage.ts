@@ -50,15 +50,15 @@ export interface Mood {
 }
 
 export const DEFAULT_MOOD: Mood = {
-  exposure: 1.18,
-  fogNear: 58,
-  fogFar: 112,
-  vignette: 0.5,
+  exposure: 1.25,
+  fogNear: 62,
+  fogFar: 130,
+  vignette: 0.34,
   saturation: 1.12,
   contrast: 1.14,
-  gradeStrength: 0.38,
-  sun: 3.6,
-  rim: 2.6,
+  gradeStrength: 0.22,
+  sun: 3.2,
+  rim: 1.8,
 };
 
 export interface Stage {
@@ -99,7 +99,7 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   // everywhere, which produces a flat, uniformly saturated picture. Most of the
   // frame should sit in the lower half of the range so the santelmo, the rim
   // light and the key have somewhere to be bright against.
-  renderer.toneMappingExposure = 1.18;
+  renderer.toneMappingExposure = 1.25;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   const scene = new THREE.Scene();
@@ -119,7 +119,7 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   // 47, so a density tuned for "distance" fogged the foreground just as hard.
   // Linear fog with a near plane beyond the far wall keeps the fight clear and
   // dissolves only the treeline, which is where atmosphere belongs.
-  scene.fog = new THREE.Fog(0x2f7f86, 58, 112);
+  scene.fog = new THREE.Fog(0xbfe4e0, 62, 130);
 
   let viewHeight = 21;
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 400);
@@ -130,7 +130,7 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   // the most expensive thing in the frame and looks worse, not better.
   // Low and warm, cutting across the arena rather than shining down it. A key
   // light straight overhead flattens every form it touches.
-  const sun = new THREE.DirectionalLight(0xffd9a0, 3.6);
+  const sun = new THREE.DirectionalLight(0xfff0d4, 3.2);
   sun.position.set(24, 20, 10);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -154,13 +154,13 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   // game is aiming at does this. Without it a character sinks into the
   // background however well it is modelled, and no amount of exposure or
   // saturation fixes that, because the problem is that nothing separates them.
-  const rim = new THREE.DirectionalLight(0x9ff0e0, 2.6);
+  const rim = new THREE.DirectionalLight(0xbfe9ff, 1.8);
   rim.position.set(-20, 13, -18);
   scene.add(rim);
   scene.add(rim.target);
 
   // A dim fill so the shaded side is not dead black.
-  const fill = new THREE.DirectionalLight(0x2f7f86, 0.5);
+  const fill = new THREE.DirectionalLight(0x9fd0e0, 0.85);
   fill.position.set(-6, 6, 16);
   scene.add(fill);
 
@@ -182,9 +182,9 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   // ⚠ AFTER OutputPass. The grade works on the tone-mapped, display-referred
   // image; running it earlier fights the tone curve and muddies the corners.
   const grade = createGradePass({
-    shadowTint: new THREE.Color(0x6fd6c8),
+    shadowTint: new THREE.Color(0x9fd8e8),
     highlightTint: new THREE.Color(0xffe0b0),
-    strength: 0.38,
+    strength: 0.22,
     vignette: 0.62,
     contrast: 1.18,
     saturation: 1.12,

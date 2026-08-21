@@ -44,7 +44,10 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     if (!canvas) return;
 
     const stage = createStage(canvas);
-    stage.setViewHeight(VIEW_HEIGHT);
+    // ?zoom=6 fills the frame with the character, which is the only way to
+    // judge a body that is thirty pixels tall in normal play.
+    const zoomParam = Number(new URLSearchParams(window.location.search).get('zoom'));
+    stage.setViewHeight(Number.isFinite(zoomParam) && zoomParam > 0 ? zoomParam : VIEW_HEIGHT);
     const arena = buildArena();
     stage.scene.add(arena);
 

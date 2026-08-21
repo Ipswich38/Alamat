@@ -19,16 +19,16 @@ import * as THREE from 'three';
 import { ARENA_SIZE, OBSTACLES } from '@/game/arena/layout';
 import { surfaceMaterial } from './stage';
 
-const GRASS = 0x3f7444;
-const GRASS_DEEP = 0x2b5433;
-const GRASS_LIGHT = 0x5c9d55;
-const EARTH = 0x6b5138;
-const EARTH_DARK = 0x3d2f22;
-const STONE = 0x7d868c;
-const STONE_DARK = 0x4d5459;
-const BARK = 0x40311f;
-const LEAF = 0x235c3c;
-const LEAF_LIGHT = 0x36804f;
+const GRASS = 0x6cb04e;
+const GRASS_DEEP = 0x4a8a3c;
+const GRASS_LIGHT = 0x93cf62;
+const EARTH = 0x9a7a4e;
+const EARTH_DARK = 0x6b5138;
+const STONE = 0xa8b0b4;
+const STONE_DARK = 0x76807f;
+const BARK = 0x6b4f31;
+const LEAF = 0x2f8a4a;
+const LEAF_LIGHT = 0x59b566;
 const MOSS = 0x6f9b3f;
 
 /**
@@ -103,7 +103,7 @@ function ground(): THREE.Group {
   const patch = new THREE.CircleGeometry(1, 7);
   // Only a little browner than the grass. A hard brown against green reads as
   // a puddle rather than as worn ground.
-  const patchMat = surfaceMaterial(0x5c5c39, { roughness: 1 });
+  const patchMat = surfaceMaterial(0xa89a5c, { roughness: 1 });
   const worn = new THREE.InstancedMesh(patch, patchMat, 26);
   worn.receiveShadow = true;
   const m = new THREE.Object3D();
@@ -208,7 +208,7 @@ function ferns(): THREE.InstancedMesh {
  * the eye something to catch on and are what makes a palette feel chosen.
  */
 function flowers(): THREE.InstancedMesh {
-  const COUNT = 90;
+  const COUNT = 200;
   const petal = new THREE.IcosahedronGeometry(0.11, 1);
   const mesh = new THREE.InstancedMesh(petal, surfaceMaterial(0xffffff, { roughness: 0.6 }), COUNT);
   mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(COUNT * 3), 3);

@@ -10,6 +10,12 @@
 //
 // BALANCE NOTES live beside the numbers they explain, because a number with no
 // reason attached is a number nobody dares to change.
+//
+// ⚠ PALETTES ARE SATURATED AND BRIGHT, and that is a readability requirement
+// rather than a taste. The first set was muted and earthy, which looked right
+// in isolation and made every hero vanish into the foliage. In a game built on
+// aimed abilities, a player has to find five bodies instantly; a hero who
+// blends into the ground is a hero nobody can fight or fight against.
 
 import type { Hero } from './types';
 
@@ -22,7 +28,7 @@ export const HEROES: Hero[] = [
       'It turns travellers in circles until they give up on the path they chose. Wear your shirt inside out and it lets you pass, which is the only apology it knows how to make.',
     role: 'vanguard',
     emoji: '🐴',
-    palette: { skin: '#6b4a35', cloth: '#3f5a4a', accent: '#c9a227', hair: '#241a14' },
+    palette: { skin: '#8a5a3c', cloth: '#2f6f57', accent: '#ffd24a', hair: '#241a14' },
     // The tankiest and the slowest to act. A vanguard that is also quick has no
     // weakness, and every fight becomes about who has one.
     // The tallest and heaviest thing on the field, carrying nothing: a
@@ -85,7 +91,7 @@ export const HEROES: Hero[] = [
       'Never seen at the act. A doll, a strand of hair, a name said the wrong number of times, and a person three towns away sits down and does not get up.',
     role: 'mystic',
     emoji: '🪡',
-    palette: { skin: '#8a6a4f', cloth: '#4a2b4d', accent: '#d94f6a', hair: '#1a1418' },
+    palette: { skin: '#b07f57', cloth: '#7a3fa8', accent: '#ff5f8f', hair: '#1a1418' },
     // Lowest health in the roster. Everything this hero does is at range and
     // delayed, so the counter has to be closing the distance.
     // Small and swamped by a robe, with the working bag always on them.
@@ -147,7 +153,7 @@ export const HEROES: Hero[] = [
       'By day it is a neighbour who asks after your mother. The tell is the reflection: look at its eyes in water and you are standing upside down in them.',
     role: 'stalker',
     emoji: '🦇',
-    palette: { skin: '#7d5b47', cloth: '#2b2430', accent: '#8f2f3f', hair: '#0f0d10' },
+    palette: { skin: '#9a6a4f', cloth: '#3a2f4a', accent: '#e03a4a', hair: '#0f0d10' },
     // Lean and low. Blades out, because it never fights anything facing it.
     build: { scale: 0.98, bulk: 0.82, gear: ['knives'] },
     health: 780,
@@ -207,7 +213,7 @@ export const HEROES: Hero[] = [
       'Ask before you cut the tree. Say tabi-tabi po before you cross the mound. She is not unkind, she is simply owed a courtesy nobody remembers to pay.',
     role: 'warden',
     emoji: '🌿',
-    palette: { skin: '#c49a6c', cloth: '#2f7d5f', accent: '#e8d07a', hair: '#3a2a1e' },
+    palette: { skin: '#e0b98a', cloth: '#2fae7a', accent: '#ffe98a', hair: '#4a3220' },
     // Upright and still, wrapped in something that moves when she does.
     build: { scale: 1.04, bulk: 0.95, gear: ['cape'] },
     health: 860,
@@ -265,7 +271,7 @@ export const HEROES: Hero[] = [
       'He stands in the gap in the Montalban range with a hand on each cliff. When he shifts his shoulders, the ground in Manila moves. He has been getting free for a very long time.',
     role: 'ranger',
     emoji: '⛰',
-    palette: { skin: '#a06a45', cloth: '#6b5030', accent: '#9aa5ad', hair: '#20160f' },
+    palette: { skin: '#c08a58', cloth: '#c96a2f', accent: '#cfd8de', hair: '#20160f' },
     // Broad through the shoulders, and the only one at range with something
     // in both hands.
     build: { scale: 1.14, bulk: 1.18, gear: ['crossbow'] },

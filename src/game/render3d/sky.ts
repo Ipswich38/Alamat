@@ -18,18 +18,19 @@ import * as THREE from 'three';
 
 /** Colours of the dome, ground up. Saturated on purpose: this sets the palette. */
 // ── THE COLOUR STORY ────────────────────────────────────────────────────────
-// A humid forest at dusk. One dominant hue with warm light cutting through it,
-// which is how every stylised game worth copying handles atmosphere: a bright
-// neutral daylight makes a scene accurate and dull, because nothing in it is
-// pulled toward anything.
+// ⚠ BRIGHT DAYLIGHT, and this reversed a previous decision. A twilight scene
+// was built first, on a dark atmospheric reference, and it failed for a reason
+// that outranks mood: THE CHARACTERS DISAPPEARED. In a game where you must read
+// five bodies and a thrown skillshot at a glance, a dark scene with dark heroes
+// is unplayable however good it looks in a still.
 //
-// It is also the right choice for the subject. This is folklore, and every
-// creature in it is one you meet at twilight.
-const HORIZON = new THREE.Color('#7fbfa8');
-const MID = new THREE.Color('#2f7f86');
-const ZENITH = new THREE.Color('#123f52');
+// The look still comes from a chosen palette rather than neutral daylight, it
+// is simply chosen at the bright end: warm sun, cool sky, saturated ground.
+const HORIZON = new THREE.Color('#d6f0e4');
+const MID = new THREE.Color('#79c8e0');
+const ZENITH = new THREE.Color('#3d94cf');
 /** What the ground bounces back up: damp, dark, green. */
-const GROUND_BOUNCE = new THREE.Color('#22402f');
+const GROUND_BOUNCE = new THREE.Color('#6f8a55');
 
 export interface SkyResult {
   dome: THREE.Mesh;

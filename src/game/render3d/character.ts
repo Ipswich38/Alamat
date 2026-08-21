@@ -149,7 +149,12 @@ export function paletteTexture(hero: Hero): THREE.CanvasTexture {
     skin: hero.palette.skin,
     skinShade: shade(hero.palette.skin, -0.07),
     hair: hero.palette.hair,
-    cap: hero.palette.hair,
+    // ⚠ THE HOOD IS THE HERO'S OUTFIT, NOT THEIR HAIR. From a camera looking
+    // down at the field, the hood is the single largest area of a character on
+    // screen: it is most of what a player actually sees. Mapping it to hair
+    // made every hero a black blob from above no matter what palette they had,
+    // which is why five distinctly coloured heroes still read as one person.
+    cap: hero.palette.cloth,
     cloth: hero.palette.cloth,
     clothShade: shade(hero.palette.cloth, -0.1),
     trousers: shade(hero.palette.cloth, -0.16),
@@ -158,6 +163,8 @@ export function paletteTexture(hero: Hero): THREE.CanvasTexture {
     // make a character read as a costume rather than as a person wearing things.
     metal: '#8b949a',
     dark: '#191d1f',
+    // Straps, belts and trim. The accent goes here so each hero carries a
+    // second identifying colour that reads at distance.
     neutral: hero.palette.accent,
   };
 
