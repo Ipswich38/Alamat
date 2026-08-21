@@ -25,6 +25,9 @@ export const HEROES: Hero[] = [
     palette: { skin: '#6b4a35', cloth: '#3f5a4a', accent: '#c9a227', hair: '#241a14' },
     // The tankiest and the slowest to act. A vanguard that is also quick has no
     // weakness, and every fight becomes about who has one.
+    // The tallest and heaviest thing on the field, carrying nothing: a
+    // vanguard's threat is its own body.
+    build: { scale: 1.22, bulk: 1.25, gear: [] },
     health: 1150,
     speed: 6.2,
     attack: 62,
@@ -85,6 +88,8 @@ export const HEROES: Hero[] = [
     palette: { skin: '#8a6a4f', cloth: '#4a2b4d', accent: '#d94f6a', hair: '#1a1418' },
     // Lowest health in the roster. Everything this hero does is at range and
     // delayed, so the counter has to be closing the distance.
+    // Small and swamped by a robe, with the working bag always on them.
+    build: { scale: 0.94, bulk: 0.92, gear: ['cape', 'pouch'] },
     health: 720,
     speed: 6.0,
     attack: 48,
@@ -143,6 +148,8 @@ export const HEROES: Hero[] = [
     role: 'stalker',
     emoji: '🦇',
     palette: { skin: '#7d5b47', cloth: '#2b2430', accent: '#8f2f3f', hair: '#0f0d10' },
+    // Lean and low. Blades out, because it never fights anything facing it.
+    build: { scale: 0.98, bulk: 0.82, gear: ['knives'] },
     health: 780,
     // The fastest thing in the game and the most fragile. Nothing here can win
     // a fight it did not choose.
@@ -201,6 +208,8 @@ export const HEROES: Hero[] = [
     role: 'warden',
     emoji: '🌿',
     palette: { skin: '#c49a6c', cloth: '#2f7d5f', accent: '#e8d07a', hair: '#3a2a1e' },
+    // Upright and still, wrapped in something that moves when she does.
+    build: { scale: 1.04, bulk: 0.95, gear: ['cape'] },
     health: 860,
     speed: 6.4,
     attack: 44,
@@ -257,6 +266,9 @@ export const HEROES: Hero[] = [
     role: 'ranger',
     emoji: '⛰',
     palette: { skin: '#a06a45', cloth: '#6b5030', accent: '#9aa5ad', hair: '#20160f' },
+    // Broad through the shoulders, and the only one at range with something
+    // in both hands.
+    build: { scale: 1.14, bulk: 1.18, gear: ['crossbow'] },
     health: 820,
     speed: 6.1,
     attack: 66,

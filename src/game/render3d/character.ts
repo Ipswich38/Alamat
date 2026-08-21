@@ -116,6 +116,21 @@ const DRESSING: ReadonlySet<string> = new Set([
   'Rogue_Cape',
 ]);
 
+/**
+ * Which node each gear slot turns on.
+ *
+ * Everything in DRESSING is hidden by default and a hero reveals only what
+ * belongs to them. It is a small amount of silhouette from a shared body, and
+ * small is not nothing: a robe, a pair of blades or a slung weapon is what the
+ * eye reads before it reads a colour.
+ */
+const GEAR_NODES: Record<string, string[]> = {
+  cape: ['Rogue_Cape'],
+  knives: ['Knife', 'Knife_Offhand'],
+  crossbow: ['2H_Crossbow'],
+  pouch: ['Throwable'],
+};
+
 function shade(hex: string, amount: number): string {
   const c = new THREE.Color(hex);
   c.offsetHSL(0, 0, amount);
@@ -197,13 +212,15 @@ export async function createCharacter(url: string, hero: Hero): Promise<Characte
     metalness: 0.02,
   });
 
+  const worn = new Set(hero.build.gear.flatMap((g) => GEAR_NODES[g] ?? []));
+
   object.traverse((n) => {
     const m = n as THREE.Mesh;
     if (!m.isMesh) return;
-    // The adventurer's own gear, which belongs to nobody here.
+    // The adventurer's own kit: hidden unless this hero is carrying it.
     if (DRESSING.has(m.name)) {
-      m.visible = false;
-      return;
+      m.visible = worn.has(m.name);
+      if (!m.visible) return;
     }
     m.material = material;
     m.castShadow = true;
@@ -212,6 +229,17 @@ export async function createCharacter(url: string, hero: Hero): Promise<Characte
     // moment an animation moves them out of it. They are never off-screen here.
     m.frustumCulled = false;
   });
+
+  // ⚠ SCALE THE WRAPPER, NOT THE MODEL. Scaling the skinned object itself
+  // fights the skeleton and the bind pose, and bulk is applied on X and Z only
+  // so a heavy hero gets wider rather than taller.
+  const rig = new THREE.Group();
+  rig.add(object);
+  object.scale.set(
+    hero.build.scale * hero.build.bulk,
+    hero.build.scale,
+    hero.build.scale * hero.build.bulk
+  );
 
   const mixer = new THREE.AnimationMixer(object);
   const actions = new Map<Motion, THREE.AnimationAction>();
@@ -241,12 +269,12 @@ export async function createCharacter(url: string, hero: Hero): Promise<Characte
   play('idle', 0);
 
   return {
-    object,
+    object: rig,
     update: (dt) => mixer.update(dt),
     play,
-    setPosition: (x, y, z) => object.position.set(x, y, z),
+    setPosition: (x, y, z) => rig.position.set(x, y, z),
     setFacing: (radians) => {
-      object.rotation.y = radians;
+      rig.rotation.y = radians;
     },
     dispose: () => {
       mixer.stopAllAction();

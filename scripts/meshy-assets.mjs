@@ -47,6 +47,22 @@ export const ASSETS = {
       'Dark weathered hardwood with pale cracks, grey river stone, patches of green moss, ' +
       'faded red ochre pigment worn into the carved lines.',
   },
+  // ⚠ CHARACTER PROMPTS ARE DIFFERENT FROM PROP PROMPTS. A rig needs limbs it
+  // can find, so the pose is stated explicitly and the silhouette is kept clear
+  // of the body. Anything clutched to the chest or wrapped around the legs
+  // gives an auto-rigger nothing to work with.
+  tikbalang: {
+    dir: `${OUT_DIR}/heroes`,
+    prompt:
+      'Stylised game character, single figure, standing in a neutral A-pose with arms held away ' +
+      'from the body and legs slightly apart, facing forward, full body, clean readable silhouette. ' +
+      'The Tikbalang of Philippine folklore: a tall lean humanoid with the head of a horse, long ' +
+      'bony limbs, backward-bent digitigrade legs ending in hooves, a black mane running down its ' +
+      'neck and spine, wearing a simple woven rattan chest harness and a loincloth, no weapons.',
+    texture:
+      'Dark brown horse head with a black mane, weathered tan skin over lean muscle, natural woven ' +
+      'rattan in pale straw colour, faded indigo loincloth, matte and earthy.',
+  },
   bakunawa: {
     dir: `${OUT_DIR}/creatures`,
     prompt:

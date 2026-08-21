@@ -63,6 +63,22 @@ export interface Hero {
   emoji: string;
   /** Flat-shaded palette, so one rigged model serves every hero. See render3d. */
   palette: { skin: string; cloth: string; accent: string; hair: string };
+  /**
+   * How this hero is BUILT, as distinct from how they are coloured.
+   *
+   * ⚠ COLOUR ALONE IS NOT A ROSTER. Five palette swaps of one body read as one
+   * person in five shirts, which is exactly what the first version was and
+   * exactly what a player notices first. Until every hero has its own mesh,
+   * silhouette has to come from proportion and from what they carry.
+   */
+  build: {
+    /** Overall height multiplier. */
+    scale: number;
+    /** Widens the body without changing height, for heavy roles. */
+    bulk: number;
+    /** Gear nodes from the shared model to reveal. See render3d/character. */
+    gear: ('cape' | 'knives' | 'crossbow' | 'pouch')[];
+  };
   health: number;
   /** World units per second. */
   speed: number;
