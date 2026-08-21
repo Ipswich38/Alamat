@@ -216,6 +216,10 @@ export const HEROES: Hero[] = [
   {
     id: 'diwata',
     name: 'Diwata',
+    model: {
+      rigged: '/models/heroes/diwata-rigged.glb',
+      walk: '/models/heroes/diwata-walk.glb',
+    },
     origin: 'The keeper of a place that was there first',
     lore:
       'Ask before you cut the tree. Say tabi-tabi po before you cross the mound. She is not unkind, she is simply owed a courtesy nobody remembers to pay.',

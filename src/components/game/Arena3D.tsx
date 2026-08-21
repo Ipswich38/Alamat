@@ -10,14 +10,14 @@
 // nothing; arriving there costs a refactor.
 
 import React, { useEffect, useRef, useState } from 'react';
-import { HEROES, heroById, type Hero } from '@/game/heroes';
+import { HEROES, type Hero } from '@/game/heroes';
 import { OBSTACLES, SPAWNS, resolvePosition } from '@/game/arena/layout';
 import { createStage } from '@/game/render3d/stage';
 import { buildArena, fadeCanopies } from '@/game/render3d/arena';
 import { loadModel } from '@/game/render3d/models';
 import { createSantelmo } from '@/game/render3d/santelmo';
-import { ROLE_RADIUS } from '@/game/render3d/fighter';
-import { createCharacter, type Character } from '@/game/render3d/character';
+import { createActor, type Actor } from '@/game/render3d/actor';
+import { KAPRE } from '@/game/combat/foes';
 
 /**
  * How many world units tall the view is. Smaller is closer in.
@@ -32,7 +32,14 @@ const VIEW_HEIGHT = 15;
 
 export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [hero, setHero] = useState<Hero>(() => heroById(heroId) ?? HEROES[0]);
+  // ⚠ ONLY HEROES WITH A REAL MODEL ARE PLAYABLE. The shared adventurer that
+  // stood in for the rest is gone, along with its palette atlas: five recolours
+  // of one body read as one person, and a placeholder that lies about the
+  // roster is worse than a shorter roster.
+  const playable = HEROES.filter((h) => h.model);
+  const [hero, setHero] = useState<Hero>(
+    () => playable.find((h) => h.id === heroId) ?? playable[0]
+  );
   const [fps, setFps] = useState(0);
   // Read inside the frame loop, which must not be torn down when the hero
   // changes: a ref is how a value crosses from React into a running loop.
@@ -84,31 +91,45 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
 
     // Loaded asynchronously, so the frame loop has to cope with there being no
     // body yet. It starts immediately and the arena is already on screen.
-    let character: Character | null = null;
+    let player: Actor | null = null;
     let builtFor = hero.id;
     let disposed = false;
 
-    const swapTo = (h: typeof hero) => {
+    const swapTo = (h: Hero) => {
+      if (!h.model) return;
       builtFor = h.id;
-      createCharacter('/models/characters/adventurer.glb', h).then((next) => {
-        if (disposed) {
+      createActor({ ...h.model, height: 1.75 * h.build.scale }).then((next) => {
+        if (disposed || builtFor !== h.id) {
           next.dispose();
           return;
         }
-        // A second swap may have been requested while this one was loading.
-        if (builtFor !== h.id) {
-          next.dispose();
-          return;
+        if (player) {
+          stage.scene.remove(player.object);
+          player.dispose();
         }
-        if (character) {
-          stage.scene.remove(character.object);
-          character.dispose();
-        }
-        character = next;
+        player = next;
         stage.scene.add(next.object);
       });
     };
     swapTo(hero);
+
+    // ── the Kapre ─────────────────────────────────────────────────────────
+    // The first thing in this game that is not the player. It stands in the
+    // arena, notices you inside its awareness, and closes until it is within
+    // reach. It cannot hurt you yet, because nothing can hurt anything yet.
+    let foe: Actor | null = null;
+    let fx = 8;
+    let fz = -8;
+    let fFacing = 0;
+    createActor(KAPRE.model).then((a) => {
+      if (disposed) {
+        a.dispose();
+        return;
+      }
+      foe = a;
+      a.setPosition(fx, 0, fz);
+      stage.scene.add(a.object);
+    });
 
     // ?at=8,-4 drops the player on a chosen tile, for looking at a hero
     // somewhere that is not behind a bush.
@@ -170,20 +191,39 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         const next = resolvePosition(
           px + (dx / len) * step,
           pz + (dz / len) * step,
-          ROLE_RADIUS[want.role]
+          0.7
         );
         px = next.x;
         pz = next.z;
         heading = Math.atan2(dx, dz);
       }
 
-      if (character) {
-        character.setPosition(px, 0, pz);
-        character.setFacing(heading);
-        // Run is the only speed for now; walk comes back when there is a reason
-        // to move slowly, which is aiming.
-        character.play(moving ? 'run' : 'idle');
-        character.update(dt);
+      if (foe) {
+        const dx = px - fx;
+        const dz = pz - fz;
+        const gap = Math.hypot(dx, dz);
+        // Notices you, closes, stops at reach. Three numbers and it already
+        // reads as a creature deciding something.
+        const closing = gap < KAPRE.awareness && gap > KAPRE.reach;
+        if (closing) {
+          const step = (KAPRE.speed * dt) / gap;
+          fx += dx * step;
+          fz += dz * step;
+        }
+        // Always turns to face you, even when standing still, which is what
+        // makes a thing feel aware rather than idle.
+        if (gap > 0.1) fFacing = Math.atan2(dx, dz);
+        foe.setPosition(fx, 0, fz);
+        foe.setFacing(fFacing);
+        foe.play(closing ? 'walk' : 'idle');
+        foe.update(dt);
+      }
+
+      if (player) {
+        player.setPosition(px, 0, pz);
+        player.setFacing(heading);
+        player.play(moving ? 'run' : 'idle');
+        player.update(dt);
       }
       fadeCanopies(px, pz, dt);
       santelmo.update(clock);
@@ -207,7 +247,8 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       window.removeEventListener('keyup', onUp);
       window.removeEventListener('resize', onResize);
       santelmo.dispose();
-      character?.dispose();
+      player?.dispose();
+      foe?.dispose();
       stage.dispose();
     };
     // Built once. The hero is read through a ref so that changing it does not
@@ -228,7 +269,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       </div>
 
       <div style={picker}>
-        {HEROES.map((h) => (
+        {playable.map((h) => (
           <button
             key={h.id}
             onClick={() => setHero(h)}

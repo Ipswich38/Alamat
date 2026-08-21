@@ -129,6 +129,30 @@ export const ASSETS = {
       'Hand-painted stylised texturing, glossy black obsidian with sharp facets, charred wood, ' +
       'rusted iron bands, glowing molten orange cracks, intense red crystal at the crown.',
   },
+  diwata: {
+    dir: `${OUT_DIR}/heroes`,
+    // ⚠ "FLOATING POSE" WAS REMOVED FROM THE REFERENCE PROMPT. The auto-rigger
+    // works by finding a human skeleton, and it already refused one character
+    // this week for having non-human legs. A figure with its feet off the
+    // ground and its weight nowhere is the same class of risk, and losing the
+    // rig would cost more than losing the pose.
+    //
+    // The ethereal reading is kept by the WINGS and the glow rather than by the
+    // stance, and a floating idle can be animated later by lifting the whole
+    // rig, which is a transform rather than a mesh problem.
+    prompt:
+      'Stylised 3D MOBA character model of a Diwata, Philippine forest fairy goddess, League of ' +
+      'Legends character design, semi-realistic stylised art style. Standing upright on two legs, ' +
+      'neutral A-pose, arms held away from the body, legs straight and slightly apart, facing ' +
+      'forward. Vibrant nature armour of woven leaves with gold trim, glowing ethereal flora, ' +
+      'translucent iridescent butterfly wings held back from the shoulders, holding a wooden staff ' +
+      'entwined with glowing vines and sampaguita flowers. Clean geometry, clean readable ' +
+      'silhouette, game-ready character mesh, A-pose, no base, no pedestal, no stand.',
+    texture:
+      'Hand-painted stylised texturing, warm golden-brown skin, emerald woven leaf armour with gold ' +
+      'trim, translucent iridescent wings shading violet to teal, glowing pale green vines, white ' +
+      'sampaguita blossoms, saturated and clean, not photorealistic.',
+  },
   bakunawa: {
     dir: `${OUT_DIR}/creatures`,
     prompt:
