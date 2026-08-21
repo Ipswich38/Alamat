@@ -11,7 +11,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { HEROES, heroById, type Hero } from '@/game/heroes';
-import { SPAWNS, resolvePosition } from '@/game/arena/layout';
+import { OBSTACLES, SPAWNS, resolvePosition } from '@/game/arena/layout';
 import { createStage } from '@/game/render3d/stage';
 import { buildArena, fadeCanopies } from '@/game/render3d/arena';
 import { loadModel } from '@/game/render3d/models';
@@ -50,6 +50,24 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     stage.setViewHeight(Number.isFinite(zoomParam) && zoomParam > 0 ? zoomParam : VIEW_HEIGHT);
     const arena = buildArena();
     stage.scene.add(arena);
+
+    // Generated set pieces replace their procedural stand-ins on arrival. The
+    // arena stays playable in the meantime, and stays playable if they never
+    // load at all: a missing several-megabyte model must not leave a hole.
+    loadModel('/models/props/towerDiwata.glb', { height: 5.2 }).then((tower) => {
+      if (!tower || disposed) return;
+      for (const o of OBSTACLES) {
+        if (!o.tall || o.radius > 2) continue;
+        const built = tower.clone(true);
+        built.position.set(o.x, 0, o.z);
+        // Turned by position so a row of them is not all facing one way.
+        built.rotation.y = o.x * 0.7 + o.z;
+        stage.scene.add(built);
+      }
+      for (const n of [...arena.children]) {
+        if (n.name === 'shrine-placeholder') n.removeFromParent();
+      }
+    });
 
     const santelmo = createSantelmo();
     stage.scene.add(santelmo.group);

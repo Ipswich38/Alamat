@@ -96,6 +96,39 @@ export const ASSETS = {
       'gold trim, glowing violet runic filigree, magenta gem accents, glowing purple dagger blades, ' +
       'saturated and clean, no photoreal grain.',
   },
+  // ── MAP SET PIECES ────────────────────────────────────────────────────────
+  // ⚠ EXTRACTED FROM SCENE DESCRIPTIONS, NEVER FED ONE. "A wide circular plaza
+  // with balete trees and ruins" is a SCENE, and a generator returns a lumpy
+  // mound for a scene: that is what happened to the first balete. Each entry
+  // below is ONE OBJECT lifted out of a location description, which is the form
+  // this tool actually succeeds at.
+  //
+  // Towers first because there are eighteen of them on a map and they are the
+  // single highest-leverage thing on it.
+  towerDiwata: {
+    dir: `${OUT_DIR}/props`,
+    prompt:
+      'Stylised 3D game prop, single object, a celestial guardian tower. A tall carved column of ' +
+      'pale white stone and warm natural wood, wrapped in intricate geometric sun motifs, topped ' +
+      'with a small glowing spirit totem carved as a serene face. Gold banding, a ring of floating ' +
+      'stone shards near the crown. Standing upright, clean readable silhouette, seen from above at ' +
+      'a shallow angle. No ground, no base plinth, no terrain, no background.',
+    texture:
+      'Hand-painted stylised texturing, warm cream limestone with gold inlay, honey-toned carved ' +
+      'wood, glowing pale blue spirit light at the crown, clean saturated colours.',
+  },
+  towerAswang: {
+    dir: `${OUT_DIR}/props`,
+    prompt:
+      'Stylised 3D game prop, single object, a menacing volcanic guardian tower. A jagged spire of ' +
+      'razor-sharp black obsidian and charred dark wood, bound with rusted iron, topped with a ' +
+      'glowing red rune-carved crystal eye. Cracks of molten lava run up the shaft. Standing ' +
+      'upright, clean readable silhouette, seen from above at a shallow angle. No ground, no base ' +
+      'plinth, no terrain, no background.',
+    texture:
+      'Hand-painted stylised texturing, glossy black obsidian with sharp facets, charred wood, ' +
+      'rusted iron bands, glowing molten orange cracks, intense red crystal at the crown.',
+  },
   bakunawa: {
     dir: `${OUT_DIR}/creatures`,
     prompt:

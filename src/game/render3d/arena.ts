@@ -402,6 +402,8 @@ function balete(x: number, z: number, radius: number): THREE.Group {
 /** A carved anito post. Tall enough to break line of sight. */
 function shrine(x: number, z: number, radius: number): THREE.Group {
   const g = new THREE.Group();
+  // Named so a generated tower can find and remove it on arrival.
+  g.name = 'shrine-placeholder';
   g.position.set(x, 0, z);
 
   const base = new THREE.Mesh(
