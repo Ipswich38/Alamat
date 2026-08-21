@@ -1,0 +1,10 @@
+{
+  "id": "aswang",
+  "mode": "refine",
+  "previewTaskId": "01a024d6-67f1-77d1-920a-bbc5c3947f52",
+  "refineTaskId": "01a024d8-0387-7858-91bd-8b8b52309d8f",
+  "thumbnail": "https://assets.meshy.ai/781feef8-5f74-48d1-945f-37bf5ee63e8e/tasks/01a024d8-0387-7858-91bd-8b8b52309d8f/output/preview.png?Expires=4940870400&Signature=Y1vAHivx0VV0AxHsTX2I8BLDvmLec~cnrqaH2VMUs8694mCt0Z1OQ3rwVCsgh91P6t5qYNBCNlXh5~oCcbEuTAjpSgfdIBaMc-5-uPawoUuHi2SdGJPcRReII-xM9DMuzN3F7JfNn9k~3waeBwpdhJd25wLPcxcY9FdAj5WSvIGINk02Je4vvTjyfggDCrJkNks4Su3ZwbRFQorMxzoqL5Vol8JbpAiAAoLk8PTHG~-TLF4HlC0uhxHjgb9tIfRCWOjOdtaJZpi9ArIfGZx~Vzc~xqX~vkbr8mfyZ6L36g79dAwdVfyW0LDxxlDuZkXuavatkq-h3EQS--m-daIy0g__&Key-Pair-Id=K1VGYTHIYLM9UM",
+  "prompt": "Stylised 3D MOBA character model, cute friendly Aswang, bat-like anthropomorphic creature with soft feline facial features and expressive big amber eyes, large pointed bat ears. Standing upright on two legs like a person, neutral A-pose, arms held away from the body, legs straight and slightly apart, facing forward. Bat wings folded back close against the shoulders, long tufted tail. Agile athletic assassin build. Wearing ornate tribal-fantasy leather and purple scaled armour with glowing arcane filigree and gem accents. Dual-wielding curved daggers. Clean readable silhouette, game-ready character mesh, A-pose, no base, no pedestal, no stand.",
+  "bytes": 8850040,
+  "rigTaskId": "01a024d9-7e8a-78af-a1dc-35d0f31ad7df"
+}

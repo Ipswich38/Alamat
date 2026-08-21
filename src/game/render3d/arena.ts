@@ -59,7 +59,40 @@ function rand(i: number, salt: number): number {
   return x - Math.floor(x);
 }
 
+/**
+ * Canopies that must get out of the way when the player walks under them.
+ *
+ * ⚠ A TREE THAT HIDES THE PLAYER IS A BROKEN TREE. The camera looks down at a
+ * shallow angle, so anything with a wide canopy sits directly between it and
+ * whoever is standing beneath. The balete is at the centre of the arena, which
+ * is the one place both players are meant to contest, so this is not an edge
+ * case: it is the most important ground on the map.
+ *
+ * Fading rather than hiding, because a canopy that pops out of existence reads
+ * as a rendering fault, and fading keeps the tree legible as cover.
+ */
+const FADEABLE: THREE.Mesh[] = [];
+
+/** How close the player has to be, in tiles, before a canopy starts to fade. */
+const FADE_RADIUS = 5.5;
+
+/** Call once a frame with the player's position. */
+export function fadeCanopies(px: number, pz: number, dt: number): void {
+  for (const mesh of FADEABLE) {
+    const owner = mesh.userData.owner as { x: number; z: number };
+    const d = Math.hypot(px - owner.x, pz - owner.z);
+    const want = d < FADE_RADIUS ? 0.22 : 1;
+    const mat = mesh.material as THREE.MeshStandardMaterial;
+    mat.opacity += (want - mat.opacity) * Math.min(1, dt * 8);
+    // Transparency is only switched on while it is actually needed: a
+    // transparent material is sorted and blended every frame even at opacity 1.
+    mat.transparent = mat.opacity < 0.99;
+    mat.depthWrite = !mat.transparent;
+  }
+}
+
 export function buildArena(): THREE.Group {
+  FADEABLE.length = 0;
   const group = new THREE.Group();
   group.name = 'arena';
 
@@ -352,10 +385,14 @@ function balete(x: number, z: number, radius: number): THREE.Group {
     [radius * 1.1, 11.0, -radius * 0.3, 0.7],
     [-radius * 0.2, 8.9, -radius * 0.2, 1.0],
   ]) {
-    const mesh = new THREE.Mesh(canopy, canopyMat);
+    // Its own material instance per blob, because opacity is animated per mesh
+    // and a shared material would fade every tree in the arena at once.
+    const mesh = new THREE.Mesh(canopy, canopyMat.clone());
     mesh.position.set(ox, oy, oz);
     mesh.scale.setScalar(s);
     mesh.castShadow = true;
+    mesh.userData.owner = { x, z };
+    FADEABLE.push(mesh);
     g.add(mesh);
   }
 

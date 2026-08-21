@@ -72,6 +72,30 @@ export const ASSETS = {
       'carved oak wood armour with bronze trim, green woven leaves, glowing jade green spear blade, ' +
       'clean saturated colours, no photoreal grain.',
   },
+  aswang: {
+    dir: `${OUT_DIR}/heroes`,
+    // ⚠ NO PEDESTAL. The reference prompt asked for "a simple flat pedestal",
+    // which a generator models as GEOMETRY welded to the feet: a hero who
+    // stands on a disc forever. Portfolio-render wording has to be stripped out
+    // of anything destined for a game engine.
+    //
+    // ⚠ WINGS ARE A RIGGING RISK for the same reason horse legs were. Anything
+    // large held away from the torso can confuse pose estimation, so the biped
+    // stance is stated twice and the wings are described as FOLDED BACK.
+    prompt:
+      'Stylised 3D MOBA character model, cute friendly Aswang, bat-like anthropomorphic creature ' +
+      'with soft feline facial features and expressive big amber eyes, large pointed bat ears. ' +
+      'Standing upright on two legs like a person, neutral A-pose, arms held away from the body, ' +
+      'legs straight and slightly apart, facing forward. Bat wings folded back close against the ' +
+      'shoulders, long tufted tail. Agile athletic assassin build. Wearing ornate tribal-fantasy ' +
+      'leather and purple scaled armour with glowing arcane filigree and gem accents. Dual-wielding ' +
+      'curved daggers. Clean readable silhouette, game-ready character mesh, A-pose, no base, ' +
+      'no pedestal, no stand.',
+    texture:
+      'Vibrant hand-painted stylised texturing, dusky grey-brown fur, deep purple scaled armour with ' +
+      'gold trim, glowing violet runic filigree, magenta gem accents, glowing purple dagger blades, ' +
+      'saturated and clean, no photoreal grain.',
+  },
   bakunawa: {
     dir: `${OUT_DIR}/creatures`,
     prompt:

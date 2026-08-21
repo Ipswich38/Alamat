@@ -152,6 +152,10 @@ export const HEROES: Hero[] = [
   {
     id: 'aswang',
     name: 'Aswang',
+    model: {
+      rigged: '/models/heroes/aswang-rigged.glb',
+      walk: '/models/heroes/aswang-walk.glb',
+    },
     origin: 'The shape that is not the shape you saw',
     lore:
       'By day it is a neighbour who asks after your mother. The tell is the reflection: look at its eyes in water and you are standing upside down in them.',

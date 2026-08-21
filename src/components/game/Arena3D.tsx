@@ -13,7 +13,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { HEROES, heroById, type Hero } from '@/game/heroes';
 import { SPAWNS, resolvePosition } from '@/game/arena/layout';
 import { createStage } from '@/game/render3d/stage';
-import { buildArena } from '@/game/render3d/arena';
+import { buildArena, fadeCanopies } from '@/game/render3d/arena';
 import { loadModel } from '@/game/render3d/models';
 import { createSantelmo } from '@/game/render3d/santelmo';
 import { ROLE_RADIUS } from '@/game/render3d/fighter';
@@ -92,8 +92,12 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     };
     swapTo(hero);
 
-    let px = SPAWNS.home.x;
-    let pz = SPAWNS.home.z;
+    // ?at=8,-4 drops the player on a chosen tile, for looking at a hero
+    // somewhere that is not behind a bush.
+    const atParam = new URLSearchParams(window.location.search).get('at');
+    const at = atParam?.split(',').map(Number);
+    let px = at && at.length === 2 && at.every(Number.isFinite) ? at[0] : SPAWNS.home.x;
+    let pz = at && at.length === 2 && at.every(Number.isFinite) ? at[1] : SPAWNS.home.z;
     let heading = Math.PI * 0.75;
 
     const keys = new Set<string>();
@@ -163,6 +167,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         character.play(moving ? 'run' : 'idle');
         character.update(dt);
       }
+      fadeCanopies(px, pz, dt);
       santelmo.update(clock);
       stage.lookAtGround(px, pz);
       stage.render();
