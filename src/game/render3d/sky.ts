@@ -17,11 +17,19 @@
 import * as THREE from 'three';
 
 /** Colours of the dome, ground up. Saturated on purpose: this sets the palette. */
-const HORIZON = new THREE.Color('#cfe9ea');
-const MID = new THREE.Color('#7fc6e8');
-const ZENITH = new THREE.Color('#3f8fd4');
-/** What the ground bounces back up. Warm, because the arena is grass and earth. */
-const GROUND_BOUNCE = new THREE.Color('#6b7a4a');
+// ── THE COLOUR STORY ────────────────────────────────────────────────────────
+// A humid forest at dusk. One dominant hue with warm light cutting through it,
+// which is how every stylised game worth copying handles atmosphere: a bright
+// neutral daylight makes a scene accurate and dull, because nothing in it is
+// pulled toward anything.
+//
+// It is also the right choice for the subject. This is folklore, and every
+// creature in it is one you meet at twilight.
+const HORIZON = new THREE.Color('#7fbfa8');
+const MID = new THREE.Color('#2f7f86');
+const ZENITH = new THREE.Color('#123f52');
+/** What the ground bounces back up: damp, dark, green. */
+const GROUND_BOUNCE = new THREE.Color('#22402f');
 
 export interface SkyResult {
   dome: THREE.Mesh;

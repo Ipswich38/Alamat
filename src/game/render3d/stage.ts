@@ -32,10 +32,37 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { createSky } from './sky';
+import { createGradePass } from './grade';
 
 export type Quality = 'high' | 'low';
 
+/** The dials that decide the look. Live, so they can be tuned by eye. */
+export interface Mood {
+  exposure: number;
+  fogNear: number;
+  fogFar: number;
+  vignette: number;
+  saturation: number;
+  contrast: number;
+  gradeStrength: number;
+  sun: number;
+  rim: number;
+}
+
+export const DEFAULT_MOOD: Mood = {
+  exposure: 1.18,
+  fogNear: 58,
+  fogFar: 112,
+  vignette: 0.5,
+  saturation: 1.12,
+  contrast: 1.14,
+  gradeStrength: 0.38,
+  sun: 3.6,
+  rim: 2.6,
+};
+
 export interface Stage {
+  setMood(m: Mood): void;
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   camera: THREE.OrthographicCamera;
@@ -67,7 +94,12 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   // everything between black and white, and at exposure 1.0 a scene that looked
   // correct un-graded comes out muddy. The exposure and the light intensities
   // below are set TOGETHER against the tone curve, not independently.
-  renderer.toneMappingExposure = 1.45;
+  // ⚠ THE REFERENCE LOOK IS DARK WITH BRIGHT ACCENTS, not evenly lit. Two
+  // earlier passes missed by pushing exposure up until the scene was readable
+  // everywhere, which produces a flat, uniformly saturated picture. Most of the
+  // frame should sit in the lower half of the range so the santelmo, the rim
+  // light and the key have somewhere to be bright against.
+  renderer.toneMappingExposure = 1.18;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   const scene = new THREE.Scene();
@@ -77,8 +109,17 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   scene.environment = sky.environment;
   // Fog matched to the horizon colour so distance dissolves into the sky
   // instead of ending at a visible edge. This is the whole of "atmosphere".
-  // Starts beyond the far wall, so it softens the treeline and NOT the arena.
-  scene.fog = new THREE.Fog(0xcfe9ea, 72, 150);
+  // ⚠ THE FOG IS THE ART DIRECTION, not a distance cull. Pulled in close and
+  // coloured, it is what makes the treeline dissolve into atmosphere and gives
+  // the picture depth. A far, pale fog only trims the horizon and changes
+  // nothing about how the scene reads.
+  // ⚠ LINEAR, AND IT STARTS PAST THE ARENA. Exponential fog drowned the whole
+  // picture, and the reason is the camera: an orthographic view sitting 47
+  // units back means the ground the player is standing on is ALREADY at depth
+  // 47, so a density tuned for "distance" fogged the foreground just as hard.
+  // Linear fog with a near plane beyond the far wall keeps the fight clear and
+  // dissolves only the treeline, which is where atmosphere belongs.
+  scene.fog = new THREE.Fog(0x2f7f86, 58, 112);
 
   let viewHeight = 21;
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 400);
@@ -87,8 +128,10 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
 
   // The sun. Warm, and the only shadow caster: a second casting light doubles
   // the most expensive thing in the frame and looks worse, not better.
-  const sun = new THREE.DirectionalLight(0xfff1d0, 3.3);
-  sun.position.set(18, 30, 12);
+  // Low and warm, cutting across the arena rather than shining down it. A key
+  // light straight overhead flattens every form it touches.
+  const sun = new THREE.DirectionalLight(0xffd9a0, 3.6);
+  sun.position.set(24, 20, 10);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   const s = 26;
@@ -104,10 +147,21 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   scene.add(sun);
   scene.add(sun.target);
 
-  // A dim cool fill from the opposite side. Not a shadow caster: it exists only
-  // so the shaded side of a body is blue-grey rather than dead.
-  const fill = new THREE.DirectionalLight(0xa8cfe8, 0.75);
-  fill.position.set(-16, 10, -14);
+  // ⚠ THE RIM IS WHY CHARACTERS POP, and it was missing for three passes of
+  // look-tuning because an edit silently failed to match. It comes from BEHIND
+  // and opposite the key, so it catches the far edge of every body and
+  // separates it from whatever it is standing in front of. Every reference this
+  // game is aiming at does this. Without it a character sinks into the
+  // background however well it is modelled, and no amount of exposure or
+  // saturation fixes that, because the problem is that nothing separates them.
+  const rim = new THREE.DirectionalLight(0x9ff0e0, 2.6);
+  rim.position.set(-20, 13, -18);
+  scene.add(rim);
+  scene.add(rim.target);
+
+  // A dim fill so the shaded side is not dead black.
+  const fill = new THREE.DirectionalLight(0x2f7f86, 0.5);
+  fill.position.set(-6, 6, 16);
   scene.add(fill);
 
   // ── post ──────────────────────────────────────────────────────────────────
@@ -125,6 +179,17 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   );
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
+  // ⚠ AFTER OutputPass. The grade works on the tone-mapped, display-referred
+  // image; running it earlier fights the tone curve and muddies the corners.
+  const grade = createGradePass({
+    shadowTint: new THREE.Color(0x6fd6c8),
+    highlightTint: new THREE.Color(0xffe0b0),
+    strength: 0.38,
+    vignette: 0.62,
+    contrast: 1.18,
+    saturation: 1.12,
+  });
+  composer.addPass(grade);
 
   let quality: Quality = 'high';
 
@@ -147,10 +212,13 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   function lookAtGround(x: number, z: number): void {
     camera.position.set(x + OFFSET.x, OFFSET.y, z + OFFSET.z);
     camera.lookAt(x, 0, z);
-    sun.position.set(x + 18, 30, z + 12);
+    sun.position.set(x + 24, 20, z + 10);
     sun.target.position.set(x, 0, z);
     sun.target.updateMatrixWorld();
     // The dome travels with the camera, so its far side never clips into view.
+    rim.position.set(x - 20, 13, z - 18);
+    rim.target.position.set(x, 0, z);
+    rim.target.updateMatrixWorld();
     sky.dome.position.set(x, 0, z);
   }
 
@@ -158,6 +226,7 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
     quality = q;
     renderer.shadowMap.enabled = q === 'high';
     bloom.enabled = q === 'high';
+    grade.enabled = q === 'high';
     renderer.setPixelRatio(q === 'high' ? Math.min(2, window.devicePixelRatio || 1) : 1);
     // Shadow materials are compiled with the map on or off, so every material
     // in the scene has to be told to recompile.
@@ -171,7 +240,20 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
     resize();
   }
 
+  function setMood(m: Mood): void {
+    renderer.toneMappingExposure = m.exposure;
+    (scene.fog as THREE.Fog).near = m.fogNear;
+    (scene.fog as THREE.Fog).far = m.fogFar;
+    sun.intensity = m.sun;
+    rim.intensity = m.rim;
+    grade.uniforms.uVignette.value = m.vignette;
+    grade.uniforms.uSaturation.value = m.saturation;
+    grade.uniforms.uContrast.value = m.contrast;
+    grade.uniforms.uStrength.value = m.gradeStrength;
+  }
+
   return {
+    setMood,
     renderer,
     scene,
     camera,

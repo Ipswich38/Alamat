@@ -14,6 +14,8 @@ import { HEROES, heroById, type Hero } from '@/game/heroes';
 import { SPAWNS, resolvePosition } from '@/game/arena/layout';
 import { createStage } from '@/game/render3d/stage';
 import { buildArena } from '@/game/render3d/arena';
+import { loadModel } from '@/game/render3d/models';
+import { createSantelmo } from '@/game/render3d/santelmo';
 import { ROLE_RADIUS } from '@/game/render3d/fighter';
 import { createCharacter, type Character } from '@/game/render3d/character';
 
@@ -43,35 +45,21 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
 
     const stage = createStage(canvas);
     stage.setViewHeight(VIEW_HEIGHT);
-    stage.scene.add(buildArena());
+    const arena = buildArena();
+    stage.scene.add(arena);
 
-    // Loaded asynchronously, so the frame loop has to cope with there being no
-    // body yet. It starts immediately and the arena is already on screen.
-    let character: Character | null = null;
-    let builtFor = hero.id;
-    let disposed = false;
+    const santelmo = createSantelmo();
+    stage.scene.add(santelmo.group);
 
-    const swapTo = (h: typeof hero) => {
-      builtFor = h.id;
-      createCharacter('/models/characters/adventurer.glb', h).then((next) => {
-        if (disposed) {
-          next.dispose();
-          return;
-        }
-        // A second swap may have been requested while this one was loading.
-        if (builtFor !== h.id) {
-          next.dispose();
-          return;
-        }
-        if (character) {
-          stage.scene.remove(character.object);
-          character.dispose();
-        }
-        character = next;
-        stage.scene.add(next.object);
-      });
-    };
-    swapTo(hero);
+    // ⚠ THE GENERATED BALETE IS DELIBERATELY NOT LOADED. It exists at
+    // /models/nature/balete.glb and it is WORSE than the procedural tree it was
+    // meant to replace: text-to-3D returned a lumpy mound with no trunk, no
+    // hanging roots and no readable silhouette. Kept on disk as evidence for
+    // the decision rather than deleted.
+    //
+    // The pattern it confirms, which matches the previous project exactly:
+    // generated CREATURES work and generated SCENERY does not. The credits
+    // belong to the Bakunawa and the Kapre, not to trees.
 
     let px = SPAWNS.home.x;
     let pz = SPAWNS.home.z;
@@ -89,6 +77,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
 
     let raf = 0;
     let last = performance.now();
+    let clock = 0;
     let frames = 0;
     let fpsClock = 0;
 
@@ -99,6 +88,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       // that in one step teleports the body through the walls.
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
+      clock += dt;
 
       // Rebuild the body when the hero changes, rather than tearing the whole
       // scene down: the arena and the lights are the expensive part.
@@ -142,6 +132,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         character.play(moving ? 'run' : 'idle');
         character.update(dt);
       }
+      santelmo.update(clock);
       stage.lookAtGround(px, pz);
       stage.render();
 
@@ -161,6 +152,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
       window.removeEventListener('resize', onResize);
+      santelmo.dispose();
       character?.dispose();
       stage.dispose();
     };
