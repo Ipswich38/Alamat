@@ -167,12 +167,20 @@ function grass(): THREE.InstancedMesh {
   return mesh;
 }
 
-/** Bigger leafy clumps, scattered more sparsely than the grass. */
+/**
+ * Undergrowth: leafy clumps between the grass and the shrubs.
+ *
+ * ⚠ KNEE HIGH. These were built at a radius of 0.55 and scaled up to 1.7, which
+ * made a single fern as wide as a hero and taller than one is at the shoulder.
+ * The result was a character permanently hidden behind a bush. Everything on
+ * this floor is measured against a 1.75-unit hero, and undergrowth that reaches
+ * past the knee stops being undergrowth and starts being cover.
+ */
 function ferns(): THREE.InstancedMesh {
-  const COUNT = 150;
+  const COUNT = 220;
   // Subdivided once and smooth-shaded. At detail 0 an icosahedron reads as a
   // cut gem; at 1 with smooth normals it reads as a leafy clump.
-  const frond = lumpy(new THREE.IcosahedronGeometry(0.55, 1), 0.34);
+  const frond = lumpy(new THREE.IcosahedronGeometry(0.3, 1), 0.34);
   const mesh = new THREE.InstancedMesh(frond, surfaceMaterial(LEAF, { roughness: 0.88 }), COUNT);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
@@ -187,9 +195,9 @@ function ferns(): THREE.InstancedMesh {
     const x = (rand(i, 21) * 2 - 1) * (ARENA_SIZE - 1.2);
     const z = (rand(i, 22) * 2 - 1) * (ARENA_SIZE - 1.2);
     if (OBSTACLES.some((o) => (x - o.x) ** 2 + (z - o.z) ** 2 < (o.radius + 1.4) ** 2)) continue;
-    m.position.set(x, 0.28, z);
+    m.position.set(x, 0.16, z);
     m.rotation.set(rand(i, 23) * 0.6, rand(i, 24) * Math.PI * 2, rand(i, 25) * 0.6);
-    m.scale.set(1 + rand(i, 26) * 0.7, 0.62 + rand(i, 27) * 0.4, 1 + rand(i, 28) * 0.7);
+    m.scale.set(0.8 + rand(i, 26) * 0.5, 0.5 + rand(i, 27) * 0.3, 0.8 + rand(i, 28) * 0.5);
     m.updateMatrix();
     mesh.setMatrixAt(n, m.matrix);
     c.copy(a).lerp(b, rand(i, 29));

@@ -61,6 +61,19 @@ export interface Hero {
   lore: string;
   role: HeroRole;
   emoji: string;
+  /**
+   * This hero's own rigged model, if it has one.
+   *
+   * Absent means they fall back to the shared adventurer tinted by `palette`,
+   * which is a stand-in and reads as it: five recolours of one person. A hero
+   * with a model here is the real thing.
+   */
+  model?: {
+    /** Rigged, textured body. */
+    rigged: string;
+    /** A second file whose only job is to carry the walk clip for that rig. */
+    walk?: string;
+  };
   /** Flat-shaded palette, so one rigged model serves every hero. See render3d. */
   palette: { skin: string; cloth: string; accent: string; hair: string };
   /**

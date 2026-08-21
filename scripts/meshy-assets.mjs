@@ -53,15 +53,24 @@ export const ASSETS = {
   // gives an auto-rigger nothing to work with.
   tikbalang: {
     dir: `${OUT_DIR}/heroes`,
+    // ⚠ NOTE WHAT IS ABSENT: no digitigrade legs, no backward-bent hocks. The
+    // first attempt asked for anatomically correct Tikbalang legs and got a
+    // long-bodied figure 0.42 wide by 1.63 deep that the rigger refused with
+    // "pose estimation failed". An auto-rigger looks for a HUMAN skeleton, so
+    // the character has to stand like a person and be a horse from the neck up.
+    // The A-pose is stated twice for the same reason.
     prompt:
-      'Stylised game character, single figure, standing in a neutral A-pose with arms held away ' +
-      'from the body and legs slightly apart, facing forward, full body, clean readable silhouette. ' +
-      'The Tikbalang of Philippine folklore: a tall lean humanoid with the head of a horse, long ' +
-      'bony limbs, backward-bent digitigrade legs ending in hooves, a black mane running down its ' +
-      'neck and spine, wearing a simple woven rattan chest harness and a loincloth, no weapons.',
+      'Stylised 3D MOBA character model, cute friendly male Tikbalang, anthropomorphic ' +
+      'horse-human hybrid, heroic stylised proportions like a League of Legends champion. ' +
+      'Expressive big brown eyes, soft friendly facial features, fluffy mane, small horse ears, ' +
+      'slightly oversized hooves. Wearing rustic fantasy armour made of carved oak wood, woven ' +
+      'leaves and bronze accents. Carrying a glowing jade spear. Standing upright on two legs in ' +
+      'a neutral A-pose, arms held away from the body, legs straight and slightly apart, facing ' +
+      'forward. Clean readable silhouette, game-ready character mesh, A-pose.',
     texture:
-      'Dark brown horse head with a black mane, weathered tan skin over lean muscle, natural woven ' +
-      'rattan in pale straw colour, faded indigo loincloth, matte and earthy.',
+      'Vibrant hand-painted stylised texturing, warm chestnut brown horse coat, darker brown mane, ' +
+      'carved oak wood armour with bronze trim, green woven leaves, glowing jade green spear blade, ' +
+      'clean saturated colours, no photoreal grain.',
   },
   bakunawa: {
     dir: `${OUT_DIR}/creatures`,

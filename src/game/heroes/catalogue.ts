@@ -23,6 +23,10 @@ export const HEROES: Hero[] = [
   {
     id: 'tikbalang',
     name: 'Tikbalang',
+    model: {
+      rigged: '/models/heroes/tikbalang-rigged.glb',
+      walk: '/models/heroes/tikbalang-walk.glb',
+    },
     origin: 'The horse-headed trickster of the forest trails',
     lore:
       'It turns travellers in circles until they give up on the path they chose. Wear your shirt inside out and it lets you pass, which is the only apology it knows how to make.',

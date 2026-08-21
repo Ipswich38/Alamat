@@ -204,7 +204,102 @@ function loadTemplate(url: string) {
   return template;
 }
 
+/**
+ * A hero that has its own generated, rigged model.
+ *
+ * ── WHY THIS IS A SEPARATE PATH ─────────────────────────────────────────────
+ * Nothing about it matches the shared adventurer. Different skeleton, 24 joints
+ * instead of 41, no palette atlas because it arrives textured, and its own clip
+ * names. Forcing both through one function would mean a body of conditionals
+ * where every branch is "unless it is the other kind".
+ *
+ * ⚠ THE WALK ARRIVES IN A SECOND FILE. The rig ships a single pose clip, and
+ * the animation comes back as a whole separate skinned GLB. Only its
+ * AnimationClip is used; the duplicate mesh inside it is discarded, which is
+ * why the file is loaded and then mostly thrown away.
+ */
+async function createGeneratedHero(hero: Hero): Promise<Character> {
+  const spec = hero.model!;
+  const gltf = await new GLTFLoader().loadAsync(spec.rigged);
+  const object = gltf.scene;
+
+  object.traverse((n) => {
+    const m = n as THREE.Mesh;
+    if (!m.isMesh) return;
+    m.castShadow = true;
+    m.receiveShadow = true;
+    // A skinned mesh is bounded by its bind pose, so three.js culls it as soon
+    // as an animation moves it out of one. It is never off-screen here.
+    m.frustumCulled = false;
+  });
+
+  // Generated models arrive at an arbitrary scale. Measured and fitted so the
+  // arena's numbers stay the truth, exactly as the props are.
+  object.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(object);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+  const unit = (1.75 * hero.build.scale) / Math.max(size.y, 0.0001);
+  object.scale.setScalar(unit);
+  object.position.y = -box.min.y * unit;
+
+  const rig = new THREE.Group();
+  rig.add(object);
+
+  const mixer = new THREE.AnimationMixer(object);
+  const clips = [...gltf.animations];
+  if (spec.walk) {
+    try {
+      const walkGltf = await new GLTFLoader().loadAsync(spec.walk);
+      // Renamed so the motion map below can find it regardless of what the
+      // generator called it.
+      for (const c of walkGltf.animations) clips.push(Object.assign(c.clone(), { name: 'walk' }));
+    } catch {
+      /* no walk file: the hero stands still, which is not worth failing over */
+    }
+  }
+
+  const idle = clips[0];
+  const walk = clips.find((c) => c.name === 'walk') ?? idle;
+  const actions = new Map<Motion, THREE.AnimationAction>();
+  if (idle) actions.set('idle', mixer.clipAction(idle));
+  if (walk) {
+    actions.set('walk', mixer.clipAction(walk));
+    // No run clip exists yet, so running plays the walk faster rather than
+    // freezing. Honest placeholder, and it reads better than a T-pose.
+    const running = mixer.clipAction(walk.clone());
+    running.timeScale = 1.55;
+    actions.set('run', running);
+  }
+
+  let current: Motion | null = null;
+  function play(motion: Motion, fade = 0.18): void {
+    if (motion === current) return;
+    const next = actions.get(motion) ?? actions.get('idle');
+    if (!next) return;
+    const prev = current ? actions.get(current) : undefined;
+    next.reset().setEffectiveWeight(1).fadeIn(fade).play();
+    if (prev && prev !== next) prev.fadeOut(fade);
+    current = motion;
+  }
+  play('idle', 0);
+
+  return {
+    object: rig,
+    update: (dt) => mixer.update(dt),
+    play,
+    setPosition: (x, y, z) => rig.position.set(x, y, z),
+    setFacing: (radians) => {
+      rig.rotation.y = radians;
+    },
+    dispose: () => mixer.stopAllAction(),
+  };
+}
+
 export async function createCharacter(url: string, hero: Hero): Promise<Character> {
+  // A hero with its own model never touches the shared body or its palette.
+  if (hero.model) return createGeneratedHero(hero);
+
   const { scene, clips } = await loadTemplate(url);
 
   const object = cloneSkinned(scene);

@@ -1,8 +1,9 @@
 {
   "id": "tikbalang",
-  "mode": "preview",
-  "previewTaskId": "01a024aa-1826-7fb9-91a8-a877a2bffe57",
-  "thumbnail": "https://assets.meshy.ai/781feef8-5f74-48d1-945f-37bf5ee63e8e/tasks/01a024aa-1826-7fb9-91a8-a877a2bffe57/output/preview.png?Expires=4940870400&Signature=DzDRbZb7vTLx8L1pK0CX2VMgkZVVygeHf6g8dhZ1EFrP6zHL3h5LNVMxgehr5d0Ptp0gACMdFRFKO62n8NW5pMFAWjgJwWNme-ImpcOhsPvdcvwVJx4ifvXE1cDfwORKy3BC6pWP2sxwRcxsU~HjYG3gs7t5u-sjmaNQV9UHUu92trv05zu331aS9tw~XfIlnFaL~GYy2RddjduxSdkY2Bf~Z1o209WPGSMl9t8F7YZi5cOT2HIfluTW4BjYXniUsoegmA6ZKVS1P8dpFZVaWlXGiHSEGpTOJkuuyHKsu5K0MvL4QtrgyugTpKooneZnPhUD04Icgia20dE9mCl2gA__&Key-Pair-Id=K1VGYTHIYLM9UM",
-  "prompt": "Stylised game character, single figure, standing in a neutral A-pose with arms held away from the body and legs slightly apart, facing forward, full body, clean readable silhouette. The Tikbalang of Philippine folklore: a tall lean humanoid with the head of a horse, long bony limbs, backward-bent digitigrade legs ending in hooves, a black mane running down its neck and spine, wearing a simple woven rattan chest harness and a loincloth, no weapons.",
-  "bytes": 695684
+  "mode": "refine",
+  "previewTaskId": "01a024c8-2061-70db-9d4e-fc3939cd1bd7",
+  "refineTaskId": "01a024cb-f1b4-7b73-9f7e-05fc51cd1a1d",
+  "thumbnail": "https://assets.meshy.ai/781feef8-5f74-48d1-945f-37bf5ee63e8e/tasks/01a024cb-f1b4-7b73-9f7e-05fc51cd1a1d/output/preview.png?Expires=4940870400&Signature=qZEuyHbTY62LHrXUIrs6ewkQml15XoTUZSUWOyVe3Fce2buYefzKoVuNUePL8MghrOgj3Kbo6-rFFL1dMvh5N33ZMc6miVv1xPqs2cZBm1A2c~QYnW5oM2r0Bfxfrb86KY6HqHVwsXDPaHP~UgeTA28n6ZdekoKQu4PbztVKn2eZswGwpceLHxqTIHocY79s7nwbZrL09JoFUT~fMqFENyRtfw5ZfVZBX7wWgbs4EyC12gi2JNz9qDwMmfV0CJhoW27U~k-xR2Ds4E2jkgYYBOqyLR18dGFuLgDpGT-2kWMNhoUONc3IS3WB~DFcyRsGB-q0OxdQesnaMgrNiq45VA__&Key-Pair-Id=K1VGYTHIYLM9UM",
+  "prompt": "Stylised 3D MOBA character model, cute friendly male Tikbalang, anthropomorphic horse-human hybrid, heroic stylised proportions like a League of Legends champion. Expressive big brown eyes, soft friendly facial features, fluffy mane, small horse ears, slightly oversized hooves. Wearing rustic fantasy armour made of carved oak wood, woven leaves and bronze accents. Carrying a glowing jade spear. Standing upright on two legs in a neutral A-pose, arms held away from the body, legs straight and slightly apart, facing forward. Clean readable silhouette, game-ready character mesh, A-pose.",
+  "bytes": 8483456
 }
