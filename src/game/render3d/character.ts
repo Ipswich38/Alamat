@@ -1,0 +1,257 @@
+// A real character: rigged, skinned, animated, and recoloured per hero.
+//
+// ── WHY ONE MODEL SERVES FIVE HEROES ────────────────────────────────────────
+// The model's UVs map into a small grid of flat colour swatches rather than a
+// painted texture. So a hero's look is produced by PAINTING AN 8x4 CANVAS at
+// runtime and handing it over as the albedo map. One 3.4MB download, five
+// distinct characters, and adding a sixth costs nothing but a palette.
+//
+// ⚠ NEAREST FILTERING, NOT LINEAR. Linear blends neighbouring swatches along
+// every UV seam and fringes the whole character with colours that belong to a
+// different body part.
+//
+// ⚠ flipY = false. glTF's UV origin is the opposite of a canvas's, and getting
+// this wrong maps every part of the body to the wrong swatch.
+//
+// ── WHY CLONING NEEDS SkeletonUtils ─────────────────────────────────────────
+// A plain Object3D.clone() copies the meshes and shares the skeleton, so every
+// character animates in lockstep with the first one. SkeletonUtils.clone gives
+// each copy its own bones while still sharing the geometry on the GPU.
+
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import type { Hero } from '@/game/heroes';
+
+/** What the game asks for; the clip that plays is chosen below. */
+export type Motion = 'idle' | 'walk' | 'run' | 'attack' | 'cast' | 'dodge' | 'hit' | 'death';
+
+/**
+ * Which of the model's 76 clips each motion uses.
+ *
+ * Named explicitly rather than matched by substring, because the pack contains
+ * several near-identical variants and picking a different one per session makes
+ * the game feel inconsistent for no reason.
+ */
+const CLIP: Record<Motion, string> = {
+  idle: 'Idle',
+  walk: 'Walking_A',
+  run: 'Running_A',
+  attack: '1H_Melee_Attack_Slice_Diagonal',
+  cast: 'Spellcast_Shoot',
+  dodge: 'Dodge_Forward',
+  hit: 'Hit_A',
+  death: 'Death_A',
+};
+
+/** Motions that must finish rather than loop. */
+const ONCE: ReadonlySet<Motion> = new Set(['attack', 'cast', 'dodge', 'hit', 'death']);
+
+type Swatch =
+  | 'skin'
+  | 'skinShade'
+  | 'hair'
+  | 'cap'
+  | 'cloth'
+  | 'clothShade'
+  | 'trousers'
+  | 'trousersLight'
+  | 'metal'
+  | 'dark'
+  | 'neutral';
+
+/**
+ * Which swatch each cell of the atlas holds.
+ *
+ * ⚠ THIS MAP IS THE MODEL'S, NOT OURS. It was recovered by reading the UV
+ * histogram of this exact file; a different character pack would need it done
+ * again. Cell (1,0) is the hood and nothing else uses it, which is worth
+ * knowing because mapping it to trousers puts a blue-grey helmet on everyone.
+ */
+const CELL_SWATCH: Record<string, Swatch> = {
+  '0,0': 'skin',
+  '6,3': 'skin',
+  '7,3': 'skin',
+  '0,2': 'skinShade',
+  '2,0': 'hair',
+  '1,0': 'cap',
+  '1,1': 'cloth',
+  '0,1': 'clothShade',
+  '6,0': 'trousers',
+  '6,1': 'trousers',
+  '7,1': 'trousers',
+  '5,2': 'trousers',
+  '4,2': 'trousers',
+  '5,0': 'trousersLight',
+  '5,1': 'trousersLight',
+  '3,2': 'trousersLight',
+  '3,0': 'metal',
+  '2,1': 'metal',
+  '3,1': 'metal',
+  '4,0': 'metal',
+  '4,1': 'metal',
+  '7,0': 'neutral',
+  '6,2': 'neutral',
+  '7,2': 'neutral',
+};
+
+const COLS = 8;
+const ROWS = 4;
+/** Flat colour per cell, so the atlas can stay tiny. */
+const CELL = 64;
+
+/**
+ * Sub-meshes that are the adventurer's KIT rather than the person.
+ *
+ * ⚠ THESE ARE NODE NAMES, which is what three.js puts on `mesh.name`. Using the
+ * glTF MESH names instead ("Cylinder.002") matches nothing at runtime and every
+ * hero keeps carrying two daggers and a crossbow.
+ */
+const DRESSING: ReadonlySet<string> = new Set([
+  'Knife',
+  'Knife_Offhand',
+  '1H_Crossbow',
+  '2H_Crossbow',
+  'Throwable',
+  'Rogue_Cape',
+]);
+
+function shade(hex: string, amount: number): string {
+  const c = new THREE.Color(hex);
+  c.offsetHSL(0, 0, amount);
+  return `#${c.getHexString()}`;
+}
+
+/** Paint the atlas from a hero's palette. */
+export function paletteTexture(hero: Hero): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = COLS * CELL;
+  canvas.height = ROWS * CELL;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('no 2d context for the character palette');
+
+  const colours: Record<Swatch, string> = {
+    skin: hero.palette.skin,
+    skinShade: shade(hero.palette.skin, -0.07),
+    hair: hero.palette.hair,
+    cap: hero.palette.hair,
+    cloth: hero.palette.cloth,
+    clothShade: shade(hero.palette.cloth, -0.1),
+    trousers: shade(hero.palette.cloth, -0.16),
+    trousersLight: shade(hero.palette.cloth, -0.06),
+    // Hardware is NOT hero-coloured. Buckles and straps that follow the outfit
+    // make a character read as a costume rather than as a person wearing things.
+    metal: '#8b949a',
+    dark: '#191d1f',
+    neutral: hero.palette.accent,
+  };
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      ctx.fillStyle = colours[CELL_SWATCH[`${c},${r}`] ?? 'neutral'];
+      ctx.fillRect(c * CELL, r * CELL, CELL, CELL);
+    }
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.magFilter = THREE.NearestFilter;
+  tex.minFilter = THREE.NearestFilter;
+  tex.generateMipmaps = false;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.flipY = false;
+  return tex;
+}
+
+export interface Character {
+  object: THREE.Object3D;
+  update(dt: number): void;
+  play(motion: Motion, fade?: number): void;
+  setPosition(x: number, y: number, z: number): void;
+  setFacing(radians: number): void;
+  dispose(): void;
+}
+
+/** Loaded once and cloned per character. */
+let template: Promise<{ scene: THREE.Group; clips: THREE.AnimationClip[] }> | null = null;
+
+function loadTemplate(url: string) {
+  template ??= new GLTFLoader().loadAsync(url).then((g) => ({
+    scene: g.scene,
+    clips: g.animations,
+  }));
+  return template;
+}
+
+export async function createCharacter(url: string, hero: Hero): Promise<Character> {
+  const { scene, clips } = await loadTemplate(url);
+
+  const object = cloneSkinned(scene);
+  const texture = paletteTexture(hero);
+
+  const material = new THREE.MeshStandardMaterial({
+    map: texture,
+    // ⚠ NOT flatShading. Smooth normals are the whole difference between a
+    // character that reads as modelled and one that reads as faceted, and the
+    // model already ships with the normals to do it.
+    roughness: 0.72,
+    metalness: 0.02,
+  });
+
+  object.traverse((n) => {
+    const m = n as THREE.Mesh;
+    if (!m.isMesh) return;
+    // The adventurer's own gear, which belongs to nobody here.
+    if (DRESSING.has(m.name)) {
+      m.visible = false;
+      return;
+    }
+    m.material = material;
+    m.castShadow = true;
+    m.receiveShadow = true;
+    // Skinned meshes are bounded by their bind pose, so three.js culls them the
+    // moment an animation moves them out of it. They are never off-screen here.
+    m.frustumCulled = false;
+  });
+
+  const mixer = new THREE.AnimationMixer(object);
+  const actions = new Map<Motion, THREE.AnimationAction>();
+  for (const [motion, name] of Object.entries(CLIP) as [Motion, string][]) {
+    const clip = clips.find((c) => c.name === name);
+    if (!clip) continue;
+    const action = mixer.clipAction(clip);
+    if (ONCE.has(motion)) {
+      action.setLoop(THREE.LoopOnce, 1);
+      action.clampWhenFinished = true;
+    }
+    actions.set(motion, action);
+  }
+
+  let current: Motion | null = null;
+
+  function play(motion: Motion, fade = 0.18): void {
+    if (motion === current) return;
+    const next = actions.get(motion);
+    if (!next) return;
+    const prev = current ? actions.get(current) : undefined;
+    next.reset().setEffectiveWeight(1).fadeIn(fade).play();
+    prev?.fadeOut(fade);
+    current = motion;
+  }
+
+  play('idle', 0);
+
+  return {
+    object,
+    update: (dt) => mixer.update(dt),
+    play,
+    setPosition: (x, y, z) => object.position.set(x, y, z),
+    setFacing: (radians) => {
+      object.rotation.y = radians;
+    },
+    dispose: () => {
+      mixer.stopAllAction();
+      texture.dispose();
+      material.dispose();
+    },
+  };
+}

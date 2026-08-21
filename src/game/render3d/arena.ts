@@ -31,6 +31,28 @@ const LEAF = 0x2f8f53;
 const LEAF_LIGHT = 0x5cc47a;
 const MOSS = 0x6f9b3f;
 
+/**
+ * Push every vertex out or in by a seeded amount, then recompute normals.
+ *
+ * The one function that separates "generated primitive" from "modelled thing".
+ * A sphere is a sphere however many times it is subdivided; a sphere whose
+ * vertices have been nudged reads as something that grew. Normals MUST be
+ * recomputed afterwards or the surface still shades like the shape it was.
+ */
+function lumpy(geo: THREE.BufferGeometry, amount: number): THREE.BufferGeometry {
+  const pos = geo.attributes.position;
+  const v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i);
+    const n = Math.sin(v.x * 12.9 + v.y * 4.7 + v.z * 7.3) * 43758.5453;
+    const k = 1 + ((n - Math.floor(n)) * 2 - 1) * amount;
+    pos.setXYZ(i, v.x * k, v.y * k, v.z * k);
+  }
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+  return geo;
+}
+
 /** Deterministic 0..1 from an integer and a salt. See the note above. */
 function rand(i: number, salt: number): number {
   const x = Math.sin(i * 127.1 + salt * 311.7) * 43758.5453;
@@ -148,7 +170,9 @@ function grass(): THREE.InstancedMesh {
 /** Bigger leafy clumps, scattered more sparsely than the grass. */
 function ferns(): THREE.InstancedMesh {
   const COUNT = 150;
-  const frond = new THREE.IcosahedronGeometry(0.55, 0);
+  // Subdivided once and smooth-shaded. At detail 0 an icosahedron reads as a
+  // cut gem; at 1 with smooth normals it reads as a leafy clump.
+  const frond = lumpy(new THREE.IcosahedronGeometry(0.55, 1), 0.34);
   const mesh = new THREE.InstancedMesh(frond, surfaceMaterial(LEAF, { roughness: 0.88 }), COUNT);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
@@ -185,7 +209,7 @@ function ferns(): THREE.InstancedMesh {
  */
 function flowers(): THREE.InstancedMesh {
   const COUNT = 260;
-  const petal = new THREE.IcosahedronGeometry(0.11, 0);
+  const petal = new THREE.IcosahedronGeometry(0.11, 1);
   const mesh = new THREE.InstancedMesh(petal, surfaceMaterial(0xffffff, { roughness: 0.6 }), COUNT);
   mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(COUNT * 3), 3);
 
@@ -219,8 +243,12 @@ function flowers(): THREE.InstancedMesh {
  */
 function treeline(): THREE.Group {
   const g = new THREE.Group();
-  const trunkGeo = new THREE.CylinderGeometry(0.45, 0.7, 7, 6);
-  const canopyGeo = new THREE.IcosahedronGeometry(2.6, 0);
+  const trunkGeo = new THREE.CylinderGeometry(0.45, 0.7, 7, 10);
+    // ⚠ NOT A SPHERE. Subdividing to detail 1 fixed the cut-gem look and created a
+  // worse one: perfect balls on sticks, which read as clay or broccoli. Foliage
+  // needs an irregular MASS, so the geometry is deformed per vertex once at
+  // build time and every instance is then scaled unevenly on top.
+  const canopyGeo = lumpy(new THREE.IcosahedronGeometry(2.6, 1), 0.3);
   const trunkMat = surfaceMaterial(BARK, { roughness: 0.95 });
   const canopyMat = surfaceMaterial(LEAF, { roughness: 0.9 });
 
@@ -250,7 +278,11 @@ function treeline(): THREE.Group {
 
     m.position.set(x, 6.6 * h - 1, z);
     m.rotation.set(rand(i, 45) * 0.5, rand(i, 46) * Math.PI, rand(i, 47) * 0.5);
-    m.scale.setScalar(h * (0.85 + rand(i, 48) * 0.5));
+    m.scale.set(
+      h * (0.9 + rand(i, 48) * 0.5),
+      h * (0.7 + rand(i, 61) * 0.45),
+      h * (0.9 + rand(i, 62) * 0.5)
+    );
     m.updateMatrix();
     canopies.setMatrixAt(i, m.matrix);
     c.copy(a).lerp(b, rand(i, 49));
@@ -270,7 +302,7 @@ function balete(x: number, z: number, radius: number): THREE.Group {
   // 3.4-wide canopy at head height over the centre of the arena, which hid the
   // one piece of ground both players are meant to contest.
   const trunk = new THREE.Mesh(
-    new THREE.CylinderGeometry(radius * 0.62, radius * 1.0, 9, 8),
+    new THREE.CylinderGeometry(radius * 0.62, radius * 1.0, 9, 14),
     surfaceMaterial(BARK, { roughness: 0.95 })
   );
   trunk.position.y = 4.5;
@@ -280,7 +312,7 @@ function balete(x: number, z: number, radius: number): THREE.Group {
 
   // Aerial roots. The signature of the species, and the thing that makes this
   // read as somewhere a spirit lives rather than as a big tree.
-  const rootGeo = new THREE.CylinderGeometry(0.07, 0.11, 1, 4);
+  const rootGeo = new THREE.CylinderGeometry(0.07, 0.11, 1, 6);
   const rootMat = surfaceMaterial(BARK, { roughness: 1 });
   const roots = new THREE.InstancedMesh(rootGeo, rootMat, 26);
   roots.castShadow = true;
@@ -297,7 +329,7 @@ function balete(x: number, z: number, radius: number): THREE.Group {
   }
   g.add(roots);
 
-  const canopy = new THREE.IcosahedronGeometry(radius * 0.95, 0);
+  const canopy = lumpy(new THREE.IcosahedronGeometry(radius * 0.95, 2), 0.22);
   const canopyMat = surfaceMaterial(LEAF, { roughness: 0.88 });
   // Seven smaller blobs rather than four big ones: more silhouette, and no
   // single face large enough to read as a flat sheet.
@@ -326,7 +358,7 @@ function shrine(x: number, z: number, radius: number): THREE.Group {
   g.position.set(x, 0, z);
 
   const base = new THREE.Mesh(
-    new THREE.CylinderGeometry(radius * 1.2, radius * 1.4, 0.6, 6),
+    new THREE.CylinderGeometry(radius * 1.2, radius * 1.4, 0.6, 12),
     surfaceMaterial(STONE_DARK, { roughness: 0.95 })
   );
   base.position.y = 0.3;
@@ -366,7 +398,9 @@ function shrine(x: number, z: number, radius: number): THREE.Group {
 /** A low boulder. Stops a body, does not stop an eye. */
 function boulder(x: number, z: number, radius: number): THREE.Mesh {
   const m = new THREE.Mesh(
-    new THREE.DodecahedronGeometry(radius, 0),
+    // Subdivided so it is not a cut crystal, then deformed so it is not a
+    // billiard ball. Both are wrong in opposite directions.
+    lumpy(new THREE.DodecahedronGeometry(radius, 1), 0.16),
     surfaceMaterial(STONE, { roughness: 0.85 })
   );
   m.position.set(x, radius * 0.4, z);

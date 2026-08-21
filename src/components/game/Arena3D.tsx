@@ -14,18 +14,19 @@ import { HEROES, heroById, type Hero } from '@/game/heroes';
 import { SPAWNS, resolvePosition } from '@/game/arena/layout';
 import { createStage } from '@/game/render3d/stage';
 import { buildArena } from '@/game/render3d/arena';
-import { ROLE_RADIUS, createFighter } from '@/game/render3d/fighter';
+import { ROLE_RADIUS } from '@/game/render3d/fighter';
+import { createCharacter, type Character } from '@/game/render3d/character';
 
 /**
  * How many world units tall the view is. Smaller is closer in.
  *
- * Tuned against the abilities rather than against the scenery. The longest
- * reach in the roster is 14 units, so the view has to show a comfortable margin
- * past that or a player cannot see what they are aiming at. At the first value
- * of 34 the whole arena fitted on screen and the hero was a speck, which is a
- * map view, not a fight.
+ * Two forces pull against each other. Abilities reach up to 14 units, so the
+ * view has to show enough ground to aim across. But a character is 1.8 units
+ * tall, and at 34 the whole arena fitted on screen and the hero was a speck:
+ * that is a map view, not a fight. The character wins the argument, because a
+ * game whose characters cannot be seen has no reason to have good ones.
  */
-const VIEW_HEIGHT = 21;
+const VIEW_HEIGHT = 15;
 
 export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -44,9 +45,33 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     stage.setViewHeight(VIEW_HEIGHT);
     stage.scene.add(buildArena());
 
-    let fighter = createFighter(hero);
-    stage.scene.add(fighter.group);
+    // Loaded asynchronously, so the frame loop has to cope with there being no
+    // body yet. It starts immediately and the arena is already on screen.
+    let character: Character | null = null;
     let builtFor = hero.id;
+    let disposed = false;
+
+    const swapTo = (h: typeof hero) => {
+      builtFor = h.id;
+      createCharacter('/models/characters/adventurer.glb', h).then((next) => {
+        if (disposed) {
+          next.dispose();
+          return;
+        }
+        // A second swap may have been requested while this one was loading.
+        if (builtFor !== h.id) {
+          next.dispose();
+          return;
+        }
+        if (character) {
+          stage.scene.remove(character.object);
+          character.dispose();
+        }
+        character = next;
+        stage.scene.add(next.object);
+      });
+    };
+    swapTo(hero);
 
     let px = SPAWNS.home.x;
     let pz = SPAWNS.home.z;
@@ -78,13 +103,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       // Rebuild the body when the hero changes, rather than tearing the whole
       // scene down: the arena and the lights are the expensive part.
       const want = heroRef.current;
-      if (want.id !== builtFor) {
-        stage.scene.remove(fighter.group);
-        fighter.dispose();
-        fighter = createFighter(want);
-        stage.scene.add(fighter.group);
-        builtFor = want.id;
-      }
+      if (want.id !== builtFor) swapTo(want);
 
       // ── input ────────────────────────────────────────────────────────────
       // Rotated 45 degrees to match the camera's yaw, so "up" on the keyboard
@@ -115,9 +134,14 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         heading = Math.atan2(dx, dz);
       }
 
-      fighter.group.position.set(px, 0, pz);
-      fighter.face(heading);
-      fighter.update(dt, moving);
+      if (character) {
+        character.setPosition(px, 0, pz);
+        character.setFacing(heading);
+        // Run is the only speed for now; walk comes back when there is a reason
+        // to move slowly, which is aiming.
+        character.play(moving ? 'run' : 'idle');
+        character.update(dt);
+      }
       stage.lookAtGround(px, pz);
       stage.render();
 
@@ -132,11 +156,12 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     loop();
 
     return () => {
+      disposed = true;
       cancelAnimationFrame(raf);
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
       window.removeEventListener('resize', onResize);
-      fighter.dispose();
+      character?.dispose();
       stage.dispose();
     };
     // Built once. The hero is read through a ref so that changing it does not
