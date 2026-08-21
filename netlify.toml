@@ -1,0 +1,15 @@
+# Netlify build configuration.
+#
+# Netlify rather than Vercel because Vercel's Hobby tier is non-commercial only
+# and this is aimed at Google Play. Netlify's free tier permits commercial use.
+# Capacity is the same on both, so the licence is the whole of the decision.
+
+[build]
+  command = "next build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
