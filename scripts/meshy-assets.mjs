@@ -166,6 +166,19 @@ export const ASSETS = {
       'honey-toned hardwood faces, ochre and white baybayin pigment, intense glowing amber crystal, ' +
       'clean saturated colours, not photorealistic.',
   },
+  watchtower: {
+    dir: `${OUT_DIR}/props`,
+    prompt:
+      'Stylised MOBA defensive tower, low-poly 3D game asset, SINGLE OBJECT. An ancient Filipino ' +
+      'tribal watchtower of lashed bamboo logs on a sturdy stone foundation, topped with a carved ' +
+      'glowing spirit mask, intricate okir scrollwork carved along the timber. Tall and upright, ' +
+      'clean readable silhouette seen from above at a shallow angle, clean topology, game-ready. ' +
+      'No ground, no terrain, no base plinth, no background.',
+    texture:
+      'Hand-painted stylised texturing, pale golden bamboo bound with dark rattan lashings, grey ' +
+      'weathered stone footing, carved okir shadow lines, a glowing pale spirit mask at the top, ' +
+      'clean saturated colours, not photorealistic.',
+  },
   bakunawa: {
     dir: `${OUT_DIR}/creatures`,
     prompt:
