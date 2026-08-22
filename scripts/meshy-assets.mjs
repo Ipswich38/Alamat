@@ -195,6 +195,18 @@ export const ASSETS = {
       'Hand-painted stylised texturing, pale golden bamboo and dark weathered hardwood, natural ' +
       'fibre rope lashings, carved totem with ochre pigment, clean saturated colours.',
   },
+  bulul: {
+    dir: `${OUT_DIR}/props`,
+    prompt:
+      'Stylised Philippine Bulul rice god statue, low-poly 3D game prop, SINGLE OBJECT. An ancient ' +
+      'carved dark oak seated figure with arms resting on its knees, tribal markings across the ' +
+      'body, glowing blue runic accents around the eyes and chest, weathered wood grain. Upright ' +
+      'and seated, clean readable silhouette from above at a shallow angle, game-ready. No ground, ' +
+      'no terrain, no base plinth, no background.',
+    texture:
+      'Hand-painted stylised texturing, dark weathered oak with deep grain and pale cracks, ochre ' +
+      'tribal markings, intense glowing cyan runes at the eyes and chest, not photorealistic.',
+  },
   bakunawa: {
     dir: `${OUT_DIR}/creatures`,
     prompt:

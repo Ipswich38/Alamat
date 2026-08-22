@@ -17,6 +17,7 @@ import { buildGround, createNexus } from '@/game/render3d/nexus';
 import { HALF, TEAMS } from '@/game/arena/nexus';
 import { createTowers } from '@/game/render3d/towers';
 import { createWalls } from '@/game/render3d/walls';
+import { createCamps } from '@/game/render3d/camps';
 import { resolveWalls } from '@/game/arena/walls';
 import { loadModel } from '@/game/render3d/models';
 import { createSantelmo } from '@/game/render3d/santelmo';
@@ -66,6 +67,8 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     stage.scene.add(towers.group);
     const walls = createWalls();
     stage.scene.add(walls.group);
+    const camps = createCamps();
+    stage.scene.add(camps.group);
 
     const santelmo = createSantelmo();
     stage.scene.add(santelmo.group);
@@ -223,6 +226,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       }
       nexus.update(clock);
       towers.update(clock);
+      camps.update(clock);
       santelmo.update(clock);
       stage.lookAtGround(px, pz);
       stage.render();
@@ -246,6 +250,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       nexus.dispose();
       towers.dispose();
       walls.dispose();
+      camps.dispose();
       santelmo.dispose();
       player?.dispose();
       foe?.dispose();
