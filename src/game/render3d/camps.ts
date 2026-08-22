@@ -15,6 +15,7 @@ import * as THREE from 'three';
 import { CAMPS, type Camp } from '@/game/arena/camps';
 import { loadModel } from './models';
 import { surfaceMaterial } from './stage';
+import { terrainHeight } from './terrain';
 
 export interface Camps {
   group: THREE.Group;
@@ -37,7 +38,7 @@ export function createCamps(): Camps {
     if (!model) return;
     for (const camp of CAMPS) {
       const idol = model.clone(true);
-      idol.position.set(camp.x, 0, camp.z);
+      idol.position.set(camp.x, terrainHeight(camp.x, camp.z), camp.z);
       idol.rotation.y = Math.atan2(-camp.x, -camp.z);
       group.add(idol);
     }
@@ -74,7 +75,7 @@ function clearing(
   anchors: { lamp: THREE.PointLight; motes: THREE.Points; seed: number }[]
 ): THREE.Group {
   const g = new THREE.Group();
-  g.position.set(camp.x, 0, camp.z);
+  g.position.set(camp.x, terrainHeight(camp.x, camp.z), camp.z);
 
   // The pocket floor: trodden ground, a shade lighter than the jungle. This is
   // what makes a clearing read as a clearing rather than as a statue in grass.

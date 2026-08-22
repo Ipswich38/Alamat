@@ -122,8 +122,19 @@ export function onCrossing(x: number, z: number): Crossing | null {
  * reason to build one: without it a lane dips two units into a river and the
  * crossing is a scramble instead of a road.
  */
+/**
+ * How high the deck of a bridge sits.
+ *
+ * ⚠ NOT ZERO. Crossings held the ground at 0, which is the level of the BANK,
+ * and the bridge model's deck sits above that: a player standing mid-crossing
+ * was drawn inside the planks rather than on them. The number is the deck, not
+ * the terrain the bridge spans.
+ */
+export const DECK_HEIGHT = 0.95;
+
 export function groundHeight(x: number, z: number): number {
-  return onCrossing(x, z) ? 0 : riverFloor(x, z);
+  if (onCrossing(x, z)) return DECK_HEIGHT;
+  return riverFloor(x, z);
 }
 
 /** Movement multiplier. Wading is slow; a bridge is not. */

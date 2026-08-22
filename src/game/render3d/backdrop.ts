@@ -65,10 +65,17 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
  * culling was off, and nothing appeared, because the sky was in front of it.
  * 138 is comfortably inside.
  */
-const LOCAL = { x: -13, y: 7.5, z: -138 };
+const LOCAL = { x: -16, y: 6, z: -330 };
 
-/** Tuned against the default view height so it fills a believable slice of sky. */
-const HEIGHT = 15;
+/**
+ * How tall it stands in camera space.
+ *
+ * ⚠ RAISED FROM 15. In an orthographic view apparent size is actual size, so
+ * this number IS how much of the frame it occupies, and at 15 it was a hill.
+ * Paired with a much greater distance so it sits behind everything, which is
+ * what buys the depth: near things move past it, it does not move at all.
+ */
+const HEIGHT = 52;
 
 /** The horizon colour the scene's fog fades to. See stage.ts. */
 const HAZE = new THREE.Color(0xbfe4e0);

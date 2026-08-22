@@ -13,7 +13,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { HEROES, SELECTION_RING, heroHeight, heroRadius, type Hero } from '@/game/heroes';
 
 import { ZOOM_MAX, ZOOM_MIN, createStage } from '@/game/render3d/stage';
-import { buildGround, createNexus } from '@/game/render3d/nexus';
+import { createNexus } from '@/game/render3d/nexus';
+import { buildTerrain, terrainHeight } from '@/game/render3d/terrain';
+import { buildClutter, buildGroundMist } from '@/game/render3d/clutter';
 import { HALF, TEAMS } from '@/game/arena/nexus';
 import { createTowers } from '@/game/render3d/towers';
 import { createWalls } from '@/game/render3d/walls';
@@ -22,7 +24,7 @@ import { createJungle } from '@/game/render3d/jungle';
 import { brushAt, resolveJungle } from '@/game/arena/jungle';
 import { createRiver } from '@/game/render3d/river';
 import { createBackdrop } from '@/game/render3d/backdrop';
-import { groundHeight, riverSpeed } from '@/game/arena/river';
+import { DECK_HEIGHT, onCrossing, riverSpeed } from '@/game/arena/river';
 import { resolveWalls } from '@/game/arena/walls';
 import { loadModel } from '@/game/render3d/models';
 import { createSantelmo } from '@/game/render3d/santelmo';
@@ -73,7 +75,9 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     // thirty pixels tall in normal play. The wheel takes over from there.
     const zoomParam = Number(new URLSearchParams(window.location.search).get('zoom'));
     stage.setViewHeight(Number.isFinite(zoomParam) && zoomParam > 0 ? zoomParam : VIEW_HEIGHT);
-    stage.scene.add(buildGround());
+    stage.scene.add(buildTerrain());
+    stage.scene.add(buildClutter());
+    stage.scene.add(buildGroundMist());
     const nexus = createNexus();
     stage.scene.add(nexus.group);
     const towers = createTowers();
@@ -325,14 +329,15 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         // Always turns to face you, even when standing still, which is what
         // makes a thing feel aware rather than idle.
         if (gap > 0.1) fFacing = Math.atan2(dx, dz);
-        foe.setPosition(fx, groundHeight(fx, fz), fz);
+        foe.setPosition(fx, onCrossing(fx, fz) ? DECK_HEIGHT : terrainHeight(fx, fz), fz);
         foe.setFacing(fFacing);
         foe.play(closing ? 'walk' : 'idle');
         foe.update(dt);
       }
 
       if (player) {
-        player.setPosition(px, groundHeight(px, pz), pz);
+        // A bridge holds the ground level; everything else follows the terrain.
+        player.setPosition(px, onCrossing(px, pz) ? DECK_HEIGHT : terrainHeight(px, pz), pz);
         player.setFacing(heading);
         player.play(moving ? 'run' : 'idle');
         player.update(dt);

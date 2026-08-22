@@ -18,6 +18,7 @@ import { buildTowers, type TowerNode } from '@/game/arena/lanes';
 import { TEAMS } from '@/game/arena/nexus';
 import { loadModel } from './models';
 import { surfaceMaterial } from './stage';
+import { terrainHeight } from './terrain';
 
 /** How tall a tower stands, by tier. Deeper tiers are taller. */
 const HEIGHT: Record<number, number> = { 1: 8, 2: 9, 3: 10.5 };
@@ -39,7 +40,8 @@ export function createTowers(): Towers {
   for (const node of nodes) {
     const team = TEAMS[node.team];
     const g = new THREE.Group();
-    g.position.set(node.x, 0, node.z);
+    // Stands on the ground it is actually on, now that the ground has shape.
+    g.position.set(node.x, terrainHeight(node.x, node.z), node.z);
     // Every tower faces the middle of the map, which is where the fight comes
     // from and the only direction its front means anything.
     g.rotation.y = Math.atan2(-node.x, -node.z);
@@ -79,11 +81,14 @@ export function createTowers(): Towers {
     // cannot see is a tower you die to without understanding why, and this is
     // the single most important circle in a MOBA.
     const ring = new THREE.Mesh(
-      new THREE.RingGeometry(node.range - 0.5, node.range, 48),
+      new THREE.RingGeometry(node.range - 0.35, node.range, 48),
       new THREE.MeshBasicMaterial({
         color: team.light,
         transparent: true,
-        opacity: 0.16,
+        // ⚠ QUIET BY DEFAULT. Eighteen bright rings turned the map into a
+        // Venn diagram; the circle has to be findable when it matters and
+        // invisible when it does not.
+        opacity: 0.07,
         side: THREE.DoubleSide,
         toneMapped: false,
         depthWrite: false,

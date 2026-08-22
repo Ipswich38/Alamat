@@ -162,7 +162,9 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   // the most expensive thing in the frame and looks worse, not better.
   // Low and warm, cutting across the arena rather than shining down it. A key
   // light straight overhead flattens every form it touches.
-  const sun = new THREE.DirectionalLight(0xfff0d4, 3.2);
+  // Golden rather than neutral. A warm key against the cool sky is what makes
+  // the two read as sunlight and shade rather than as two lamps.
+  const sun = new THREE.DirectionalLight(0xffd9a0, 3.35);
   sun.position.set(24, 20, 10);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);

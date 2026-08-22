@@ -100,7 +100,10 @@ export function createRiver(): River {
     decks.push(deck);
   }
 
-  loadModel('/models/props/bridge.glb', { width: RIVER_WIDTH + 8 }).then((model) => {
+  // ⚠ SIZED TO THE CHANNEL, NOT PAST IT. At the river's width plus eight the
+  // bridge overwhelmed the water it crossed; a crossing should read as a
+  // structure ON the river rather than as a structure the river runs under.
+  loadModel('/models/props/bridge.glb', { width: RIVER_WIDTH * 0.66 }).then((model) => {
     if (!model) return;
     for (const c of crossings) {
       const built = model.clone(true);

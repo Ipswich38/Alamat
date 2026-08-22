@@ -45,7 +45,11 @@ export interface SkyResult {
  * `renderer` is required because prefiltering runs on the GPU. It happens once.
  */
 export function createSky(renderer: THREE.WebGLRenderer): SkyResult {
-  const geo = new THREE.SphereGeometry(160, 24, 16);
+  // ⚠ 520, NOT 160. The dome is drawn on its inside face and writes depth, so
+  // it paints over anything further away than its radius. At 160 it was hiding
+  // the horizon backdrop entirely: the model loaded, the material was right,
+  // and the sky was simply in front of it.
+  const geo = new THREE.SphereGeometry(520, 24, 16);
 
   // Vertex-coloured rather than textured: three stops up the dome is all the
   // gradient anyone can see, and it needs no image to download.
@@ -54,7 +58,7 @@ export function createSky(renderer: THREE.WebGLRenderer): SkyResult {
   const c = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
     // -1 at the bottom of the dome, 1 at the top.
-    const t = pos.getY(i) / 160;
+    const t = pos.getY(i) / 520;
     if (t < 0) {
       c.copy(GROUND_BOUNCE).lerp(HORIZON, Math.min(1, (t + 1) * 1.6));
     } else {

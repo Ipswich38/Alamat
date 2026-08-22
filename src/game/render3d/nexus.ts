@@ -16,6 +16,7 @@ import * as THREE from 'three';
 import { CORE_HEIGHT, HALF, SANCTUARY_RADIUS, TEAMS, type Team } from '@/game/arena/nexus';
 import { riverDepth, riverFloor } from '@/game/arena/river';
 import { loadModel } from './models';
+import { terrainHeight } from './terrain';
 import { surfaceMaterial } from './stage';
 
 export interface Nexus {
@@ -40,7 +41,7 @@ export function createNexus(): Nexus {
     if (!model) return;
     for (const team of Object.values(TEAMS)) {
       const shrine = model.clone(true);
-      shrine.position.set(team.x, 0.9, team.z);
+      shrine.position.set(team.x, terrainHeight(team.x, team.z) + 0.9, team.z);
       // Turned to face the middle of the map, so both shrines present their
       // front to the fight rather than to the corner behind them.
       shrine.rotation.y = Math.atan2(-team.x, -team.z);
@@ -72,7 +73,7 @@ function sanctuary(
   crystals: { mesh: THREE.Mesh; lamp: THREE.PointLight; seed: number }[]
 ): THREE.Group {
   const g = new THREE.Group();
-  g.position.set(team.x, 0, team.z);
+  g.position.set(team.x, terrainHeight(team.x, team.z), team.z);
 
   // The zone itself, as a ring on the ground. Flat and unlit: it is a marker
   // telling you where safety ends, and a marker that takes the light of the

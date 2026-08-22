@@ -14,6 +14,7 @@ import { WALL_RADIUS, wallSpans } from '@/game/arena/walls';
 import { TEAMS } from '@/game/arena/nexus';
 import { loadModel } from './models';
 import { surfaceMaterial } from './stage';
+import { terrainHeight } from './terrain';
 
 /**
  * How wide one fence section is placed, in world units.
@@ -72,7 +73,7 @@ export function createWalls(): Walls {
   panels.name = 'wall-placeholder';
   const o = new THREE.Object3D();
   slots.forEach((s, i) => {
-    o.position.set(s.x, HEIGHT / 2, s.z);
+    o.position.set(s.x, terrainHeight(s.x, s.z) + HEIGHT / 2, s.z);
     o.rotation.set(0, s.facing, 0);
     o.updateMatrix();
     panels.setMatrixAt(i, o.matrix);
@@ -83,7 +84,7 @@ export function createWalls(): Walls {
     if (!model) return;
     for (const s of slots) {
       const built = model.clone(true);
-      built.position.set(s.x, 0, s.z);
+      built.position.set(s.x, terrainHeight(s.x, s.z) - 0.3, s.z);
       built.rotation.y = s.facing;
       group.add(built);
     }

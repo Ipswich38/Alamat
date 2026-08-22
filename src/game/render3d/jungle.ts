@@ -17,9 +17,17 @@ import * as THREE from 'three';
 import { BARRIERS, BRUSH } from '@/game/arena/jungle';
 import { loadModel } from './models';
 import { surfaceMaterial } from './stage';
+import { terrainHeight } from './terrain';
 
-/** Spacing between trees along a barrier, in world units. */
-const TREE_STEP = 6;
+/**
+ * Spacing between trees along a barrier, in world units.
+ *
+ * ⚠ TIGHTENED FROM 6. A barrier's job is to block sight, and at six units apart
+ * you could see straight between the trunks: the collision stopped you but the
+ * eye went through, which is the worst of both. Three and a half closes the
+ * line without turning it into a solid wall of geometry.
+ */
+const TREE_STEP = 3.5;
 /** How tall a balete stands. Well above sight line: these block vision. */
 const TREE_HEIGHT = 13;
 
@@ -84,12 +92,12 @@ export function createJungle(): Jungle {
   }
   const o = new THREE.Object3D();
   slots.forEach((s, i) => {
-    o.position.set(s.x, (TREE_HEIGHT * 0.55) / 2, s.z);
+    o.position.set(s.x, terrainHeight(s.x, s.z) + (TREE_HEIGHT * 0.55) / 2, s.z);
     o.rotation.set(0, s.turn, 0);
     o.scale.setScalar(s.scale);
     o.updateMatrix();
     trunks.setMatrixAt(i, o.matrix);
-    o.position.set(s.x, TREE_HEIGHT * 0.72, s.z);
+    o.position.set(s.x, terrainHeight(s.x, s.z) + TREE_HEIGHT * 0.72, s.z);
     o.updateMatrix();
     canopies.setMatrixAt(i, o.matrix);
   });
@@ -104,7 +112,7 @@ export function createJungle(): Jungle {
       // tree standing on a dinner plate. Burying the disc is cheaper and safer
       // than editing the mesh, and a tree whose roots are slightly below the
       // surface is what a tree looks like.
-      tree.position.set(s.x, -0.6, s.z);
+      tree.position.set(s.x, terrainHeight(s.x, s.z) - 0.6, s.z);
       tree.rotation.y = s.turn;
       tree.scale.setScalar(s.scale);
       group.add(tree);
