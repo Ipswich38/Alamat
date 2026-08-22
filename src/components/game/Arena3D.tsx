@@ -18,6 +18,8 @@ import { HALF, TEAMS } from '@/game/arena/nexus';
 import { createTowers } from '@/game/render3d/towers';
 import { createWalls } from '@/game/render3d/walls';
 import { createCamps } from '@/game/render3d/camps';
+import { createJungle } from '@/game/render3d/jungle';
+import { brushAt, resolveJungle } from '@/game/arena/jungle';
 import { resolveWalls } from '@/game/arena/walls';
 import { loadModel } from '@/game/render3d/models';
 import { createSantelmo } from '@/game/render3d/santelmo';
@@ -46,6 +48,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     () => playable.find((h) => h.id === heroId) ?? playable[0]
   );
   const [fps, setFps] = useState(0);
+  const [hidden, setHidden] = useState(false);
   // Read inside the frame loop, which must not be torn down when the hero
   // changes: a ref is how a value crosses from React into a running loop.
   const heroRef = useRef(hero);
@@ -69,6 +72,8 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     stage.scene.add(walls.group);
     const camps = createCamps();
     stage.scene.add(camps.group);
+    const jungle = createJungle();
+    stage.scene.add(jungle.group);
 
     const santelmo = createSantelmo();
     stage.scene.add(santelmo.group);
@@ -97,7 +102,13 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
           next.dispose();
           return;
         }
-        if (player) {
+        const inBrush = !!brushAt(px, pz);
+      if (inBrush !== hiddenSeen) {
+        hiddenSeen = inBrush;
+        setHidden(inBrush);
+      }
+
+      if (player) {
           stage.scene.remove(player.object);
           player.dispose();
         }
@@ -147,6 +158,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     let raf = 0;
     let last = performance.now();
     let clock = 0;
+    let hiddenSeen = false;
     let frames = 0;
     let fpsClock = 0;
 
@@ -187,11 +199,9 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         // assets; until they exist there is nothing to collide with.
         // Walls first, then the map edge. A body pushed out of a wall must not
         // then be clamped back into it.
-        const pushed = resolveWalls(
-          px + (dx / len) * step,
-          pz + (dz / len) * step,
-          0.7
-        );
+        // Barriers first, then base walls. Both slide rather than stop.
+        const stepped = resolveJungle(px + (dx / len) * step, pz + (dz / len) * step, 0.7);
+        const pushed = resolveWalls(stepped.x, stepped.z, 0.7);
         px = Math.max(-HALF + 1, Math.min(HALF - 1, pushed.x));
         pz = Math.max(-HALF + 1, Math.min(HALF - 1, pushed.z));
         heading = Math.atan2(dx, dz);
@@ -227,6 +237,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       nexus.update(clock);
       towers.update(clock);
       camps.update(clock);
+      jungle.update(clock);
       santelmo.update(clock);
       stage.lookAtGround(px, pz);
       stage.render();
@@ -251,6 +262,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       towers.dispose();
       walls.dispose();
       camps.dispose();
+      jungle.dispose();
       santelmo.dispose();
       player?.dispose();
       foe?.dispose();
@@ -270,7 +282,9 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
           {hero.emoji} {hero.name}
         </strong>
         <span style={{ opacity: 0.75, fontSize: 12 }}>{hero.origin}</span>
-        <span style={{ opacity: 0.55, fontSize: 11 }}>{fps} fps · WASD to move</span>
+        <span style={{ opacity: 0.55, fontSize: 11 }}>
+          {fps} fps · WASD to move{hidden ? ' · 🌿 hidden' : ''}
+        </span>
       </div>
 
       <div style={picker}>

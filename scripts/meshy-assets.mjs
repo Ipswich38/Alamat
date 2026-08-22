@@ -27,14 +27,19 @@ const COMMON =
 export const ASSETS = {
   balete: {
     dir: `${OUT_DIR}/nature`,
+    // ⚠ SECOND ATTEMPT. The first asked for "a curtain of thin aerial roots
+    // hanging down towards the ground", which describes a SCENE, and it came
+    // back a lumpy mound with no trunk and no silhouette. This version asks for
+    // a trunk that the roots FORM, which is one object with structure.
     prompt:
-      COMMON +
-      'An ancient Philippine balete tree: a wide gnarled trunk formed from many fused woody strands, ' +
-      'a curtain of thin aerial roots hanging from the lower branches down towards the ground, ' +
-      'a broad rounded canopy of dense dark green leaves, mossy bark, standing alone.',
+      'Stylised giant Balete tree, low-poly 3D environment prop, SINGLE OBJECT. Massive twisted ' +
+      'banyan roots fused into one hollow trunk, a broad rounded canopy above, bioluminescent blue ' +
+      'mushrooms growing on mossy bark. Tall and upright, clean readable silhouette seen from above ' +
+      'at a shallow angle, fantasy jungle. No ground, no terrain, no base plinth, no background.',
     texture:
-      'Weathered grey-brown bark with green moss in the crevices, deep green foliage with lighter ' +
-      'sunlit leaves on top, damp and old.',
+      'Hand-painted stylised texturing, grey-brown twisted bark with deep shadow lines, green moss ' +
+      'in the crevices, deep green canopy with lighter sunlit leaves, glowing cyan mushrooms, ' +
+      'clean saturated colours, not photorealistic.',
   },
   anito: {
     dir: `${OUT_DIR}/nature`,
