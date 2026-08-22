@@ -16,6 +16,8 @@ import { createStage } from '@/game/render3d/stage';
 import { buildGround, createNexus } from '@/game/render3d/nexus';
 import { HALF, TEAMS } from '@/game/arena/nexus';
 import { createTowers } from '@/game/render3d/towers';
+import { createWalls } from '@/game/render3d/walls';
+import { resolveWalls } from '@/game/arena/walls';
 import { loadModel } from '@/game/render3d/models';
 import { createSantelmo } from '@/game/render3d/santelmo';
 import { createActor, type Actor } from '@/game/render3d/actor';
@@ -62,6 +64,8 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     stage.scene.add(nexus.group);
     const towers = createTowers();
     stage.scene.add(towers.group);
+    const walls = createWalls();
+    stage.scene.add(walls.group);
 
     const santelmo = createSantelmo();
     stage.scene.add(santelmo.group);
@@ -178,8 +182,15 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         const step = want.speed * dt;
         // Clamped to the map for now. Pathing blockades arrive with the jungle
         // assets; until they exist there is nothing to collide with.
-        px = Math.max(-HALF + 1, Math.min(HALF - 1, px + (dx / len) * step));
-        pz = Math.max(-HALF + 1, Math.min(HALF - 1, pz + (dz / len) * step));
+        // Walls first, then the map edge. A body pushed out of a wall must not
+        // then be clamped back into it.
+        const pushed = resolveWalls(
+          px + (dx / len) * step,
+          pz + (dz / len) * step,
+          0.7
+        );
+        px = Math.max(-HALF + 1, Math.min(HALF - 1, pushed.x));
+        pz = Math.max(-HALF + 1, Math.min(HALF - 1, pushed.z));
         heading = Math.atan2(dx, dz);
       }
 
@@ -234,6 +245,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       window.removeEventListener('resize', onResize);
       nexus.dispose();
       towers.dispose();
+      walls.dispose();
       santelmo.dispose();
       player?.dispose();
       foe?.dispose();

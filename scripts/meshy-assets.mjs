@@ -179,6 +179,22 @@ export const ASSETS = {
       'weathered stone footing, carved okir shadow lines, a glowing pale spirit mask at the top, ' +
       'clean saturated colours, not photorealistic.',
   },
+  palisade: {
+    dir: `${OUT_DIR}/props`,
+    // ⚠ A SECTION, NOT A WALL. Asked for as "a palisade wall" a generator
+    // returns one long bespoke run that cannot be repeated without the joins
+    // showing. A SECTION with flat ends tiles along an arc, which is what a
+    // base perimeter actually needs.
+    prompt:
+      'Stylised wooden palisade fence SECTION, low-poly 3D game prop, single straight run with ' +
+      'flat ends so it can be repeated end to end. Sharpened bamboo and dark timber stakes bound ' +
+      'with natural rope, reinforced by a carved wooden totem post at one end. Pre-colonial ' +
+      'Philippine tribal aesthetic, upright, clean readable silhouette from above at a shallow ' +
+      'angle. No ground, no terrain, no base plinth, no background.',
+    texture:
+      'Hand-painted stylised texturing, pale golden bamboo and dark weathered hardwood, natural ' +
+      'fibre rope lashings, carved totem with ochre pigment, clean saturated colours.',
+  },
   bakunawa: {
     dir: `${OUT_DIR}/creatures`,
     prompt:
