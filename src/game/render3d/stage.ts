@@ -110,7 +110,7 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   });
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
   // ⚠ BOTH OF THESE OR NEITHER. Tone mapping without the correct output colour
   // space gives a washed, milky image, which reads as "the renderer is broken"
   // and is the most common way a three.js scene looks worse than its assets.
@@ -164,8 +164,9 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   // light straight overhead flattens every form it touches.
   // Golden rather than neutral. A warm key against the cool sky is what makes
   // the two read as sunlight and shade rather than as two lamps.
-  const sun = new THREE.DirectionalLight(0xffd9a0, 3.35);
-  sun.position.set(24, 20, 10);
+  // Primary Directional Light (Sun): Warm Amber/Golden-Hour (#F39C12), intensity 1.8
+  const sun = new THREE.DirectionalLight(0xf39c12, 1.8);
+  sun.position.set(-65, 55, -65);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   const s = 26;
@@ -173,30 +174,22 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   sun.shadow.camera.right = s;
   sun.shadow.camera.top = s;
   sun.shadow.camera.bottom = -s;
-  sun.shadow.camera.far = 90;
-  // Stops the shadow detaching from the feet at a grazing angle, which makes
-  // every body look like it is hovering.
-  sun.shadow.bias = -0.0009;
-  sun.shadow.normalBias = 0.02;
+  sun.shadow.camera.far = 160;
+  sun.shadow.bias = -0.0008;
+  sun.shadow.normalBias = 0.04;
   scene.add(sun);
   scene.add(sun.target);
 
-  // ⚠ THE RIM IS WHY CHARACTERS POP, and it was missing for three passes of
-  // look-tuning because an edit silently failed to match. It comes from BEHIND
-  // and opposite the key, so it catches the far edge of every body and
-  // separates it from whatever it is standing in front of. Every reference this
-  // game is aiming at does this. Without it a character sinks into the
-  // background however well it is modelled, and no amount of exposure or
-  // saturation fixes that, because the problem is that nothing separates them.
-  const rim = new THREE.DirectionalLight(0xbfe9ff, 1.8);
-  rim.position.set(-20, 13, -18);
+  // Ambient / Sky Light: Deep Emerald Teal (#112D29) at 0.6 intensity
+  // Creates high-contrast, moody deep-green shadows under tree canopies.
+  const ambientSky = new THREE.HemisphereLight(0x112d29, 0x0a1c19, 0.6);
+  scene.add(ambientSky);
+
+  // Rim light: Bioluminescent rim separation
+  const rim = new THREE.DirectionalLight(0x00e5ff, 1.35);
+  rim.position.set(35, 22, 35);
   scene.add(rim);
   scene.add(rim.target);
-
-  // A dim fill so the shaded side is not dead black.
-  const fill = new THREE.DirectionalLight(0x9fd0e0, 0.85);
-  fill.position.set(-6, 6, 16);
-  scene.add(fill);
 
   // ── post ──────────────────────────────────────────────────────────────────
   const composer = new EffectComposer(renderer);
@@ -204,24 +197,20 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   composer.addPass(renderPass);
   const bloom = new UnrealBloomPass(
     new THREE.Vector2(1, 1),
-    // Strength, radius, threshold. The threshold is the important one: at 0
-    // everything glows and the image turns to soup. At 0.85 only genuinely
-    // bright things bleed, which is what makes them read as light.
-    0.42,
-    0.7,
-    0.85
+    // Threshold 0.8 | Intensity 1.2 | Diffusion 0.85 (softly blooms bioluminescent cyan and gold)
+    1.2,
+    0.85,
+    0.80
   );
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
-  // ⚠ AFTER OutputPass. The grade works on the tone-mapped, display-referred
-  // image; running it earlier fights the tone curve and muddies the corners.
   const grade = createGradePass({
-    shadowTint: new THREE.Color(0x9fd8e8),
-    highlightTint: new THREE.Color(0xffe0b0),
-    strength: 0.22,
-    vignette: 0.62,
-    contrast: 1.18,
-    saturation: 1.12,
+    shadowTint: new THREE.Color('#0A221C'),
+    highlightTint: new THREE.Color('#FFE0B0'),
+    strength: 0.35,
+    vignette: 0.45,
+    contrast: 1.28,
+    saturation: 1.22,
   });
   composer.addPass(grade);
 
@@ -250,14 +239,14 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
       z + Math.cos(yaw) * ORBIT_RADIUS
     );
     camera.lookAt(x, 0, z);
-    // ⚠ THE LIGHTS DO NOT ORBIT. The sun is fixed in the world: turning it with
-    // the camera would keep every shadow pointing the same way on screen, which
-    // is exactly the tell that makes a rotating view feel fake.
-    sun.position.set(x + 24, 20, z + 10);
+    // ⚠ THE LIGHTS DO NOT ORBIT. Positioned behind and above the NW Mayon peak
+    // at a 45-degree angle to cast dramatic backlighting and long cinematic shadows
+    // toward the center of the arena.
+    sun.position.set(x - 65, 55, z - 65);
     sun.target.position.set(x, 0, z);
     sun.target.updateMatrixWorld();
-    // The dome travels with the camera, so its far side never clips into view.
-    rim.position.set(x - 20, 13, z - 18);
+    // Rim light from the opposite side (SE) to separate characters from background
+    rim.position.set(x + 35, 22, z + 35);
     rim.target.position.set(x, 0, z);
     rim.target.updateMatrixWorld();
     sky.dome.position.set(x, 0, z);

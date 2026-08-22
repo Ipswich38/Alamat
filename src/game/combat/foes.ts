@@ -25,6 +25,8 @@ export interface Foe {
   reach: number;
   /** How far away it notices you at all. */
   awareness: number;
+  damage: number;
+  attackCooldown: number;
 }
 
 export const KAPRE: Foe = {
@@ -43,4 +45,6 @@ export const KAPRE: Foe = {
   speed: 3.4,
   reach: 3.2,
   awareness: 22,
+  damage: 95,
+  attackCooldown: 1.65,
 };

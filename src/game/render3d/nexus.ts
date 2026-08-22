@@ -13,7 +13,7 @@
 // bloom threshold reads that way.
 
 import * as THREE from 'three';
-import { CORE_HEIGHT, HALF, SANCTUARY_RADIUS, TEAMS, type Team } from '@/game/arena/nexus';
+import { CORE_HEIGHT, HALF, SANCTUARY_RADIUS, TEAMS, type Team, type TeamId } from '@/game/arena/nexus';
 import { riverDepth, riverFloor } from '@/game/arena/river';
 import { loadModel } from './models';
 import { terrainHeight } from './terrain';
@@ -23,13 +23,21 @@ export interface Nexus {
   group: THREE.Group;
   /** Spin the crystal and breathe the light. */
   update(t: number): void;
+  /**
+   * Break a team's core: the last thing that happens in a match.
+   *
+   * The crystal goes and its light goes with it, which is deliberately the
+   * biggest change on the map. A base still lit after it has fallen tells the
+   * player, from across the arena, that nothing happened.
+   */
+  shatter(team: TeamId): void;
   dispose(): void;
 }
 
 export function createNexus(): Nexus {
   const group = new THREE.Group();
   group.name = 'nexus';
-  const crystals: { mesh: THREE.Mesh; lamp: THREE.PointLight; seed: number }[] = [];
+  const crystals: Crystal[] = [];
 
   for (const team of Object.values(TEAMS)) {
     group.add(sanctuary(team, crystals));
@@ -53,11 +61,19 @@ export function createNexus(): Nexus {
     group,
     update: (t) => {
       for (const c of crystals) {
+        if (c.broken) continue;
         c.mesh.rotation.y = t * 0.4 + c.seed;
         c.mesh.position.y = CORE_HEIGHT + Math.sin(t * 1.1 + c.seed) * 0.28;
         // Breathing, so a base reads as alive from across the map.
         c.lamp.intensity = 90 + Math.sin(t * 1.4 + c.seed) * 26;
       }
+    },
+    shatter: (team) => {
+      const c = crystals.find((x) => x.team === team);
+      if (!c || c.broken) return;
+      c.broken = true;
+      c.mesh.visible = false;
+      c.lamp.intensity = 0;
     },
     dispose: () => {
       group.traverse((n) => {
@@ -68,10 +84,15 @@ export function createNexus(): Nexus {
   };
 }
 
-function sanctuary(
-  team: Team,
-  crystals: { mesh: THREE.Mesh; lamp: THREE.PointLight; seed: number }[]
-): THREE.Group {
+interface Crystal {
+  team: TeamId;
+  mesh: THREE.Mesh;
+  lamp: THREE.PointLight;
+  seed: number;
+  broken: boolean;
+}
+
+function sanctuary(team: Team, crystals: Crystal[]): THREE.Group {
   const g = new THREE.Group();
   g.position.set(team.x, terrainHeight(team.x, team.z), team.z);
 
@@ -125,7 +146,13 @@ function sanctuary(
   lamp.position.y = CORE_HEIGHT;
   g.add(lamp);
 
-  crystals.push({ mesh: crystal, lamp, seed: team.id === 'anito' ? 0 : 2.1 });
+  crystals.push({
+    team: team.id,
+    mesh: crystal,
+    lamp,
+    seed: team.id === 'anito' ? 0 : 2.1,
+    broken: false,
+  });
   return g;
 }
 

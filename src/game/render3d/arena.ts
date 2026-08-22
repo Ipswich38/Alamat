@@ -20,9 +20,7 @@ import { ARENA_SIZE, OBSTACLES } from '@/game/arena/layout';
 import { surfaceMaterial } from './stage';
 
 const GRASS = 0x6cb04e;
-const GRASS_DEEP = 0x4a8a3c;
 const GRASS_LIGHT = 0x93cf62;
-const EARTH = 0x9a7a4e;
 const EARTH_DARK = 0x6b5138;
 const STONE = 0xa8b0b4;
 const STONE_DARK = 0x76807f;

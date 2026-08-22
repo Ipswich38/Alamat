@@ -9,27 +9,53 @@
 // buttons over it, and had to be pulled apart later. Starting split costs
 // nothing; arriving there costs a refactor.
 
-import React, { useEffect, useRef, useState } from 'react';
-import { HEROES, SELECTION_RING, heroHeight, heroRadius, type Hero } from '@/game/heroes';
+import { useEffect, useRef, useState } from 'react';
+import { HEROES, SELECTION_RING, heroHeight, heroRadius, type Ability, type Hero } from '@/game/heroes';
+import HeroHud from './HeroHud';
 
-import { ZOOM_MAX, ZOOM_MIN, createStage } from '@/game/render3d/stage';
+import { createStage } from '@/game/render3d/stage';
+import { createCameraControls } from '@/game/render3d/controls';
 import { createNexus } from '@/game/render3d/nexus';
 import { buildTerrain, terrainHeight } from '@/game/render3d/terrain';
-import { buildClutter, buildGroundMist } from '@/game/render3d/clutter';
-import { HALF, TEAMS } from '@/game/arena/nexus';
+import { buildClutter } from '@/game/render3d/clutter';
+import { HALF, TEAMS, type TeamId } from '@/game/arena/nexus';
 import { createTowers } from '@/game/render3d/towers';
 import { createWalls } from '@/game/render3d/walls';
 import { createCamps } from '@/game/render3d/camps';
 import { createJungle } from '@/game/render3d/jungle';
 import { brushAt, resolveJungle } from '@/game/arena/jungle';
+import { campAt } from '@/game/arena/camps';
 import { createRiver } from '@/game/render3d/river';
 import { createBackdrop } from '@/game/render3d/backdrop';
 import { DECK_HEIGHT, onCrossing, riverSpeed } from '@/game/arena/river';
 import { resolveWalls } from '@/game/arena/walls';
-import { loadModel } from '@/game/render3d/models';
 import { createSantelmo } from '@/game/render3d/santelmo';
 import { createActor, type Actor } from '@/game/render3d/actor';
-import { KAPRE } from '@/game/combat/foes';
+import { createMinionRender } from '@/game/render3d/minions';
+import {
+  BASIC_WIDTH,
+  createBrute,
+  createMinionManager,
+  createObjectives,
+  createTowerFire,
+  CAST_KEYS,
+  EMPTY_COOLDOWNS,
+  KAPRE,
+  PROJECTILE_SPEED,
+  abilityForSlot,
+  coneHitsPoint,
+  direction,
+  lineHitsPoint,
+  segmentHitsPoint,
+  strikeLine,
+  type CastSlot,
+  type FoeOutcome,
+  type CooldownState,
+  type DashCast,
+  type ProjectileCast,
+  type WindupCast,
+} from '@/game/combat';
+import { combatGroundY, createCombatFx } from '@/game/render3d/combat';
 
 /**
  * How many world units tall the view is. Smaller is closer in.
@@ -41,6 +67,11 @@ import { KAPRE } from '@/game/combat/foes';
  * game whose characters cannot be seen has no reason to have good ones.
  */
 const VIEW_HEIGHT = 15;
+
+const FOE_RADIUS = KAPRE.model.height * 0.13;
+
+/** The side the player breaks. They fight for the Anito, so this is the other. */
+const ENEMY: TeamId = 'malakas';
 
 export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -56,15 +87,26 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
   const [hidden, setHidden] = useState(false);
   const [compass, setCompass] = useState(Math.PI / 4);
   const [zoomShown, setZoomShown] = useState(VIEW_HEIGHT);
+  const [cooldowns, setCooldowns] = useState<CooldownState>(EMPTY_COOLDOWNS);
+  const [playerHp, setPlayerHp] = useState(hero.health);
+  const [kapreHp, setKapreHp] = useState(KAPRE.health);
+  const [combatLine, setCombatLine] = useState('J basic · 1/2/R abilities · aim by facing');
+  const [objectiveLine, setObjectiveLine] = useState('');
+  /** Set once, when the enemy core breaks. A match ends and does not un-end. */
+  const [won, setWon] = useState(false);
   /** Held while a turn button is pressed: -1, 0 or 1. */
   const turnRef = useRef(0);
   /** Set once the stage exists, so the zoom buttons can reach it. */
   const zoomFn = useRef<((factor: number) => void) | null>(null);
+  const castFn = useRef<((slot: CastSlot) => void) | null>(null);
   const zoomBy = (factor: number) => zoomFn.current?.(factor);
+  const cast = (slot: CastSlot) => castFn.current?.(slot);
   // Read inside the frame loop, which must not be torn down when the hero
   // changes: a ref is how a value crosses from React into a running loop.
   const heroRef = useRef(hero);
-  heroRef.current = hero;
+  useEffect(() => {
+    heroRef.current = hero;
+  }, [hero]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -74,10 +116,10 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     // ?zoom= sets the starting distance, which is the only way to judge a body
     // thirty pixels tall in normal play. The wheel takes over from there.
     const zoomParam = Number(new URLSearchParams(window.location.search).get('zoom'));
-    stage.setViewHeight(Number.isFinite(zoomParam) && zoomParam > 0 ? zoomParam : VIEW_HEIGHT);
+    const startZoom = Number.isFinite(zoomParam) && zoomParam > 0 ? zoomParam : VIEW_HEIGHT;
     stage.scene.add(buildTerrain());
-    stage.scene.add(buildClutter());
-    stage.scene.add(buildGroundMist());
+    const clutter = buildClutter();
+    stage.scene.add(clutter.group);
     const nexus = createNexus();
     stage.scene.add(nexus.group);
     const towers = createTowers();
@@ -97,6 +139,27 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
 
     const santelmo = createSantelmo();
     stage.scene.add(santelmo.group);
+    const combatFx = createCombatFx();
+    stage.scene.add(combatFx.group);
+    const minionManager = createMinionManager();
+    const minionRender = createMinionRender();
+    stage.scene.add(minionRender.group);
+
+    // What the match is about. The towers and cores were already drawn; this is
+    // the layer that makes them mean something.
+    const objectives = createObjectives();
+    const towerFire = createTowerFire(objectives, ENEMY);
+    const standing = () =>
+      objectives.all.filter((s) => s.team === ENEMY && s.kind === 'tower' && objectives.alive(s)).length;
+    const reportObjectives = () => {
+      const core = objectives.core(ENEMY);
+      setObjectiveLine(
+        objectives.vulnerable(core)
+          ? `${TEAMS[ENEMY].name}: core exposed, ${Math.ceil(core.health)} left`
+          : `${TEAMS[ENEMY].name}: ${standing()} towers standing, core warded`
+      );
+    };
+    reportObjectives();
 
     // ⚠ THE GENERATED BALETE IS DELIBERATELY NOT LOADED. It exists at
     // /models/nature/balete.glb and it is WORSE than the procedural tree it was
@@ -107,6 +170,18 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     // The pattern it confirms, which matches the previous project exactly:
     // generated CREATURES work and generated SCENERY does not. The credits
     // belong to the Bakunawa and the Kapre, not to trees.
+
+    // ?at=8,-4 drops the player on a chosen tile, for looking at a hero
+    // somewhere that is not behind a bush.
+    const atParam = new URLSearchParams(window.location.search).get('at');
+    const at = atParam?.split(',').map(Number);
+    // Spawn just outside the Anito sanctuary, facing the map.
+    const spawnX = at && at.length === 2 && at.every(Number.isFinite) ? at[0] : TEAMS.anito.x + 14;
+    const spawnZ = at && at.length === 2 && at.every(Number.isFinite) ? at[1] : TEAMS.anito.z - 14;
+    let px = spawnX;
+    let pz = spawnZ;
+    let heading = Math.PI * 0.75;
+    let hiddenSeen = false;
 
     // Loaded asynchronously, so the frame loop has to cope with there being no
     // body yet. It starts immediately and the arena is already on screen.
@@ -129,12 +204,12 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
           return;
         }
         const inBrush = !!brushAt(px, pz);
-      if (inBrush !== hiddenSeen) {
-        hiddenSeen = inBrush;
-        setHidden(inBrush);
-      }
+        if (inBrush !== hiddenSeen) {
+          hiddenSeen = inBrush;
+          setHidden(inBrush);
+        }
 
-      if (player) {
+        if (player) {
           stage.scene.remove(player.object);
           player.dispose();
         }
@@ -147,89 +222,42 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     // ── the Kapre ─────────────────────────────────────────────────────────
     // The first thing in this game that is not the player. It stands in the
     // arena, notices you inside its awareness, and closes until it is within
-    // reach. It cannot hurt you yet, because nothing can hurt anything yet.
+    // reach. It can finally swing, which makes the arena a fight rather than a
+    // walking diorama.
     let foe: Actor | null = null;
-    let fx = 0;
-    let fz = 0;
-    let fFacing = 0;
+    // The body is the renderer's; where it stands and what it wants is the
+    // brain's. Only the two of them together are the Kapre.
+    const brute = createBrute(KAPRE, 0, 0);
     createActor(KAPRE.model).then((a) => {
       if (disposed) {
         a.dispose();
         return;
       }
       foe = a;
-      a.setPosition(fx, 0, fz);
+      a.setPosition(brute.x, 0, brute.z);
       stage.scene.add(a.object);
     });
 
-    // ?at=8,-4 drops the player on a chosen tile, for looking at a hero
-    // somewhere that is not behind a bush.
-    const atParam = new URLSearchParams(window.location.search).get('at');
-    const at = atParam?.split(',').map(Number);
-    // Spawn just outside the Anito sanctuary, facing the map.
-    let px = at && at.length === 2 && at.every(Number.isFinite) ? at[0] : TEAMS.anito.x + 14;
-    let pz = at && at.length === 2 && at.every(Number.isFinite) ? at[1] : TEAMS.anito.z - 14;
-    let heading = Math.PI * 0.75;
-
     // ── camera controls ──────────────────────────────────────────────────
-    let yaw = Math.PI / 4;
-    // ⚠ CLAMPED LIKE EVERY OTHER ZOOM CHANGE. Set directly it bypassed the
-    // limits the wheel and the buttons enforce, so the view could START outside
-    // the range it is not allowed to reach.
-    let zoom = Math.max(
-      ZOOM_MIN,
-      Math.min(ZOOM_MAX, Number.isFinite(zoomParam) && zoomParam > 0 ? zoomParam : VIEW_HEIGHT)
+    const camera = createCameraControls(
+      canvas,
+      stage,
+      startZoom,
+      (z) => setZoomShown(Math.round(z))
     );
-    stage.setViewHeight(zoom);
-    setZoomShown(Math.round(zoom));
-    let turning = 0;
-    void turning;
-
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      // Multiplicative, so a step feels the same at every distance. Additive
-      // zoom crawls when far out and lurches when close in.
-      zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom * (1 + Math.sign(e.deltaY) * 0.12)));
-      stage.setViewHeight(zoom);
-      setZoomShown(Math.round(zoom));
-    };
-    canvas.addEventListener('wheel', onWheel, { passive: false });
-
-    // The same clamp the wheel uses, exposed for the on-screen buttons: one
-    // place decides what the limits are.
-    zoomFn.current = (factor: number) => {
-      zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom * factor));
-      stage.setViewHeight(zoom);
-      setZoomShown(Math.round(zoom));
-    };
-
-    // Dragging with the right button or the middle turns the view. The left
-    // button is left free for whatever selects and targets later.
-    let dragging = false;
-    let lastX = 0;
-    const onPointerDown = (e: PointerEvent) => {
-      if (e.button !== 2 && e.button !== 1) return;
-      dragging = true;
-      lastX = e.clientX;
-      canvas.setPointerCapture(e.pointerId);
-    };
-    const onPointerMove = (e: PointerEvent) => {
-      if (!dragging) return;
-      yaw -= (e.clientX - lastX) * 0.008;
-      lastX = e.clientX;
-    };
-    const onPointerUp = () => {
-      dragging = false;
-    };
-    const onContext = (e: Event) => e.preventDefault();
-    canvas.addEventListener('pointerdown', onPointerDown);
-    canvas.addEventListener('pointermove', onPointerMove);
-    canvas.addEventListener('pointerup', onPointerUp);
-    canvas.addEventListener('pointercancel', onPointerUp);
-    canvas.addEventListener('contextmenu', onContext);
+    zoomFn.current = camera.zoomBy;
 
     const keys = new Set<string>();
-    const onDown = (e: KeyboardEvent) => keys.add(e.key.toLowerCase());
+    const castQueue: CastSlot[] = [];
+    castFn.current = (slot: CastSlot) => castQueue.push(slot);
+    const onDown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      keys.add(key);
+      const slot = CAST_KEYS[key];
+      if (!slot || e.repeat) return;
+      e.preventDefault();
+      castQueue.push(slot);
+    };
     const onUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
     window.addEventListener('keydown', onDown);
     window.addEventListener('keyup', onUp);
@@ -239,26 +267,254 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     stage.resize();
 
     let raf = 0;
-    let last = performance.now();
+    let last = 0;
     let clock = 0;
-    let hiddenSeen = false;
     let yawShown = Math.PI / 4;
     let frames = 0;
     let fpsClock = 0;
+    let combatUiClock = 0;
+    let activeHeroId = hero.id;
+
+    let playerHealth = hero.health;
+    let castLockUntil = 0;
+    let dash: DashCast | null = null;
+    const ready: CooldownState = { ...EMPTY_COOLDOWNS };
+    const windups: WindupCast[] = [];
+    const projectiles: ProjectileCast[] = [];
+
+    const syncCooldowns = () => {
+      setCooldowns({
+        basic: Math.max(0, ready.basic - clock),
+        ability0: Math.max(0, ready.ability0 - clock),
+        ability1: Math.max(0, ready.ability1 - clock),
+        ultimate: Math.max(0, ready.ultimate - clock),
+      });
+    };
+
+    const resetReady = () => {
+      ready.basic = 0;
+      ready.ability0 = 0;
+      ready.ability1 = 0;
+      ready.ultimate = 0;
+      syncCooldowns();
+    };
+
+    const resolveBody = (x: number, z: number, radius: number) => {
+      const stepped = resolveJungle(x, z, radius);
+      const pushed = resolveWalls(stepped.x, stepped.z, radius);
+      return {
+        x: Math.max(-HALF + 1, Math.min(HALF - 1, pushed.x)),
+        z: Math.max(-HALF + 1, Math.min(HALF - 1, pushed.z)),
+      };
+    };
+
+    const resetPlayer = (message: string) => {
+      px = spawnX;
+      pz = spawnZ;
+      heading = Math.PI * 0.75;
+      playerHealth = heroRef.current.health;
+      setPlayerHp(playerHealth);
+      setCombatLine(message);
+      castLockUntil = clock + 0.4;
+    };
+
+    /** Every source of damage to the player goes through here. */
+    const hurtPlayer = (amount: number, source: string) => {
+      playerHealth = Math.max(0, playerHealth - amount);
+      combatFx.addBurst(px, pz, TEAMS.malakas.light);
+      if (playerHealth <= 0) {
+        setPlayerHp(0);
+        resetPlayer(`${source} drops you. You wake at the Anito gate.`);
+      } else {
+        setPlayerHp(playerHealth);
+        setCombatLine(`${source} hits you for ${amount}.`);
+      }
+    };
+
+    /**
+     * Everything an aimed shape does when it lands.
+     *
+     * ⚠ ONE PATH FOR EVERY SHAPE. The basic attack, the three ability shapes
+     * and a projectile all arrive here as a coverage predicate, because the
+     * alternative is five places that each decide separately whether a tower
+     * counts as a target, and four of them will be wrong.
+     */
+    const resolveHit = (
+      label: string,
+      amount: number,
+      covers: (x: number, z: number, radius: number) => boolean
+    ): boolean => {
+      let foeOutcome: FoeOutcome | null = null;
+      if (covers(brute.x, brute.z, FOE_RADIUS) && brute.hurt(amount, clock)) {
+        foeOutcome = { name: KAPRE.name, amount, downed: !brute.alive };
+        setKapreHp(brute.health);
+        combatFx.addBurst(brute.x, brute.z, TEAMS.anito.light);
+        if (!brute.alive && foe) foe.object.visible = false;
+      }
+
+      const minionReport = minionManager.strike(ENEMY, covers, amount);
+      for (const hit of minionReport.hits) combatFx.addBurst(hit.x, hit.z, TEAMS.anito.light);
+
+      const report = objectives.strike(ENEMY, covers, amount);
+      for (const hit of report.hits) combatFx.addBurst(hit.x, hit.z, TEAMS.anito.light);
+      for (const down of report.felled) {
+        if (down.kind === 'core') {
+          nexus.shatter(down.team);
+          setWon(true);
+        } else {
+          towers.fell(down.id);
+        }
+      }
+      if (report.hits.length > 0) reportObjectives();
+
+      const line = strikeLine(label, foeOutcome, report, minionReport);
+      if (line) setCombatLine(line);
+
+      // A warded structure stopped the shot without taking damage, so it still
+      // counts as contact for anything consumed on impact.
+      return !!line;
+    };
+
+    const startWindup = (slot: CastSlot, ability: Ability) => {
+      const startX = px;
+      const startZ = pz;
+      const startHeading = heading;
+      const dir = direction(startHeading);
+      const life = Math.max(0.12, ability.windup);
+
+      if (ability.shape === 'ground') {
+        combatFx.addCircle(
+          startX + dir.x * ability.range,
+          startZ + dir.z * ability.range,
+          ability.width,
+          TEAMS.anito.light,
+          life
+        );
+      } else if (ability.shape === 'cone') {
+        combatFx.addCone(startX, startZ, startHeading, ability.range, ability.width, TEAMS.anito.light, life);
+      } else {
+        combatFx.addLine(startX, startZ, startHeading, ability.range, ability.width, TEAMS.anito.light, life);
+      }
+
+      windups.push({
+        ability,
+        slot,
+        x: startX,
+        z: startZ,
+        heading: startHeading,
+        triggerAt: clock + ability.windup,
+      });
+      ready[slot] = clock + ability.cooldown;
+      castLockUntil = Math.max(castLockUntil, clock + ability.lock);
+      setCombatLine(`${ability.name} aimed.`);
+    };
+
+    const tryCast = (slot: CastSlot) => {
+      if (clock < castLockUntil || dash) return;
+      const currentHero = heroRef.current;
+      const cooldown = ready[slot] - clock;
+      const ability = abilityForSlot(currentHero, slot);
+      const label = ability?.name ?? 'Strike';
+      if (cooldown > 0) {
+        setCombatLine(`${label} ready in ${cooldown.toFixed(1)}s.`);
+        return;
+      }
+
+      if (slot === 'basic') {
+        ready.basic = clock + currentHero.attackCooldown;
+        castLockUntil = Math.max(castLockUntil, clock + Math.min(0.18, currentHero.attackCooldown * 0.3));
+        combatFx.addLine(px, pz, heading, currentHero.attackRange, BASIC_WIDTH, TEAMS.anito.light, 0.16);
+        const landed = resolveHit('Strike', currentHero.attack, (tx, tz, r) =>
+          lineHitsPoint(px, pz, heading, currentHero.attackRange, BASIC_WIDTH, tx, tz, r)
+        );
+        if (!landed) setCombatLine('Strike cuts empty air.');
+        return;
+      }
+
+      if (ability) startWindup(slot, ability);
+    };
+
+    const resolveWindup = (cast: WindupCast) => {
+      const dir = direction(cast.heading);
+      const targetX = cast.x + dir.x * cast.ability.range;
+      const targetZ = cast.z + dir.z * cast.ability.range;
+
+      if (cast.ability.shape === 'projectile') {
+        const object = combatFx.makeProjectile(TEAMS.anito.light);
+        object.position.set(cast.x + dir.x * 1.2, combatGroundY(cast.x, cast.z) + 1.1, cast.z + dir.z * 1.2);
+        projectiles.push({
+          ability: cast.ability,
+          object,
+          x: cast.x + dir.x * 1.2,
+          z: cast.z + dir.z * 1.2,
+          heading: cast.heading,
+          travelled: 0,
+        });
+        return;
+      }
+
+      if (cast.ability.shape === 'ground') {
+        if (cast.ability.damage <= 0) {
+          setCombatLine(`${cast.ability.name} takes hold.`);
+          return;
+        }
+        const landed = resolveHit(cast.ability.name, cast.ability.damage, (tx, tz, r) =>
+          Math.hypot(tx - targetX, tz - targetZ) <= cast.ability.width + r
+        );
+        if (!landed) setCombatLine(`${cast.ability.name} lands empty.`);
+        return;
+      }
+
+      if (cast.ability.shape === 'cone') {
+        combatFx.addCone(cast.x, cast.z, cast.heading, cast.ability.range, cast.ability.width, TEAMS.anito.light, 0.18);
+        const landed = resolveHit(cast.ability.name, cast.ability.damage, (tx, tz, r) =>
+          coneHitsPoint(cast.x, cast.z, cast.heading, cast.ability.range, cast.ability.width, tx, tz, r)
+        );
+        if (!landed) setCombatLine(`${cast.ability.name} finds no body.`);
+        return;
+      }
+
+      dash = {
+        ability: cast.ability,
+        heading: cast.heading,
+        remaining: cast.ability.range,
+        speed: Math.max(18, cast.ability.range / 0.32),
+        hit: false,
+      };
+      if (cast.ability.damage <= 0) setCombatLine(`${cast.ability.name} carries you forward.`);
+    };
 
     const loop = () => {
       raf = requestAnimationFrame(loop);
       const now = performance.now();
       // Clamped: a backgrounded tab returns with a huge delta, and integrating
       // that in one step teleports the body through the walls.
-      const dt = Math.min(0.05, (now - last) / 1000);
+      const dt = last === 0 ? 0 : Math.min(0.05, (now - last) / 1000);
       last = now;
       clock += dt;
 
       // Rebuild the body when the hero changes, rather than tearing the whole
       // scene down: the arena and the lights are the expensive part.
       const want = heroRef.current;
+      if (want.id !== activeHeroId) {
+        activeHeroId = want.id;
+        playerHealth = want.health;
+        setPlayerHp(playerHealth);
+        windups.length = 0;
+        for (const p of projectiles.splice(0)) combatFx.removeObject(p.object);
+        dash = null;
+        castLockUntil = 0;
+        resetReady();
+        setCombatLine(`${want.name} enters. J basic · 1/2/R abilities.`);
+      }
       if (want.id !== builtFor) swapTo(want);
+
+      const queuedCast = castQueue.shift();
+      castQueue.length = 0;
+      if (queuedCast) {
+        tryCast(queuedCast);
+        syncCooldowns();
+      }
 
       // ── input ────────────────────────────────────────────────────────────
       // Rotated 45 degrees to match the camera's yaw, so "up" on the keyboard
@@ -268,11 +524,10 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       // write the same yaw, so no control has its own idea of where the camera
       // is pointing.
       const turnKey = (keys.has('q') ? 1 : 0) - (keys.has('e') ? 1 : 0);
-      yaw += (turnKey + turnRef.current + turning) * dt * 1.6;
-      stage.setYaw(yaw);
-      if (Math.abs(yaw - yawShown) > 0.02) {
-        yawShown = yaw;
-        setCompass(yaw);
+      camera.update(dt, turnKey + turnRef.current);
+      if (Math.abs(camera.yaw - yawShown) > 0.02) {
+        yawShown = camera.yaw;
+        setCompass(camera.yaw);
       }
 
       let ix = 0;
@@ -282,15 +537,37 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       if (keys.has('a') || keys.has('arrowleft')) ix -= 1;
       if (keys.has('d') || keys.has('arrowright')) ix += 1;
 
-      const moving = ix !== 0 || iz !== 0;
-      if (moving) {
+      let moving = false;
+      if (dash) {
+        const dir = direction(dash.heading);
+        const oldX = px;
+        const oldZ = pz;
+        const step = Math.min(dash.remaining, dash.speed * dt);
+        const bodyR = heroRadius(want.build.scale);
+        const next = resolveBody(px + dir.x * step, pz + dir.z * step, bodyR);
+        px = next.x;
+        pz = next.z;
+        heading = dash.heading;
+        moving = true;
+
+        const actual = Math.hypot(px - oldX, pz - oldZ);
+        if (dash.ability.damage > 0 && !dash.hit) {
+          const ability = dash.ability;
+          dash.hit = resolveHit(ability.name, ability.damage, (tx, tz, r) =>
+            segmentHitsPoint(oldX, oldZ, px, pz, tx, tz, ability.width + r)
+          );
+        }
+        dash.remaining -= actual;
+        if (actual < step * 0.25 || dash.remaining <= 0) dash = null;
+      } else if ((ix !== 0 || iz !== 0) && clock >= castLockUntil && playerHealth > 0) {
+        moving = true;
         // ⚠ MOVEMENT IS ROTATED BY THE LIVE YAW, not by a baked 45 degrees.
         // This was a constant, which was correct only while the camera could
         // not turn; leaving it would mean that the moment a player rotated the
         // view, "forward" stopped being up the screen and the controls became
         // unusable at every angle except the original one.
-        const cos = Math.cos(yaw);
-        const sin = Math.sin(yaw);
+        const cos = Math.cos(camera.yaw);
+        const sin = Math.sin(camera.yaw);
         const dx = ix * cos + iz * sin;
         const dz = -ix * sin + iz * cos;
         const len = Math.hypot(dx, dz) || 1;
@@ -307,32 +584,126 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         // scaling the model without this leaves a giant rattling around inside
         // a collider built for someone a third its size.
         const bodyR = heroRadius(want.build.scale);
-        const stepped = resolveJungle(px + (dx / len) * step, pz + (dz / len) * step, bodyR);
-        const pushed = resolveWalls(stepped.x, stepped.z, bodyR);
-        px = Math.max(-HALF + 1, Math.min(HALF - 1, pushed.x));
-        pz = Math.max(-HALF + 1, Math.min(HALF - 1, pushed.z));
+        const next = resolveBody(px + (dx / len) * step, pz + (dz / len) * step, bodyR);
+        px = next.x;
+        pz = next.z;
         heading = Math.atan2(dx, dz);
       }
 
-      if (foe) {
-        const dx = px - fx;
-        const dz = pz - fz;
-        const gap = Math.hypot(dx, dz);
-        // Notices you, closes, stops at reach. Three numbers and it already
-        // reads as a creature deciding something.
-        const closing = gap < KAPRE.awareness && gap > KAPRE.reach;
-        if (closing) {
-          const step = (KAPRE.speed * dt) / gap;
-          fx += dx * step;
-          fz += dz * step;
+      const inBrush = !!brushAt(px, pz);
+      if (inBrush !== hiddenSeen) {
+        hiddenSeen = inBrush;
+        setHidden(inBrush);
+      }
+
+      for (let i = windups.length - 1; i >= 0; i--) {
+        if (clock < windups[i].triggerAt) continue;
+        const [cast] = windups.splice(i, 1);
+        resolveWindup(cast);
+      }
+
+      for (let i = projectiles.length - 1; i >= 0; i--) {
+        const p = projectiles[i];
+        const dir = direction(p.heading);
+        const oldX = p.x;
+        const oldZ = p.z;
+        const step = PROJECTILE_SPEED * dt;
+        p.x += dir.x * step;
+        p.z += dir.z * step;
+        p.travelled += step;
+        p.object.position.set(p.x, combatGroundY(p.x, p.z) + 1.1, p.z);
+        p.object.rotation.y += dt * 5;
+
+        // ⚠ TESTED AGAINST THE FOE ONLY WHILE IT IS ALIVE, so a shot cannot
+        // stop in mid-air on a corpse; structures are handled by the same
+        // predicate, which is why the whole test goes through resolveHit.
+        const consumed = resolveHit(p.ability.name, p.ability.damage, (tx, tz, r) =>
+          segmentHitsPoint(oldX, oldZ, p.x, p.z, tx, tz, p.ability.width + r)
+        );
+        if (consumed) {
+          combatFx.removeObject(p.object);
+          projectiles.splice(i, 1);
+          continue;
         }
-        // Always turns to face you, even when standing still, which is what
-        // makes a thing feel aware rather than idle.
-        if (gap > 0.1) fFacing = Math.atan2(dx, dz);
-        foe.setPosition(fx, onCrossing(fx, fz) ? DECK_HEIGHT : terrainHeight(fx, fz), fz);
-        foe.setFacing(fFacing);
-        foe.play(closing ? 'walk' : 'idle');
+        if (p.travelled >= p.ability.range) {
+          combatFx.removeObject(p.object);
+          projectiles.splice(i, 1);
+        }
+      }
+
+      // ⚠ ONLY WHILE THE BODY EXISTS. The mesh loads asynchronously, and a
+      // brain ticking before it arrives means a Kapre that crosses half the map
+      // invisibly and pops into existence already swinging.
+      if (foe) {
+        const tick = brute.update(dt, {
+          clock,
+          playerX: px,
+          playerZ: pz,
+          playerRadius: heroRadius(want.build.scale),
+          playerHidden: hiddenSeen,
+        });
+        if (tick.returned) {
+          setKapreHp(brute.health);
+          foe.object.visible = true;
+          setCombatLine(`The ${KAPRE.name} gathers itself again at the river bend.`);
+        }
+        if (tick.damage > 0) hurtPlayer(tick.damage, `The ${KAPRE.name}`);
+        foe.play(tick.walking ? 'walk' : 'idle');
+        foe.setPosition(
+          brute.x,
+          onCrossing(brute.x, brute.z) ? DECK_HEIGHT : terrainHeight(brute.x, brute.z),
+          brute.z
+        );
+        foe.setFacing(brute.facing);
         foe.update(dt);
+      }
+
+      // Minion simulation and combat
+      minionManager.update(dt, clock, objectives, (from, tx, tz, isRanged) => {
+        const teamColour = from.team === 'anito' ? TEAMS.anito.light : TEAMS.malakas.light;
+        if (isRanged) {
+          const gap = Math.hypot(tx - from.x, tz - from.z);
+          const angle = Math.atan2(tx - from.x, tz - from.z);
+          combatFx.addLine(from.x, from.z, angle, gap, 0.12, teamColour, 0.16);
+        } else {
+          combatFx.addBurst(tx, tz, teamColour);
+        }
+      });
+      minionRender.update(minionManager.minions, clock);
+
+      // Bulul jungle camp boons
+      const camp = campAt(px, pz);
+      if (camp) {
+        if (camp.id.startsWith('bulul-nw') || camp.id.startsWith('bulul-se')) {
+          // Elder Bulul: health regeneration tick
+          if (playerHealth < want.health && playerHealth > 0) {
+            playerHealth = Math.min(want.health, playerHealth + 36 * dt);
+            setPlayerHp(playerHealth);
+          }
+        }
+      }
+
+      // ⚠ ONLY WHILE THE PLAYER IS UP. A corpse waiting to respawn standing in
+      // a tower's range would be shot back down the instant it stood.
+      if (playerHealth > 0) {
+        const shot = towerFire.update(clock, px, pz, minionManager);
+        if (shot.from) {
+          const gap = Math.hypot(shot.targetX - shot.from.x, shot.targetZ - shot.from.z);
+          combatFx.addLine(
+            shot.from.x,
+            shot.from.z,
+            Math.atan2(shot.targetX - shot.from.x, shot.targetZ - shot.from.z),
+            gap,
+            0.22,
+            TEAMS[ENEMY].light,
+            0.22
+          );
+          if (shot.damage > 0) {
+            hurtPlayer(shot.damage, 'A tower');
+          } else if (shot.minionHit) {
+            combatFx.addBurst(shot.targetX, shot.targetZ, TEAMS[ENEMY].light);
+          }
+        }
       }
 
       if (player) {
@@ -342,12 +713,15 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         player.play(moving ? 'run' : 'idle');
         player.update(dt);
       }
+      clutter.update(clock);
       nexus.update(clock);
       towers.update(clock);
       camps.update(clock);
       jungle.update(clock);
       river.update(clock);
+      backdrop.update(clock);
       santelmo.update(clock);
+      combatFx.update(dt);
       stage.lookAtGround(px, pz);
       stage.render();
 
@@ -358,22 +732,24 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         frames = 0;
         fpsClock = 0;
       }
+      combatUiClock += dt;
+      if (combatUiClock >= 0.12) {
+        syncCooldowns();
+        combatUiClock = 0;
+      }
     };
     loop();
 
     return () => {
       disposed = true;
       zoomFn.current = null;
+      castFn.current = null;
       cancelAnimationFrame(raf);
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
       window.removeEventListener('resize', onResize);
-      canvas.removeEventListener('wheel', onWheel);
-      canvas.removeEventListener('pointerdown', onPointerDown);
-      canvas.removeEventListener('pointermove', onPointerMove);
-      canvas.removeEventListener('pointerup', onPointerUp);
-      canvas.removeEventListener('pointercancel', onPointerUp);
-      canvas.removeEventListener('contextmenu', onContext);
+      camera.dispose();
+      clutter.dispose();
       nexus.dispose();
       towers.dispose();
       walls.dispose();
@@ -382,6 +758,8 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       river.dispose();
       backdrop.dispose();
       santelmo.dispose();
+      combatFx.dispose();
+      minionRender.dispose();
       player?.dispose();
       foe?.dispose();
       stage.dispose();
@@ -395,185 +773,28 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     <div style={{ position: 'relative', width: '100%', height: '100dvh' }}>
       <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
 
-      <div style={panel}>
-        <strong style={{ fontSize: 15 }}>
-          {hero.emoji} {hero.name}
-        </strong>
-        <span style={{ opacity: 0.75, fontSize: 12 }}>{hero.origin}</span>
-        <span style={{ opacity: 0.55, fontSize: 11 }}>
-          {fps} fps · WASD to move{hidden ? ' · 🌿 hidden' : ''}
-        </span>
-      </div>
-
-      {/* ── camera controls ──────────────────────────────────────────────
-          Kept together in one corner, because zoom and rotation are the same
-          question asked two ways: what am I looking at. Splitting them across
-          the screen makes a player hunt for half of one control. */}
-      <div style={cameraBox}>
-        <button
-          aria-label="Turn view left"
-          style={roundBtn}
-          onPointerDown={() => (turnRef.current = 1)}
-          onPointerUp={() => (turnRef.current = 0)}
-          onPointerLeave={() => (turnRef.current = 0)}
-        >
-          ↺
-        </button>
-
-        {/* The compass. The needle points to world north whichever way the
-            camera is facing, which is the one thing a rotating view takes away
-            and has to give back. */}
-        <div style={compassRing} aria-label={`Compass, facing ${Math.round((-compass * 180) / Math.PI)} degrees`}>
-          <div
-            style={{
-              ...needle,
-              transform: `rotate(${-compass}rad)`,
-            }}
-          >
-            <span style={needleN}>N</span>
-          </div>
-        </div>
-
-        <button
-          aria-label="Turn view right"
-          style={roundBtn}
-          onPointerDown={() => (turnRef.current = -1)}
-          onPointerUp={() => (turnRef.current = 0)}
-          onPointerLeave={() => (turnRef.current = 0)}
-        >
-          ↻
-        </button>
-      </div>
-
-      <div style={zoomBox}>
-        <button aria-label="Zoom in" style={roundBtn} onClick={() => zoomBy(0.82)}>
-          +
-        </button>
-        <span style={zoomLabel}>{zoomShown}</span>
-        <button aria-label="Zoom out" style={roundBtn} onClick={() => zoomBy(1.22)}>
-          −
-        </button>
-      </div>
-
-      <div style={picker}>
-        {playable.map((h) => (
-          <button
-            key={h.id}
-            onClick={() => setHero(h)}
-            style={{
-              ...pick,
-              background: h.id === hero.id ? '#f7f5ee' : 'rgba(6,18,20,0.6)',
-              color: h.id === hero.id ? '#0d1b1e' : '#f7f5ee',
-            }}
-          >
-            {h.emoji} {h.name}
-          </button>
-        ))}
-      </div>
+      <HeroHud
+        hero={hero}
+        playable={playable}
+        onPick={setHero}
+        fps={fps}
+        hidden={hidden}
+        playerHp={playerHp}
+        foeName={KAPRE.name}
+        foeHp={kapreHp}
+        foeMaxHp={KAPRE.health}
+        combatLine={combatLine}
+        objectiveLine={objectiveLine}
+        won={won}
+        cooldowns={cooldowns}
+        onCast={cast}
+        compass={compass}
+        zoomShown={zoomShown}
+        onZoom={zoomBy}
+        onTurn={(dir) => {
+          turnRef.current = dir;
+        }}
+      />
     </div>
   );
 }
-
-const panel: React.CSSProperties = {
-  position: 'absolute',
-  left: 14,
-  top: 14,
-  display: 'grid',
-  gap: 2,
-  padding: '10px 14px',
-  borderRadius: 12,
-  background: 'rgba(6,18,20,0.6)',
-  color: '#f7f5ee',
-  fontFamily: 'system-ui, sans-serif',
-};
-
-const picker: React.CSSProperties = {
-  position: 'absolute',
-  left: '50%',
-  bottom: 18,
-  transform: 'translateX(-50%)',
-  display: 'flex',
-  gap: 8,
-  flexWrap: 'wrap',
-  justifyContent: 'center',
-  padding: '0 12px',
-};
-
-const cameraBox: React.CSSProperties = {
-  position: 'absolute',
-  right: 16,
-  bottom: 92,
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-};
-
-const zoomBox: React.CSSProperties = {
-  position: 'absolute',
-  right: 16,
-  bottom: 22,
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-};
-
-const roundBtn: React.CSSProperties = {
-  width: 46,
-  height: 46,
-  borderRadius: '50%',
-  border: '2px solid rgba(255,255,255,0.7)',
-  background: 'rgba(6,18,20,0.55)',
-  color: '#f7f5ee',
-  fontSize: 19,
-  cursor: 'pointer',
-  touchAction: 'none',
-  fontFamily: 'system-ui, sans-serif',
-};
-
-const compassRing: React.CSSProperties = {
-  width: 52,
-  height: 52,
-  borderRadius: '50%',
-  border: '2px solid rgba(255,255,255,0.55)',
-  background: 'rgba(6,18,20,0.55)',
-  display: 'grid',
-  placeItems: 'center',
-};
-
-const needle: React.CSSProperties = {
-  width: '100%',
-  height: '100%',
-  display: 'grid',
-  placeItems: 'start center',
-  paddingTop: 3,
-  // Snaps to the yaw each frame; no transition, or the needle lags the world.
-};
-
-const needleN: React.CSSProperties = {
-  color: '#ffc84a',
-  fontWeight: 800,
-  fontSize: 13,
-  fontFamily: 'system-ui, sans-serif',
-  lineHeight: 1,
-};
-
-const zoomLabel: React.CSSProperties = {
-  minWidth: 34,
-  textAlign: 'center',
-  color: '#f7f5ee',
-  fontSize: 12.5,
-  fontWeight: 700,
-  fontFamily: 'system-ui, sans-serif',
-  fontVariantNumeric: 'tabular-nums',
-};
-
-const pick: React.CSSProperties = {
-  minHeight: 44,
-  padding: '0 14px',
-  borderRadius: 999,
-  border: 'none',
-  fontWeight: 700,
-  fontSize: 13.5,
-  cursor: 'pointer',
-  fontFamily: 'system-ui, sans-serif',
-};

@@ -26,7 +26,6 @@ import { terrainHeight } from './terrain';
  * Sections overlap slightly instead.
  */
 const SECTION = 5;
-const STEP = 4.1;
 /** How tall the palisade stands. Above head height: it is a wall, not a rail. */
 const HEIGHT = 4.2;
 

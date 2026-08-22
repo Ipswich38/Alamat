@@ -26,6 +26,15 @@ const HEIGHT: Record<number, number> = { 1: 8, 2: 9, 3: 10.5 };
 export interface Towers {
   group: THREE.Group;
   nodes: TowerNode[];
+  /**
+   * Show a tower as destroyed.
+   *
+   * ⚠ IT LEAVES A RUIN, NOT A HOLE. A tower that vanishes takes the landmark
+   * with it, and a lane whose landmarks disappear is a lane nobody can describe
+   * to themselves ("push to the second tower" has to keep meaning something
+   * after the second tower falls).
+   */
+  fell(id: string): void;
   update(t: number): void;
   dispose(): void;
 }
@@ -36,6 +45,7 @@ export function createTowers(): Towers {
   const nodes = buildTowers();
   const eyes: THREE.Mesh[] = [];
   const placeholders: THREE.Object3D[] = [];
+  const bodies: THREE.Group[] = [];
 
   for (const node of nodes) {
     const team = TEAMS[node.team];
@@ -99,6 +109,7 @@ export function createTowers(): Towers {
     g.add(ring);
 
     group.add(g);
+    bodies.push(g);
   }
 
   // The generated watchtower replaces every placeholder shaft on arrival. One
@@ -117,8 +128,34 @@ export function createTowers(): Towers {
   return {
     group,
     nodes,
+    fell: (id) => {
+      const i = nodes.findIndex((n) => n.id === id);
+      if (i < 0) return;
+      const g = bodies[i];
+      for (const child of [...g.children]) child.visible = false;
+
+      const rubble = new THREE.Mesh(
+        new THREE.CylinderGeometry(2.2, 3.1, 1.5, 8),
+        surfaceMaterial(0x4a4239, { roughness: 0.98 })
+      );
+      rubble.position.y = 0.75;
+      rubble.receiveShadow = true;
+      g.add(rubble);
+
+      // One leaning shard of the shaft, so the ruin has a silhouette rather
+      // than reading as a stump someone left there on purpose.
+      const shard = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.7, 1.1, 3.4, 6),
+        surfaceMaterial(0x6b5c46, { roughness: 0.95 })
+      );
+      shard.position.set(1.1, 1.9, -0.5);
+      shard.rotation.z = 0.42;
+      shard.castShadow = true;
+      g.add(shard);
+    },
     update: (t) => {
       for (const [i, eye] of eyes.entries()) {
+        if (!eye.visible) continue;
         eye.rotation.y = t * 0.6 + i;
         // Each tower breathes on its own offset, so a lane of them does not
         // pulse in unison like a string of fairy lights.

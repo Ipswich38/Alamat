@@ -26,11 +26,11 @@ import * as THREE from 'three';
 //
 // The look still comes from a chosen palette rather than neutral daylight, it
 // is simply chosen at the bright end: warm sun, cool sky, saturated ground.
-const HORIZON = new THREE.Color('#d6f0e4');
-const MID = new THREE.Color('#79c8e0');
-const ZENITH = new THREE.Color('#3d94cf');
-/** What the ground bounces back up: damp, dark, green. */
-const GROUND_BOUNCE = new THREE.Color('#6f8a55');
+const HORIZON = new THREE.Color('#F39C12'); // Warm Amber Golden-Hour
+const MID = new THREE.Color('#3A5A60'); // Twilight Teal
+const ZENITH = new THREE.Color('#112D29'); // Deep Emerald Night
+/** What the ground bounces back up: Deep Emerald Teal (#112D29) */
+const GROUND_BOUNCE = new THREE.Color('#112D29');
 
 export interface SkyResult {
   dome: THREE.Mesh;

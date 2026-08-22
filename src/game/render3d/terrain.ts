@@ -22,14 +22,16 @@ import { HALF, SANCTUARY_RADIUS, TEAMS } from '@/game/arena/nexus';
 import { LANES, LANE_WIDTH, laneDistance } from '@/game/arena/lanes';
 import { RIVER_WIDTH, riverDepth, riverFloor } from '@/game/arena/river';
 
-// ── the palette ─────────────────────────────────────────────────────────────
-const GRASS = new THREE.Color('#4f8f3f');
-const GRASS_LIT = new THREE.Color('#6fae52');
-const JUNGLE = new THREE.Color('#2f6b34');
-const DIRT = new THREE.Color('#8a6f45');
-const DIRT_DARK = new THREE.Color('#6b5334');
-const RIVER_STONE = new THREE.Color('#4a5c5f');
-const BEYOND = new THREE.Color('#1c3320');
+// ── the palette (3-way height-blend) ─────────────────────────────────────────
+const DIRT_PATH = new THREE.Color('#5D4037'); // Dirt Path
+const MOSSY_GRASS = new THREE.Color('#2E7D32'); // Lush Mossy Grass
+const MOSSY_LIT = new THREE.Color('#388E3C');
+const JUNGLE_DEEP = new THREE.Color('#1B4D2E');
+const VOLCANIC_MUD = new THREE.Color('#1C2833'); // Volcanic Mud
+const SCORCHED_SOIL = new THREE.Color('#2B2625');
+const BASALT_ROCK = new THREE.Color('#1A1717');
+const RIVER_STONE = new THREE.Color('#2C3E50');
+const BEYOND = new THREE.Color('#0D1F14');
 
 /** How far past the playable edge the ground continues. */
 const SKIRT = 90;
@@ -60,13 +62,18 @@ function terrainNoise(x: number, z: number): number {
   return smoothNoise(x * 0.035, z * 0.035) * 0.7 + smoothNoise(x * 0.09, z * 0.09) * 0.3;
 }
 
+/** Proximity factor to the North-West Mayon volcanic biome. */
+function volcanicStrength(x: number, z: number): number {
+  const distNW = Math.hypot(x - (-95), z - (-95));
+  const k = Math.max(0, 1 - distNW / 95);
+  return k * k * (3 - 2 * k);
+}
+
 /** How strongly a point belongs to a lane: 1 on the centre line, 0 off it. */
 function laneStrength(x: number, z: number): number {
   let best = 0;
   for (const lane of LANES) {
     const d = laneDistance(x, z, lane.path);
-    // The blend runs past the lane's own width, so trodden ground fades into
-    // grass rather than ending at a kerb.
     const k = Math.max(0, 1 - d / (LANE_WIDTH / 2 + 6));
     if (k > best) best = k;
   }
@@ -86,11 +93,6 @@ function baseStrength(x: number, z: number): number {
 
 /**
  * Ground height at a point, before bridges.
- *
- * ⚠ LANES ARE FLATTENED. Terrain roll is what stops the map reading as a
- * tabletop, but a lane that undulates makes an aimed skillshot travel over a
- * hill and land somewhere the player did not choose. The noise is faded out
- * wherever a lane is, so roads are level and everything between them is not.
  */
 export function terrainHeight(x: number, z: number): number {
   const river = riverFloor(x, z);
@@ -98,47 +100,56 @@ export function terrainHeight(x: number, z: number): number {
 
   const roll = (terrainNoise(x, z) - 0.5) * 3.2;
   const flat = Math.max(laneStrength(x, z), baseStrength(x, z));
-  const inner = roll * (1 - flat);
+  const vStrength = volcanicStrength(x, z);
+  const volcanicRidge = (smoothNoise(x * 0.05, z * 0.05) * 3.8 + smoothNoise(x * 0.12, z * 0.12) * 1.6) * vStrength;
+  const inner = roll * (1 - flat) + volcanicRidge * (1 - flat * 0.8);
 
-  // Past the boundary the ground falls away into forest, which is what removes
-  // the hard edge without fencing the player in with an invisible wall.
   const out = Math.max(Math.abs(x), Math.abs(z));
   if (out <= HALF) return inner;
   const t = Math.min(1, (out - HALF) / SKIRT);
+  if (x < 0 && z < 0) {
+    return inner + t * 14 * vStrength;
+  }
   return inner - t * t * 26 + (terrainNoise(x * 0.6, z * 0.6) - 0.5) * 8 * t;
 }
 
-/** Surface colour at a point, blended between neighbours. */
+/** 3-way height-blend surface colour: Dirt Path (#5D4037) -> Lush Mossy Grass (#2E7D32) -> Volcanic Mud (#1C2833) */
 function surfaceColour(x: number, z: number, out: THREE.Color): void {
   const grain = terrainNoise(x * 2.1, z * 2.1);
 
-  // Jungle base: darker away from the lanes, lighter near them.
-  out.copy(JUNGLE).lerp(GRASS, 0.35 + grain * 0.4);
-  out.lerp(GRASS_LIT, Math.max(0, grain - 0.55) * 0.9);
+  // 1. Base Layer: Lush Mossy Grass (#2E7D32)
+  out.copy(MOSSY_GRASS).lerp(JUNGLE_DEEP, 0.35 + grain * 0.4);
+  out.lerp(MOSSY_LIT, Math.max(0, grain - 0.52) * 0.85);
 
-  // Trodden ground along the lanes.
+  // 2. Lane Layer: Dirt Path (#5D4037)
   const lane = laneStrength(x, z);
   if (lane > 0) {
-    const mud = DIRT.clone().lerp(DIRT_DARK, grain);
-    out.lerp(mud, Math.min(1, lane * 1.25));
+    const dirt = DIRT_PATH.clone().offsetHSL(0, -0.05, (grain - 0.5) * 0.1);
+    out.lerp(dirt, Math.min(1, lane * 1.3));
   }
 
-  // Dark wet stone along the riverbed.
+  // 3. Volcanic Layer: Volcanic Mud (#1C2833) & Scorched Soil (#2B2625)
+  const vStrength = volcanicStrength(x, z);
+  if (vStrength > 0) {
+    const mud = VOLCANIC_MUD.clone().lerp(SCORCHED_SOIL, 0.45 + grain * 0.4);
+    mud.lerp(BASALT_ROCK, Math.max(0, grain - 0.3) * 0.85);
+    out.lerp(mud, vStrength * 0.94);
+  }
+
+  // Riverbed: Slate Blue wet stone
   const wet = riverDepth(x, z);
   if (wet > 0) out.lerp(RIVER_STONE, Math.min(1, wet * 1.6));
 
-  // Paved base ground.
+  // Paved base ground
   const base = baseStrength(x, z);
   if (base > 0) {
-    // Each team's own stone, so a glance tells you whose ground you are on.
     const t = Math.hypot(x - TEAMS.anito.x, z - TEAMS.anito.z) < HALF ? 0 : 1;
     out.lerp(new THREE.Color(t === 0 ? '#c9bd97' : '#9db3bc'), base * 0.9);
   }
 
-  // Beyond the boundary it goes dark, which is what reads as deep forest
-  // rather than as the map having been cut out with scissors.
+  // Beyond map border
   const edge = Math.max(Math.abs(x), Math.abs(z));
-  if (edge > HALF - 6) {
+  if (edge > HALF - 6 && !(x < 0 && z < 0)) {
     out.lerp(BEYOND, Math.min(1, (edge - (HALF - 6)) / 26));
   }
 }

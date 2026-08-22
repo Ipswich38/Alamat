@@ -1,25 +1,23 @@
-// Ground clutter: the small things that stop grass reading as a bedsheet.
-//
-// ── WHY THIS IS WORTH A FILE ────────────────────────────────────────────────
-// A large flat surface of one colour is the loudest "unfinished" signal a 3D
-// scene can send, and no amount of lighting fixes it, because the problem is
-// that the eye has nothing to measure distance or motion against. Scattering a
-// few thousand small objects gives it both, and instancing makes the whole lot
-// cost four draw calls.
-//
-// ── AND WHY IT KEEPS OFF THE LANES ──────────────────────────────────────────
-// Clutter belongs at the EDGE of a road, never on it. A lane has to stay a
-// clean readable surface: it is where fights happen, where skillshots are
-// aimed, and where a stray rock reads as something that might block a spell.
+// Enchanted Jungle Bioluminescence ("Lupang Hinirang"):
+// 1. Procedural micro-props (300 ferns, 80 mossy boulders & logs, 150 bioluminescent mushrooms).
+// 2. Anito Shrines & Ancient Baybayin/Okir etched stones with glowing runic gold (#FFD700).
+// 3. Diwata Spirit Particles (ambient floating golden/cyan motes drifting through the jungle volume).
+// 4. Smooth 0.5Hz sine-wave pulsing for bioluminescent Cyan (#00E5FF) and gold runes.
 
 import * as THREE from 'three';
 import { HALF } from '@/game/arena/nexus';
 import { LANES, LANE_WIDTH, laneDistance } from '@/game/arena/lanes';
-import { RIVER_WIDTH, riverDepth } from '@/game/arena/river';
+import { riverDepth } from '@/game/arena/river';
 import { terrainHeight } from './terrain';
 import { surfaceMaterial } from './stage';
 
-/** Deterministic 0..1 from an index and a salt. The scatter never reshuffles. */
+export interface Clutter {
+  group: THREE.Group;
+  update(t: number): void;
+  dispose(): void;
+}
+
+/** Deterministic pseudo-random number generator. */
 function rand(i: number, salt: number): number {
   const n = Math.sin(i * 127.1 + salt * 311.7) * 43758.5453;
   return n - Math.floor(n);
@@ -35,76 +33,85 @@ function laneGap(x: number, z: number): number {
   return best;
 }
 
-export function buildClutter(): THREE.Group {
+export function buildClutter(): Clutter {
   const group = new THREE.Group();
-  group.name = 'clutter';
+  group.name = 'enchanted-clutter';
 
-  // Four kinds, each instanced once. Numbers tuned so the ground is busy near
-  // the lanes and quiet in the open, which is where a player is looking.
-  // ⚠ FEWER, DARKER, MOSSIER. At 620 pale grey rocks the ground read as
-  // gravelled rather than grassy, and a uniform colour made them look like
-  // debris someone dropped rather than stone that grew there.
-  group.add(scatter('rock', 300, 0.4, 1.0, 0x4a5a44, 1));
-  group.add(scatter('fern', 1100, 0.45, 1.0, 0x357f42, 2));
-  group.add(scatter('log', 90, 0.8, 1.3, 0x4a3526, 3));
-  group.add(mushrooms(340));
+  // 1. Micro-props: 300 Tropical Ferns & Shrubs
+  const ferns = buildFerns(300);
+  group.add(ferns);
 
-  return group;
+  // 2. Micro-props: 80 Mossy Boulders & Fallen Logs
+  const bouldersAndLogs = buildBouldersAndLogs(80);
+  group.add(bouldersAndLogs);
+
+  // 3. Bioluminescent Cyan Mushrooms (150 instances, 0.5Hz pulse)
+  const mushrooms = buildBioluminescentMushrooms(150);
+  group.add(mushrooms.mesh);
+
+  // 4. Anito Shrines & Ancient Baybayin/Okir etched stones
+  const anitoShrines = buildAnitoRunicStones();
+  group.add(anitoShrines.group);
+
+  // 5. Diwata Spirit Particles (ambient floating golden/cyan motes)
+  const spiritParticles = buildDiwataSpiritParticles();
+  group.add(spiritParticles.points);
+
+  return {
+    group,
+    update: (t) => {
+      mushrooms.update(t);
+      anitoShrines.update(t);
+      spiritParticles.update(t);
+    },
+    dispose: () => {
+      group.traverse((n) => {
+        const m = n as THREE.Mesh;
+        if (m.isMesh) {
+          m.geometry.dispose();
+          const mats = Array.isArray(m.material) ? m.material : [m.material];
+          for (const mat of mats) mat.dispose();
+        }
+      });
+    },
+  };
 }
 
-function scatter(
-  kind: 'rock' | 'fern' | 'log',
-  count: number,
-  minScale: number,
-  maxScale: number,
-  colour: number,
-  salt: number
-): THREE.InstancedMesh {
-  const geo =
-    kind === 'rock'
-      ? new THREE.DodecahedronGeometry(0.6, 0)
-      : kind === 'fern'
-        ? new THREE.IcosahedronGeometry(0.5, 0)
-        : new THREE.CylinderGeometry(0.32, 0.38, 3.2, 6);
-
+/**
+ * 300 Native Ferns & Tropical Shrubs.
+ */
+function buildFerns(count: number): THREE.InstancedMesh {
+  const geo = new THREE.ConeGeometry(0.55, 0.9, 6);
+  geo.scale(1.2, 0.65, 1.2);
   const mesh = new THREE.InstancedMesh(
     geo,
-    surfaceMaterial(colour, { roughness: kind === 'rock' ? 0.9 : 1 }),
+    surfaceMaterial(0x236838, { roughness: 0.88 }),
     count
   );
-  // Clutter receives shadow and does not cast it. Hundreds of shadow casters is
-  // the entire frame budget, and nobody has ever noticed a fern's shadow.
-  mesh.castShadow = false;
   mesh.receiveShadow = true;
   mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3);
 
   const o = new THREE.Object3D();
   const c = new THREE.Color();
-  const base = new THREE.Color(colour);
+  const base = new THREE.Color('#2E7D32');
   let n = 0;
+
   for (let i = 0; i < count * 6 && n < count; i++) {
-    const x = (rand(i, salt) * 2 - 1) * (HALF - 2);
-    const z = (rand(i, salt + 40) * 2 - 1) * (HALF - 2);
+    const x = (rand(i, 23) * 2 - 1) * (HALF - 4);
+    const z = (rand(i, 67) * 2 - 1) * (HALF - 4);
 
-    // Never on a lane, and never in the water.
     const gap = laneGap(x, z);
-    if (gap < LANE_WIDTH / 2 + 1.5) continue;
-    if (riverDepth(x, z) > 0.15) continue;
-    // Thinned out far from any lane, so the busy ground is where players are.
-    if (gap > 34 && rand(i, salt + 90) > 0.35) continue;
+    if (gap < LANE_WIDTH / 2 + 1.2) continue;
+    if (riverDepth(x, z) > 0.12) continue;
 
-    const s = minScale + rand(i, salt + 7) * (maxScale - minScale);
-    o.position.set(x, terrainHeight(x, z) + (kind === 'log' ? 0.3 : s * 0.3), z);
-    o.rotation.set(
-      kind === 'log' ? Math.PI / 2 : rand(i, salt + 11) * 0.5,
-      rand(i, salt + 13) * Math.PI * 2,
-      kind === 'log' ? rand(i, salt + 17) * 0.3 : rand(i, salt + 19) * 0.5
-    );
-    o.scale.set(s, kind === 'fern' ? s * 0.6 : s, s);
+    const s = 0.6 + rand(i, 89) * 0.7;
+    o.position.set(x, terrainHeight(x, z) + 0.15, z);
+    o.rotation.set(rand(i, 101) * 0.3, rand(i, 113) * Math.PI * 2, rand(i, 131) * 0.3);
+    o.scale.setScalar(s);
     o.updateMatrix();
     mesh.setMatrixAt(n, o.matrix);
-    // Per-instance colour variation. Uniform colour is the other loud tell.
-    c.copy(base).offsetHSL((rand(i, salt + 29) - 0.5) * 0.06, 0, (rand(i, salt + 23) - 0.5) * 0.26);
+
+    c.copy(base).offsetHSL((rand(i, 149) - 0.5) * 0.08, 0.1, (rand(i, 167) - 0.5) * 0.2);
     mesh.setColorAt(n, c);
     n++;
   }
@@ -113,116 +120,249 @@ function scatter(
 }
 
 /**
- * Glowing mushrooms. The one piece of clutter that is unlit and bright.
- *
- * They are the only warm-cool break in a field of green, and being above the
- * bloom threshold is what makes them read as light rather than as pale dots.
+ * 80 Mossy Boulders & Fallen Logs.
  */
-function mushrooms(count: number): THREE.InstancedMesh {
-  const geo = new THREE.SphereGeometry(0.19, 6, 5);
-  const mesh = new THREE.InstancedMesh(
-    geo,
-    new THREE.MeshBasicMaterial({ color: 0x9ffff0, toneMapped: false }),
-    count
+function buildBouldersAndLogs(count: number): THREE.Group {
+  const g = new THREE.Group();
+
+  // Boulders (dodecahedrons with moss)
+  const boulderGeo = new THREE.DodecahedronGeometry(0.85, 1);
+  const boulderMesh = new THREE.InstancedMesh(
+    boulderGeo,
+    surfaceMaterial(0x3d4b3c, { roughness: 0.94 }),
+    Math.round(count * 0.65)
   );
-  mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3);
+  boulderMesh.receiveShadow = true;
+  boulderMesh.castShadow = true;
+
+  // Logs (cylinders)
+  const logGeo = new THREE.CylinderGeometry(0.35, 0.45, 3.8, 6);
+  const logMesh = new THREE.InstancedMesh(
+    logGeo,
+    surfaceMaterial(0x3e2c1c, { roughness: 0.95 }),
+    Math.round(count * 0.35)
+  );
+  logMesh.receiveShadow = true;
+  logMesh.castShadow = true;
 
   const o = new THREE.Object3D();
-  const c = new THREE.Color();
-  let n = 0;
-  for (let i = 0; i < count * 8 && n < count; i++) {
-    const x = (rand(i, 71) * 2 - 1) * (HALF - 2);
-    const z = (rand(i, 97) * 2 - 1) * (HALF - 2);
-    const gap = laneGap(x, z);
-    if (gap < LANE_WIDTH / 2 + 2) continue;
-    if (riverDepth(x, z) > 0.2) continue;
-    // Clustered: mushrooms grow in patches, and evenly spread glowing dots read
-    // as a starfield lying on the grass.
-    if (rand(i, 113) > 0.42) continue;
+  let nB = 0;
+  let nL = 0;
 
-    const s = 0.7 + rand(i, 131) * 0.9;
-    o.position.set(x, terrainHeight(x, z) + 0.2, z);
+  for (let i = 0; i < count * 5; i++) {
+    const x = (rand(i, 307) * 2 - 1) * (HALF - 6);
+    const z = (rand(i, 311) * 2 - 1) * (HALF - 6);
+    const gap = laneGap(x, z);
+    if (gap < LANE_WIDTH / 2 + 1.8) continue;
+    if (riverDepth(x, z) > 0.15) continue;
+
+    if (i % 3 !== 0 && nB < Math.round(count * 0.65)) {
+      const s = 0.7 + rand(i, 313) * 0.9;
+      o.position.set(x, terrainHeight(x, z) + s * 0.35, z);
+      o.rotation.set(rand(i, 317) * 0.6, rand(i, 331) * Math.PI * 2, rand(i, 347) * 0.6);
+      o.scale.set(s * 1.2, s * 0.8, s);
+      o.updateMatrix();
+      boulderMesh.setMatrixAt(nB, o.matrix);
+      nB++;
+    } else if (nL < Math.round(count * 0.35)) {
+      o.position.set(x, terrainHeight(x, z) + 0.3, z);
+      o.rotation.set(Math.PI / 2, rand(i, 353) * Math.PI * 2, rand(i, 359) * 0.4);
+      o.scale.setScalar(0.85 + rand(i, 367) * 0.4);
+      o.updateMatrix();
+      logMesh.setMatrixAt(nL, o.matrix);
+      nL++;
+    }
+  }
+
+  boulderMesh.count = nB;
+  logMesh.count = nL;
+  g.add(boulderMesh);
+  g.add(logMesh);
+  return g;
+}
+
+/**
+ * 150 Glowing Jungle Mushrooms with Bioluminescent Cyan (#00E5FF) 0.5Hz pulsing.
+ */
+function buildBioluminescentMushrooms(count: number): {
+  mesh: THREE.InstancedMesh;
+  update: (t: number) => void;
+} {
+  const geo = new THREE.SphereGeometry(0.24, 7, 6);
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x001f24,
+    emissive: new THREE.Color('#00E5FF'),
+    emissiveIntensity: 1.4,
+    roughness: 0.4,
+    toneMapped: false,
+  });
+
+  const mesh = new THREE.InstancedMesh(geo, mat, count);
+  const o = new THREE.Object3D();
+  let n = 0;
+
+  for (let i = 0; i < count * 8 && n < count; i++) {
+    const x = (rand(i, 401) * 2 - 1) * (HALF - 6);
+    const z = (rand(i, 409) * 2 - 1) * (HALF - 6);
+    const gap = laneGap(x, z);
+    if (gap < LANE_WIDTH / 2 + 1.8) continue;
+    if (riverDepth(x, z) > 0.15) continue;
+    if (rand(i, 419) > 0.45) continue; // Cluster in magical patches
+
+    const s = 0.75 + rand(i, 421) * 0.9;
+    o.position.set(x, terrainHeight(x, z) + 0.22, z);
     o.rotation.set(0, 0, 0);
     o.scale.setScalar(s);
     o.updateMatrix();
     mesh.setMatrixAt(n, o.matrix);
-    c.setHSL(0.45 + rand(i, 149) * 0.12, 0.9, 0.72);
-    mesh.setColorAt(n, c);
     n++;
   }
   mesh.count = n;
-  return mesh;
+
+  return {
+    mesh,
+    update: (t) => {
+      // 0.5Hz smooth sine-wave pulsing between 0.8 and 2.2 intensity
+      const pulse = 1.5 + Math.sin(t * Math.PI) * 0.7;
+      mat.emissiveIntensity = pulse;
+    },
+  };
 }
 
 /**
- * A low mist that hugs the ground, thickest over the river.
- *
- * ⚠ NOT REAL HEIGHT FOG. three.js fog is distance-based, and a true height fog
- * means patching the fog chunk of every material in the scene. This is two
- * translucent planes lying just above the ground, which from a camera looking
- * down gives the same reading for a fraction of the work and none of the risk.
+ * Anito Shrines & Ancient Stones with Baybayin/Okir etched runic gold (#FFD700) glow.
  */
-export function buildGroundMist(): THREE.Group {
-  const g = new THREE.Group();
-  g.name = 'mist';
+function buildAnitoRunicStones(): { group: THREE.Group; update: (t: number) => void } {
+  const group = new THREE.Group();
+  const SHRINE_COUNT = 16;
 
-  // ⚠ IT MUST FADE AT ITS OWN EDGES. Three attempts, three different wrongs.
-  // Two full-map planes greyed the whole arena. Confining them to the river
-  // fixed the wash and produced a translucent RECTANGLE lying across the scene
-  // with visible hard borders, which is worse, because a hard edge on fog is
-  // the one thing fog can never have.
-  //
-  // So the alpha is per-vertex: full in the middle of the band, zero at every
-  // edge. Same technique the water uses, and the only way a finite plane can
-  // pretend to be atmosphere.
-  const length = HALF * 2.6;
-  for (const [y, peak, width] of [
-    // ⚠ FAINT. At 0.20 the mist bleached the river it was meant to soften, so
-    // the water read as a white strip rather than as water under haze. Mist is
-    // supposed to be noticed only when you look for it.
-    [1.0, 0.085, RIVER_WIDTH * 2.6],
-    [2.4, 0.05, RIVER_WIDTH * 4.2],
-  ] as [number, number, number][]) {
-    const geo = new THREE.PlaneGeometry(length, width, 40, 12);
-    geo.rotateX(-Math.PI / 2);
-    const pos = geo.attributes.position;
-    const alpha = new Float32Array(pos.count);
-    for (let i = 0; i < pos.count; i++) {
-      // Normalised distance from the centre on each axis, then eased, so the
-      // sheet has no boundary anywhere.
-      const u = Math.abs(pos.getX(i)) / (length / 2);
-      const v = Math.abs(pos.getZ(i)) / (width / 2);
-      const fade = (1 - u * u) * (1 - v * v);
-      alpha[i] = Math.max(0, fade);
-    }
-    geo.setAttribute('alpha', new THREE.BufferAttribute(alpha, 1));
+  const stoneMat = surfaceMaterial(0x353a36, { roughness: 0.92 });
+  const runeMat = new THREE.MeshStandardMaterial({
+    color: 0x221a08,
+    emissive: new THREE.Color('#FFD700'),
+    emissiveIntensity: 1.6,
+    roughness: 0.3,
+    toneMapped: false,
+  });
 
-    const mat = new THREE.MeshBasicMaterial({
-      color: 0xdff2ee,
-      transparent: true,
-      opacity: peak,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-    });
-    mat.onBeforeCompile = (shader) => {
-      shader.vertexShader = shader.vertexShader
-        .replace('void main() {', 'attribute float alpha;\nvarying float vA;\nvoid main() {')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vA = alpha;');
-      shader.fragmentShader = shader.fragmentShader
-        .replace('void main() {', 'varying float vA;\nvoid main() {')
-        .replace(
-          '#include <dithering_fragment>',
-          '#include <dithering_fragment>\n  gl_FragColor.a *= vA;'
-        );
-    };
+  const geo = new THREE.BoxGeometry(0.9, 2.6, 0.9);
+  const runeGeo = new THREE.PlaneGeometry(0.55, 1.4);
 
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.y = y;
-    // Turned onto the river's own diagonal, which runs along x = z.
-    mesh.rotation.y = -Math.PI / 4;
-    mesh.renderOrder = 2;
-    g.add(mesh);
+  for (let i = 0; i < SHRINE_COUNT; i++) {
+    const lane = LANES[i % LANES.length];
+    const frac = 0.2 + (i / SHRINE_COUNT) * 0.6;
+    const pathIdx = Math.floor(frac * (lane.path.length - 1));
+    const p1 = lane.path[pathIdx];
+    const p2 = lane.path[Math.min(lane.path.length - 1, pathIdx + 1)];
+    const dx = p2[0] - p1[0];
+    const dz = p2[1] - p1[1];
+    const len = Math.hypot(dx, dz) || 1;
+    const sign = i % 2 === 0 ? 1 : -1;
+
+    // Placed right along lane margin (7.5 units from center line)
+    const x = p1[0] + (-dz / len) * (LANE_WIDTH / 2 + 1.2) * sign;
+    const z = p1[1] + (dx / len) * (LANE_WIDTH / 2 + 1.2) * sign;
+
+    const g = new THREE.Group();
+    g.position.set(x, terrainHeight(x, z), z);
+    g.rotation.y = Math.atan2(dx, dz) + (sign > 0 ? Math.PI / 2 : -Math.PI / 2);
+
+    const stone = new THREE.Mesh(geo, stoneMat);
+    stone.position.y = 1.3;
+    stone.castShadow = true;
+    stone.receiveShadow = true;
+    g.add(stone);
+
+    // Carved Baybayin runic plaque facing lane
+    const rune = new THREE.Mesh(runeGeo, runeMat);
+    rune.position.set(0, 1.4, 0.46);
+    g.add(rune);
+
+    group.add(g);
   }
 
-  return g;
+  return {
+    group,
+    update: (t) => {
+      // Gentle breathing glow on carved runic grooves
+      runeMat.emissiveIntensity = 1.3 + Math.sin(t * 1.8) * 0.5;
+    },
+  };
+}
+
+/**
+ * Diwata Spirit Particles (ambient floating golden/cyan motes drifting through jungle volume).
+ * Particle count: 180 motes (< 1,000 active limit).
+ */
+function buildDiwataSpiritParticles(): {
+  points: THREE.Points;
+  update: (t: number) => void;
+} {
+  const COUNT = 180;
+  const positions = new Float32Array(COUNT * 3);
+  const colors = new Float32Array(COUNT * 3);
+  const particleData: { originX: number; originZ: number; baseY: number; seed: number; speed: number }[] = [];
+
+  const cGold = new THREE.Color('#FFD700');
+  const cCyan = new THREE.Color('#00E5FF');
+  const c = new THREE.Color();
+
+  for (let i = 0; i < COUNT; i++) {
+    const x = (rand(i, 521) * 2 - 1) * (HALF - 10);
+    const z = (rand(i, 541) * 2 - 1) * (HALF - 10);
+    const y = terrainHeight(x, z) + 1.2;
+
+    positions[i * 3] = x;
+    positions[i * 3 + 1] = y;
+    positions[i * 3 + 2] = z;
+
+    c.copy(i % 2 === 0 ? cGold : cCyan).offsetHSL((rand(i, 563) - 0.5) * 0.1, 0, 0);
+    colors[i * 3] = c.r;
+    colors[i * 3 + 1] = c.g;
+    colors[i * 3 + 2] = c.b;
+
+    particleData.push({
+      originX: x,
+      originZ: z,
+      baseY: y,
+      seed: rand(i, 577) * Math.PI * 2,
+      speed: 0.25 + rand(i, 587) * 0.15, // ~0.3u/s upward drift
+    });
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+  const mat = new THREE.PointsMaterial({
+    size: 0.38, // Size ~0.15u in world units with point attenuation
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.72,
+    depthWrite: false,
+    toneMapped: false,
+  });
+
+  const points = new THREE.Points(geo, mat);
+  points.renderOrder = 8;
+
+  return {
+    points,
+    update: (t) => {
+      const pos = geo.attributes.position;
+      for (let i = 0; i < COUNT; i++) {
+        const d = particleData[i];
+        const heightSpan = 5.5;
+        const progress = ((t * d.speed + d.seed) % heightSpan) / heightSpan;
+
+        // Slow upward drift with noise turbulence
+        const curY = d.baseY + progress * heightSpan;
+        const driftX = Math.sin(t * 0.6 + d.seed) * 0.8;
+        const driftZ = Math.cos(t * 0.6 + d.seed) * 0.8;
+
+        pos.setXYZ(i, d.originX + driftX, curY, d.originZ + driftZ);
+      }
+      pos.needsUpdate = true;
+    },
+  };
 }
