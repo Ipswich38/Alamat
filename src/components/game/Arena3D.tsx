@@ -39,6 +39,7 @@ import {
   createObjectives,
   createTowerFire,
   CAST_KEYS,
+  checkContent,
   EMPTY_COOLDOWNS,
   KAPRE,
   PROJECTILE_SPEED,
@@ -111,6 +112,12 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Content rules that span heroes/ and combat/, so neither file can hold
+    // them. Development only: these describe balance data, not code.
+    if (process.env.NODE_ENV !== 'production') {
+      for (const problem of checkContent([KAPRE])) console.warn('[alamat content]', problem);
+    }
 
     const stage = createStage(canvas);
     // ?zoom= sets the starting distance, which is the only way to judge a body

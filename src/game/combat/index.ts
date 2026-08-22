@@ -1,6 +1,7 @@
 // Barrel for the combat module. Import from '@/game/combat', never from the files.
 
 export { KAPRE } from './foes';
+export { checkContent, checkFoeReach } from './invariants';
 export type { Foe } from './foes';
 
 export { createBrute } from './brute';

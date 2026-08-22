@@ -43,7 +43,16 @@ export const KAPRE: Foe = {
   },
   health: 1800,
   speed: 3.4,
-  reach: 3.2,
+  // ⚠ THIS MUST STAY BELOW THE SHORTEST MELEE attackRange IN THE ROSTER.
+  // It was 3.2 while the melee heroes reach 2.2 (Tikbalang) and 2.0 (Aswang),
+  // so the Kapre parked outside both of them and swung. A melee hero could not
+  // land a basic attack on it at all: measured over forty swings from every
+  // facing, it took zero damage while dealing ninety-five a swing. The bug was
+  // invisible because nothing errors, the strike just reports empty air.
+  // A brute closing INSIDE a hero's guard is also the right read for a thing
+  // that towers over you. Ranged heroes are unaffected: they kite it, which is
+  // what a 3.4 speed against a 6.2 hero is for.
+  reach: 1.9,
   awareness: 22,
   damage: 95,
   attackCooldown: 1.65,
