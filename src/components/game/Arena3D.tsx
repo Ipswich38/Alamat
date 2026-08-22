@@ -12,7 +12,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { HEROES, SELECTION_RING, heroHeight, heroRadius, type Hero } from '@/game/heroes';
 
-import { createStage } from '@/game/render3d/stage';
+import { ZOOM_MAX, ZOOM_MIN, createStage } from '@/game/render3d/stage';
 import { buildGround, createNexus } from '@/game/render3d/nexus';
 import { HALF, TEAMS } from '@/game/arena/nexus';
 import { createTowers } from '@/game/render3d/towers';
@@ -52,6 +52,13 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
   );
   const [fps, setFps] = useState(0);
   const [hidden, setHidden] = useState(false);
+  const [compass, setCompass] = useState(Math.PI / 4);
+  const [zoomShown, setZoomShown] = useState(VIEW_HEIGHT);
+  /** Held while a turn button is pressed: -1, 0 or 1. */
+  const turnRef = useRef(0);
+  /** Set once the stage exists, so the zoom buttons can reach it. */
+  const zoomFn = useRef<((factor: number) => void) | null>(null);
+  const zoomBy = (factor: number) => zoomFn.current?.(factor);
   // Read inside the frame loop, which must not be torn down when the hero
   // changes: a ref is how a value crosses from React into a running loop.
   const heroRef = useRef(hero);
@@ -62,8 +69,8 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     if (!canvas) return;
 
     const stage = createStage(canvas);
-    // ?zoom=6 fills the frame with the character, which is the only way to
-    // judge a body that is thirty pixels tall in normal play.
+    // ?zoom= sets the starting distance, which is the only way to judge a body
+    // thirty pixels tall in normal play. The wheel takes over from there.
     const zoomParam = Number(new URLSearchParams(window.location.search).get('zoom'));
     stage.setViewHeight(Number.isFinite(zoomParam) && zoomParam > 0 ? zoomParam : VIEW_HEIGHT);
     stage.scene.add(buildGround());
@@ -160,6 +167,63 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     let pz = at && at.length === 2 && at.every(Number.isFinite) ? at[1] : TEAMS.anito.z - 14;
     let heading = Math.PI * 0.75;
 
+    // ── camera controls ──────────────────────────────────────────────────
+    let yaw = Math.PI / 4;
+    // ⚠ CLAMPED LIKE EVERY OTHER ZOOM CHANGE. Set directly it bypassed the
+    // limits the wheel and the buttons enforce, so the view could START outside
+    // the range it is not allowed to reach.
+    let zoom = Math.max(
+      ZOOM_MIN,
+      Math.min(ZOOM_MAX, Number.isFinite(zoomParam) && zoomParam > 0 ? zoomParam : VIEW_HEIGHT)
+    );
+    stage.setViewHeight(zoom);
+    setZoomShown(Math.round(zoom));
+    let turning = 0;
+    void turning;
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      // Multiplicative, so a step feels the same at every distance. Additive
+      // zoom crawls when far out and lurches when close in.
+      zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom * (1 + Math.sign(e.deltaY) * 0.12)));
+      stage.setViewHeight(zoom);
+      setZoomShown(Math.round(zoom));
+    };
+    canvas.addEventListener('wheel', onWheel, { passive: false });
+
+    // The same clamp the wheel uses, exposed for the on-screen buttons: one
+    // place decides what the limits are.
+    zoomFn.current = (factor: number) => {
+      zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom * factor));
+      stage.setViewHeight(zoom);
+      setZoomShown(Math.round(zoom));
+    };
+
+    // Dragging with the right button or the middle turns the view. The left
+    // button is left free for whatever selects and targets later.
+    let dragging = false;
+    let lastX = 0;
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.button !== 2 && e.button !== 1) return;
+      dragging = true;
+      lastX = e.clientX;
+      canvas.setPointerCapture(e.pointerId);
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (!dragging) return;
+      yaw -= (e.clientX - lastX) * 0.008;
+      lastX = e.clientX;
+    };
+    const onPointerUp = () => {
+      dragging = false;
+    };
+    const onContext = (e: Event) => e.preventDefault();
+    canvas.addEventListener('pointerdown', onPointerDown);
+    canvas.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('pointerup', onPointerUp);
+    canvas.addEventListener('pointercancel', onPointerUp);
+    canvas.addEventListener('contextmenu', onContext);
+
     const keys = new Set<string>();
     const onDown = (e: KeyboardEvent) => keys.add(e.key.toLowerCase());
     const onUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
@@ -174,6 +238,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     let last = performance.now();
     let clock = 0;
     let hiddenSeen = false;
+    let yawShown = Math.PI / 4;
     let frames = 0;
     let fpsClock = 0;
 
@@ -195,6 +260,17 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       // Rotated 45 degrees to match the camera's yaw, so "up" on the keyboard
       // is up on the SCREEN rather than up on the world axis. Without this the
       // controls feel diagonal to everyone who has not read the source.
+      // Q and E turn, as do the on-screen buttons and a right-drag. All three
+      // write the same yaw, so no control has its own idea of where the camera
+      // is pointing.
+      const turnKey = (keys.has('q') ? 1 : 0) - (keys.has('e') ? 1 : 0);
+      yaw += (turnKey + turnRef.current + turning) * dt * 1.6;
+      stage.setYaw(yaw);
+      if (Math.abs(yaw - yawShown) > 0.02) {
+        yawShown = yaw;
+        setCompass(yaw);
+      }
+
       let ix = 0;
       let iz = 0;
       if (keys.has('w') || keys.has('arrowup')) iz -= 1;
@@ -204,10 +280,15 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
 
       const moving = ix !== 0 || iz !== 0;
       if (moving) {
-        const cos = Math.cos(-Math.PI / 4);
-        const sin = Math.sin(-Math.PI / 4);
-        const dx = ix * cos - iz * sin;
-        const dz = ix * sin + iz * cos;
+        // ⚠ MOVEMENT IS ROTATED BY THE LIVE YAW, not by a baked 45 degrees.
+        // This was a constant, which was correct only while the camera could
+        // not turn; leaving it would mean that the moment a player rotated the
+        // view, "forward" stopped being up the screen and the controls became
+        // unusable at every angle except the original one.
+        const cos = Math.cos(yaw);
+        const sin = Math.sin(yaw);
+        const dx = ix * cos + iz * sin;
+        const dz = -ix * sin + iz * cos;
         const len = Math.hypot(dx, dz) || 1;
         // The river slows you; a bridge does not. That difference is the whole
         // reason the three crossings are worth contesting.
@@ -277,10 +358,17 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
 
     return () => {
       disposed = true;
+      zoomFn.current = null;
       cancelAnimationFrame(raf);
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
       window.removeEventListener('resize', onResize);
+      canvas.removeEventListener('wheel', onWheel);
+      canvas.removeEventListener('pointerdown', onPointerDown);
+      canvas.removeEventListener('pointermove', onPointerMove);
+      canvas.removeEventListener('pointerup', onPointerUp);
+      canvas.removeEventListener('pointercancel', onPointerUp);
+      canvas.removeEventListener('contextmenu', onContext);
       nexus.dispose();
       towers.dispose();
       walls.dispose();
@@ -310,6 +398,56 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         <span style={{ opacity: 0.55, fontSize: 11 }}>
           {fps} fps · WASD to move{hidden ? ' · 🌿 hidden' : ''}
         </span>
+      </div>
+
+      {/* ── camera controls ──────────────────────────────────────────────
+          Kept together in one corner, because zoom and rotation are the same
+          question asked two ways: what am I looking at. Splitting them across
+          the screen makes a player hunt for half of one control. */}
+      <div style={cameraBox}>
+        <button
+          aria-label="Turn view left"
+          style={roundBtn}
+          onPointerDown={() => (turnRef.current = 1)}
+          onPointerUp={() => (turnRef.current = 0)}
+          onPointerLeave={() => (turnRef.current = 0)}
+        >
+          ↺
+        </button>
+
+        {/* The compass. The needle points to world north whichever way the
+            camera is facing, which is the one thing a rotating view takes away
+            and has to give back. */}
+        <div style={compassRing} aria-label={`Compass, facing ${Math.round((-compass * 180) / Math.PI)} degrees`}>
+          <div
+            style={{
+              ...needle,
+              transform: `rotate(${-compass}rad)`,
+            }}
+          >
+            <span style={needleN}>N</span>
+          </div>
+        </div>
+
+        <button
+          aria-label="Turn view right"
+          style={roundBtn}
+          onPointerDown={() => (turnRef.current = -1)}
+          onPointerUp={() => (turnRef.current = 0)}
+          onPointerLeave={() => (turnRef.current = 0)}
+        >
+          ↻
+        </button>
+      </div>
+
+      <div style={zoomBox}>
+        <button aria-label="Zoom in" style={roundBtn} onClick={() => zoomBy(0.82)}>
+          +
+        </button>
+        <span style={zoomLabel}>{zoomShown}</span>
+        <button aria-label="Zoom out" style={roundBtn} onClick={() => zoomBy(1.22)}>
+          −
+        </button>
       </div>
 
       <div style={picker}>
@@ -354,6 +492,74 @@ const picker: React.CSSProperties = {
   flexWrap: 'wrap',
   justifyContent: 'center',
   padding: '0 12px',
+};
+
+const cameraBox: React.CSSProperties = {
+  position: 'absolute',
+  right: 16,
+  bottom: 92,
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+};
+
+const zoomBox: React.CSSProperties = {
+  position: 'absolute',
+  right: 16,
+  bottom: 22,
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+};
+
+const roundBtn: React.CSSProperties = {
+  width: 46,
+  height: 46,
+  borderRadius: '50%',
+  border: '2px solid rgba(255,255,255,0.7)',
+  background: 'rgba(6,18,20,0.55)',
+  color: '#f7f5ee',
+  fontSize: 19,
+  cursor: 'pointer',
+  touchAction: 'none',
+  fontFamily: 'system-ui, sans-serif',
+};
+
+const compassRing: React.CSSProperties = {
+  width: 52,
+  height: 52,
+  borderRadius: '50%',
+  border: '2px solid rgba(255,255,255,0.55)',
+  background: 'rgba(6,18,20,0.55)',
+  display: 'grid',
+  placeItems: 'center',
+};
+
+const needle: React.CSSProperties = {
+  width: '100%',
+  height: '100%',
+  display: 'grid',
+  placeItems: 'start center',
+  paddingTop: 3,
+  // Snaps to the yaw each frame; no transition, or the needle lags the world.
+};
+
+const needleN: React.CSSProperties = {
+  color: '#ffc84a',
+  fontWeight: 800,
+  fontSize: 13,
+  fontFamily: 'system-ui, sans-serif',
+  lineHeight: 1,
+};
+
+const zoomLabel: React.CSSProperties = {
+  minWidth: 34,
+  textAlign: 'center',
+  color: '#f7f5ee',
+  fontSize: 12.5,
+  fontWeight: 700,
+  fontFamily: 'system-ui, sans-serif',
+  fontVariantNumeric: 'tabular-nums',
 };
 
 const pick: React.CSSProperties = {

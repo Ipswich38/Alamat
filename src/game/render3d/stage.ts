@@ -63,6 +63,12 @@ export const DEFAULT_MOOD: Mood = {
 
 export interface Stage {
   setMood(m: Mood): void;
+  /** Turn the camera about the point it is looking at. Radians. */
+  setYaw(radians: number): void;
+  /** The current yaw. Movement input has to be rotated by this. */
+  yaw(): number;
+  /** Current view height, so a zoom control can nudge it. */
+  viewHeight(): number;
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   camera: THREE.OrthographicCamera;
@@ -74,8 +80,27 @@ export interface Stage {
   dispose(): void;
 }
 
-/** Where the camera sits relative to what it looks at. */
-const OFFSET = new THREE.Vector3(26, 30, 26);
+/**
+ * The camera's orbit, as a height and a radius rather than a fixed offset.
+ *
+ * ⚠ IT USED TO BE A FIXED VECTOR, and that quietly forbade rotation: the yaw
+ * was baked into the numbers 26 and 26. Splitting it means the camera can turn
+ * without anything else in the scene needing to know, and the DEFAULT yaw of a
+ * quarter turn reproduces the old (26, 30, 26) exactly.
+ */
+const ORBIT_RADIUS = Math.SQRT2 * 26;
+const ORBIT_HEIGHT = 30;
+const DEFAULT_YAW = Math.PI / 4;
+
+/**
+ * How far in and out the camera may go.
+ *
+ * The near limit is where a hero fills a useful part of the frame; the far is
+ * where you can see a whole quadrant of the map. Beyond that the world is
+ * unreadable in one direction and pointless in the other.
+ */
+export const ZOOM_MIN = 16;
+export const ZOOM_MAX = 90;
 
 export function createStage(canvas: HTMLCanvasElement): Stage {
   const renderer = new THREE.WebGLRenderer({
@@ -122,10 +147,15 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   scene.fog = new THREE.Fog(0xbfe4e0, 62, 130);
 
   let viewHeight = 21;
+  let yaw = DEFAULT_YAW;
   // ⚠ FAR PLANE REACHES THE BACKDROP. At 400 the horizon volcano sat just
   // beyond it and was clipped away entirely, with no error and no warning.
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 900);
-  camera.position.copy(OFFSET);
+  camera.position.set(
+    Math.sin(yaw) * ORBIT_RADIUS,
+    ORBIT_HEIGHT,
+    Math.cos(yaw) * ORBIT_RADIUS
+  );
   camera.lookAt(0, 0, 0);
 
   // The sun. Warm, and the only shadow caster: a second casting light doubles
@@ -212,8 +242,15 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   }
 
   function lookAtGround(x: number, z: number): void {
-    camera.position.set(x + OFFSET.x, OFFSET.y, z + OFFSET.z);
+    camera.position.set(
+      x + Math.sin(yaw) * ORBIT_RADIUS,
+      ORBIT_HEIGHT,
+      z + Math.cos(yaw) * ORBIT_RADIUS
+    );
     camera.lookAt(x, 0, z);
+    // ⚠ THE LIGHTS DO NOT ORBIT. The sun is fixed in the world: turning it with
+    // the camera would keep every shadow pointing the same way on screen, which
+    // is exactly the tell that makes a rotating view feel fake.
     sun.position.set(x + 24, 20, z + 10);
     sun.target.position.set(x, 0, z);
     sun.target.updateMatrixWorld();
@@ -256,6 +293,11 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
 
   return {
     setMood,
+    setYaw: (r) => {
+      yaw = r;
+    },
+    yaw: () => yaw,
+    viewHeight: () => viewHeight,
     renderer,
     scene,
     camera,
