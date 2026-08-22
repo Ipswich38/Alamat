@@ -153,6 +153,19 @@ export const ASSETS = {
       'trim, translucent iridescent wings shading violet to teal, glowing pale green vines, white ' +
       'sampaguita blossoms, saturated and clean, not photorealistic.',
   },
+  anitoCore: {
+    dir: `${OUT_DIR}/props`,
+    prompt:
+      'Stylised MOBA core base structure, low-poly 3D game asset, SINGLE OBJECT. An ancient ' +
+      'pre-colonial Philippine stone shrine with carved wooden ancestor faces and tribal baybayin ' +
+      'etchings, an elevated stone altar, and a glowing amber-yellow crystal resting above its ' +
+      'centre. Standing upright, clean readable silhouette from above at a shallow angle, clean ' +
+      'topology, game-ready. No ground, no terrain, no base plinth, no background.',
+    texture:
+      'Hand-painted stylised texturing, warm grey weathered stone with carved shadow lines, ' +
+      'honey-toned hardwood faces, ochre and white baybayin pigment, intense glowing amber crystal, ' +
+      'clean saturated colours, not photorealistic.',
+  },
   bakunawa: {
     dir: `${OUT_DIR}/creatures`,
     prompt:

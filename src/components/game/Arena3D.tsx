@@ -11,9 +11,10 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { HEROES, type Hero } from '@/game/heroes';
-import { OBSTACLES, SPAWNS, resolvePosition } from '@/game/arena/layout';
+
 import { createStage } from '@/game/render3d/stage';
-import { buildArena, fadeCanopies } from '@/game/render3d/arena';
+import { buildGround, createNexus } from '@/game/render3d/nexus';
+import { HALF, TEAMS } from '@/game/arena/nexus';
 import { loadModel } from '@/game/render3d/models';
 import { createSantelmo } from '@/game/render3d/santelmo';
 import { createActor, type Actor } from '@/game/render3d/actor';
@@ -55,26 +56,9 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     // judge a body that is thirty pixels tall in normal play.
     const zoomParam = Number(new URLSearchParams(window.location.search).get('zoom'));
     stage.setViewHeight(Number.isFinite(zoomParam) && zoomParam > 0 ? zoomParam : VIEW_HEIGHT);
-    const arena = buildArena();
-    stage.scene.add(arena);
-
-    // Generated set pieces replace their procedural stand-ins on arrival. The
-    // arena stays playable in the meantime, and stays playable if they never
-    // load at all: a missing several-megabyte model must not leave a hole.
-    loadModel('/models/props/towerDiwata.glb', { height: 5.2 }).then((tower) => {
-      if (!tower || disposed) return;
-      for (const o of OBSTACLES) {
-        if (!o.tall || o.radius > 2) continue;
-        const built = tower.clone(true);
-        built.position.set(o.x, 0, o.z);
-        // Turned by position so a row of them is not all facing one way.
-        built.rotation.y = o.x * 0.7 + o.z;
-        stage.scene.add(built);
-      }
-      for (const n of [...arena.children]) {
-        if (n.name === 'shrine-placeholder') n.removeFromParent();
-      }
-    });
+    stage.scene.add(buildGround());
+    const nexus = createNexus();
+    stage.scene.add(nexus.group);
 
     const santelmo = createSantelmo();
     stage.scene.add(santelmo.group);
@@ -118,8 +102,8 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     // arena, notices you inside its awareness, and closes until it is within
     // reach. It cannot hurt you yet, because nothing can hurt anything yet.
     let foe: Actor | null = null;
-    let fx = 8;
-    let fz = -8;
+    let fx = 0;
+    let fz = 0;
     let fFacing = 0;
     createActor(KAPRE.model).then((a) => {
       if (disposed) {
@@ -135,8 +119,9 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     // somewhere that is not behind a bush.
     const atParam = new URLSearchParams(window.location.search).get('at');
     const at = atParam?.split(',').map(Number);
-    let px = at && at.length === 2 && at.every(Number.isFinite) ? at[0] : SPAWNS.home.x;
-    let pz = at && at.length === 2 && at.every(Number.isFinite) ? at[1] : SPAWNS.home.z;
+    // Spawn just outside the Anito sanctuary, facing the map.
+    let px = at && at.length === 2 && at.every(Number.isFinite) ? at[0] : TEAMS.anito.x + 14;
+    let pz = at && at.length === 2 && at.every(Number.isFinite) ? at[1] : TEAMS.anito.z - 14;
     let heading = Math.PI * 0.75;
 
     const keys = new Set<string>();
@@ -188,13 +173,10 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         const dz = ix * sin + iz * cos;
         const len = Math.hypot(dx, dz) || 1;
         const step = want.speed * dt;
-        const next = resolvePosition(
-          px + (dx / len) * step,
-          pz + (dz / len) * step,
-          0.7
-        );
-        px = next.x;
-        pz = next.z;
+        // Clamped to the map for now. Pathing blockades arrive with the jungle
+        // assets; until they exist there is nothing to collide with.
+        px = Math.max(-HALF + 1, Math.min(HALF - 1, px + (dx / len) * step));
+        pz = Math.max(-HALF + 1, Math.min(HALF - 1, pz + (dz / len) * step));
         heading = Math.atan2(dx, dz);
       }
 
@@ -225,7 +207,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         player.play(moving ? 'run' : 'idle');
         player.update(dt);
       }
-      fadeCanopies(px, pz, dt);
+      nexus.update(clock);
       santelmo.update(clock);
       stage.lookAtGround(px, pz);
       stage.render();
@@ -246,6 +228,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
       window.removeEventListener('resize', onResize);
+      nexus.dispose();
       santelmo.dispose();
       player?.dispose();
       foe?.dispose();
