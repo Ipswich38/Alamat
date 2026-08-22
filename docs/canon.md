@@ -51,15 +51,37 @@ effect is whose before they read what it does.
 
 ## Where the build actually is
 
-**Done:** five heroes as data, two of them with real generated rigged meshes
-(Tikbalang, Aswang), a duel arena with cover and collision, movement, the
-lighting and grade, generated guardian towers.
+⚠ THIS SECTION WENT STALE ONCE AND WAS BELIEVED. It claimed combat was not
+started for several sessions after combat was built and playable. If you are
+about to trust it, spend five minutes with `smoke-run.mjs` first.
 
-**Not started:** combat of any kind. Nothing fires, nothing takes damage,
-nothing dies. There are no minions, no lanes in the live build, no nexus, no
-second team, and no opponent.
+Last checked against a running build on 2026-08-22.
 
-⚠ The gap between the story above and that list is the whole game.
+**Done:** five heroes as data, three with generated rigged meshes (Tikbalang,
+Aswang, Diwata). The full map: three lanes, twenty-two towers, base perimeters
+with choke points, four jungle camps with Bulul idols, the Pasig Agimat Stream
+with three crossings, jungle barriers and brush. Camera zoom and rotation with
+a compass. Terrain, clutter, backdrop, lighting and grade.
+
+**Combat is built and playable.** `src/game/combat/`: basic attacks and three
+ability shapes on one hit-resolution path, cooldowns, projectiles, dashes and
+windups, cone/line/segment geometry against a body radius, minion waves that
+march and fight, tower acquisition and fire, structures with warding, and the
+Kapre brute with death and a 5.5s respawn. The win condition is real: break the
+enemy core and the nexus shatters to a victory screen.
+
+**Not started:** the Manananggal assassin. A second playable team, so Aswang
+still sits in the roster as a playable hero when the canon puts it on the other
+side. Asynchronous opponents from a database, which is still a design, not code.
+Audio of any kind.
+
+**Known and unfixed:** the melee/brute matchup is not balanced. Tikbalang needs
+24.7s of basic attacks to kill the Kapre and dies in 20.0s; Aswang needs 15.8s
+and dies in 13.5s. Both lose a straight trade before abilities are counted. A
+separate bug that made this infinite (the Kapre out-reaching every melee hero)
+was fixed on 2026-08-22, but the tuning was deliberately left alone.
+
+⚠ The gap between the story above and that list is what is left of the game.
 
 ---
 

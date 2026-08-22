@@ -7,9 +7,18 @@ name a foreign player can say out loud.
 
 ## What this is, honestly
 
-A **walking prototype**. There is an arena, five heroes with full stat and
-ability data, working movement and collision, and a hero picker. There is **no
-combat yet**: no abilities fire, there is no opponent, and nothing can die.
+A **playable vertical slice**. The full map is built: three lanes, twenty-two
+towers, base perimeters, jungle camps, and the Pasig Agimat Stream with three
+crossings. Five heroes as data, three with rigged meshes. Combat works: basic
+attacks and three ability shapes, minion waves, tower fire, a Kapre brute that
+dies and respawns, and a win condition that ends the match when a core breaks.
+
+What is missing is a second playable team, the Manananggal, the asynchronous
+opponents the design is built around, and audio. The melee heroes also still
+lose a straight fight with the Kapre, which is a tuning problem, not a bug.
+
+Run `smoke-run.mjs` before trusting any status written here or in
+`docs/canon.md`. Both have been wrong before.
 
 ## The decisions already made, and why
 
@@ -59,3 +68,22 @@ src/components/game/Arena3D.tsx   canvas, frame loop, input, and nothing else
 npm run dev     # then open /play
 npm run build
 ```
+
+### Verifying it
+
+The smoke scripts drive a real Chrome against a running dev server, walk the
+hero, swing, cast, and report the HUD plus a clean/dirty console verdict. They
+are the fastest honest answer to "is it still working".
+
+```
+npm run dev
+CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" node smoke-run.mjs
+CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" node smoke-tower.mjs
+```
+
+`playwright-core` is installed but its browsers are not, which is why `CHROME`
+points at the system one.
+
+`/play` takes two debug params that make a probe repeatable:
+`?at=x,z` spawns the hero at a world position, and `?zoom=n` sets the starting
+camera distance. `?at=6,6` puts you next to the Kapre at the origin.
