@@ -10,6 +10,7 @@
 // is what stops the enemy Kapre and a future playable Kapre becoming the same
 // record with a flag on it.
 
+import { heroHeight } from '@/game/heroes';
 import type { ActorModel } from '@/game/render3d/actor';
 
 export interface Foe {
@@ -33,9 +34,10 @@ export const KAPRE: Foe = {
   model: {
     rigged: '/models/creatures/kapre-rigged.glb',
     walk: '/models/creatures/kapre-walk.glb',
-    // Half again a hero's height. The whole point of a Kapre is that it is
-    // enormous, and a giant the size of a person is just a person.
-    height: 2.8,
+    // ⚠ EXPRESSED AS A MULTIPLE OF A HERO, not as an absolute. The whole point
+    // of a Kapre is that it towers over you, and an absolute height silently
+    // turns a giant into a dwarf the moment heroes are rescaled.
+    height: heroHeight() * 1.6,
   },
   health: 1800,
   speed: 3.4,

@@ -2,3 +2,5 @@
 
 export { HEROES, heroById } from './catalogue';
 export type { Hero, HeroRole, Ability, AbilityShape } from './types';
+
+export { HERO_SCALE, HERO_HEIGHT, SELECTION_RING, heroRadius, heroHeight } from './metrics';

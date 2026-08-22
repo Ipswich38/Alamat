@@ -10,7 +10,7 @@
 // nothing; arriving there costs a refactor.
 
 import React, { useEffect, useRef, useState } from 'react';
-import { HEROES, type Hero } from '@/game/heroes';
+import { HEROES, SELECTION_RING, heroHeight, heroRadius, type Hero } from '@/game/heroes';
 
 import { createStage } from '@/game/render3d/stage';
 import { buildGround, createNexus } from '@/game/render3d/nexus';
@@ -21,6 +21,7 @@ import { createCamps } from '@/game/render3d/camps';
 import { createJungle } from '@/game/render3d/jungle';
 import { brushAt, resolveJungle } from '@/game/arena/jungle';
 import { createRiver } from '@/game/render3d/river';
+import { createBackdrop } from '@/game/render3d/backdrop';
 import { groundHeight, riverSpeed } from '@/game/arena/river';
 import { resolveWalls } from '@/game/arena/walls';
 import { loadModel } from '@/game/render3d/models';
@@ -78,6 +79,10 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     stage.scene.add(jungle.group);
     const river = createRiver();
     stage.scene.add(river.group);
+    const backdrop = createBackdrop();
+    // The camera itself has to be in the scene for its children to draw.
+    stage.scene.add(stage.camera);
+    backdrop.attach(stage.camera);
 
     const santelmo = createSantelmo();
     stage.scene.add(santelmo.group);
@@ -101,7 +106,13 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     const swapTo = (h: Hero) => {
       if (!h.model) return;
       builtFor = h.id;
-      createActor({ ...h.model, height: 1.75 * h.build.scale }).then((next) => {
+      createActor({
+        ...h.model,
+        height: heroHeight(h.build.scale),
+        // The ring takes the team's colour, so it is the same language the
+        // towers and the cores speak.
+        ring: { radius: SELECTION_RING, colour: TEAMS.anito.light },
+      }).then((next) => {
         if (disposed || builtFor !== h.id) {
           next.dispose();
           return;
@@ -206,8 +217,13 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         // Walls first, then the map edge. A body pushed out of a wall must not
         // then be clamped back into it.
         // Barriers first, then base walls. Both slide rather than stop.
-        const stepped = resolveJungle(px + (dx / len) * step, pz + (dz / len) * step, 0.7);
-        const pushed = resolveWalls(stepped.x, stepped.z, 0.7);
+        // ⚠ ONE RADIUS, DERIVED FROM THE HERO'S HEIGHT. It was hard-coded at
+        // 0.7 in both calls, which was correct only while heroes were 1.75 tall;
+        // scaling the model without this leaves a giant rattling around inside
+        // a collider built for someone a third its size.
+        const bodyR = heroRadius(want.build.scale);
+        const stepped = resolveJungle(px + (dx / len) * step, pz + (dz / len) * step, bodyR);
+        const pushed = resolveWalls(stepped.x, stepped.z, bodyR);
         px = Math.max(-HALF + 1, Math.min(HALF - 1, pushed.x));
         pz = Math.max(-HALF + 1, Math.min(HALF - 1, pushed.z));
         heading = Math.atan2(dx, dz);
@@ -271,6 +287,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       camps.dispose();
       jungle.dispose();
       river.dispose();
+      backdrop.dispose();
       santelmo.dispose();
       player?.dispose();
       foe?.dispose();

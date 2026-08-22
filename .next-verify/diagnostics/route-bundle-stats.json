@@ -1,10 +1,10 @@
 [
   {
     "route": "/play",
-    "firstLoadUncompressedJsBytes": 1127380,
+    "firstLoadUncompressedJsBytes": 1129726,
     "firstLoadChunkPaths": [
       ".next-verify/static/chunks/3fntmmi971322.js",
-      ".next-verify/static/chunks/26107dgyx-6vu.js",
+      ".next-verify/static/chunks/3fpmj-nmw949g.js",
       ".next-verify/static/chunks/12aruqaur5huj.js",
       ".next-verify/static/chunks/3q5hirtwweuqh.js",
       ".next-verify/static/chunks/11pxbv08d7b0-.js",

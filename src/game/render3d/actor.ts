@@ -25,8 +25,16 @@ export interface ActorModel {
   rigged: string;
   /** A second file whose only job is to carry the walk clip for that rig. */
   walk?: string;
-  /** Height in world units. A hero is about 1.75; a Kapre is a giant. */
+  /** Height in world units. */
   height: number;
+  /**
+   * Draw a ring on the ground beneath this actor.
+   *
+   * Only the player's own hero gets one. A ring under everything is a ring that
+   * tells you nothing, and the entire purpose of this one is that a player can
+   * find THEIR character instantly in a crowded fight.
+   */
+  ring?: { radius: number; colour: number };
 }
 
 export interface Actor {
@@ -69,6 +77,40 @@ export async function createActor(spec: ActorModel): Promise<Actor> {
   // directly fights its bind pose.
   const rig = new THREE.Group();
   rig.add(object);
+
+  if (spec.ring) {
+    // Two parts: a soft filled disc and a bright rim. The disc reads at a
+    // glance from a distance, the rim survives being drawn over grass, water or
+    // stone. depthWrite off so it never z-fights the ground it lies on.
+    const disc = new THREE.Mesh(
+      new THREE.CircleGeometry(spec.ring.radius, 40),
+      new THREE.MeshBasicMaterial({
+        color: spec.ring.colour,
+        transparent: true,
+        opacity: 0.18,
+        depthWrite: false,
+        toneMapped: false,
+      })
+    );
+    disc.rotation.x = -Math.PI / 2;
+    disc.position.y = 0.07;
+    rig.add(disc);
+
+    const rim = new THREE.Mesh(
+      new THREE.RingGeometry(spec.ring.radius * 0.86, spec.ring.radius, 44),
+      new THREE.MeshBasicMaterial({
+        color: spec.ring.colour,
+        transparent: true,
+        opacity: 0.85,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        toneMapped: false,
+      })
+    );
+    rim.rotation.x = -Math.PI / 2;
+    rim.position.y = 0.08;
+    rig.add(rim);
+  }
 
   const mixer = new THREE.AnimationMixer(object);
   const clips = [...gltf.animations];

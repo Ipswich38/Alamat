@@ -224,6 +224,19 @@ export const ASSETS = {
       'Hand-painted stylised texturing, weathered brown jungle logs, pale golden bamboo decking, ' +
       'dark rattan lashings, carved okir shadow lines on the railings, clean saturated colours.',
   },
+  mayon: {
+    dir: `${OUT_DIR}/nature`,
+    prompt:
+      'Stylised volcano mountain, low-poly 3D environment asset, SINGLE OBJECT. An iconic perfectly ' +
+      'symmetrical stratovolcano cone with a wide flared base rising to a small crater, glowing ' +
+      'lava veins along the crater rim, dark volcanic rock, tropical vegetation around the foot. ' +
+      'Seen from a distance at eye level, clean readable silhouette. No ground plane, no terrain ' +
+      'base, no plinth, no sky, no background.',
+    texture:
+      'Hand-painted stylised texturing, deep blue-grey volcanic rock with soft ash gradients, ' +
+      'glowing orange lava at the rim, dark green vegetation at the foot, hazy and atmospheric, ' +
+      'not photorealistic.',
+  },
   bakunawa: {
     dir: `${OUT_DIR}/creatures`,
     prompt:

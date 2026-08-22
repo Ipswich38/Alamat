@@ -122,7 +122,9 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   scene.fog = new THREE.Fog(0xbfe4e0, 62, 130);
 
   let viewHeight = 21;
-  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 400);
+  // ⚠ FAR PLANE REACHES THE BACKDROP. At 400 the horizon volcano sat just
+  // beyond it and was clipped away entirely, with no error and no warning.
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 900);
   camera.position.copy(OFFSET);
   camera.lookAt(0, 0, 0);
 
