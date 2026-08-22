@@ -30,7 +30,7 @@ const REACH = 178;
 const MEANDER = 24;
 
 /** How deep the trough is cut at its deepest. */
-export const RIVER_DEPTH = 2.5;
+export const RIVER_DEPTH = 1.05;
 
 /** Width at the central basin, and at the tightest choke. */
 const WIDTH_BASIN = 22;
@@ -40,12 +40,9 @@ const WIDTH_CHOKE = 12;
 export const RIVER_WIDTH = WIDTH_BASIN;
 
 /**
- * How high a bridge deck sits.
- *
- * ⚠ NOT ZERO. Crossings once held the ground at 0, the level of the bank, while
- * the deck sits above it, so a player mid-crossing was drawn inside the planks.
+ * How high a bridge deck sits. Grounded slightly above water and level with bank approaches.
  */
-export const DECK_HEIGHT = 0.95;
+export const DECK_HEIGHT = 0.22;
 
 /** The centre line, sampled once at module load. */
 interface Sample {
@@ -149,14 +146,12 @@ export interface Crossing {
   z: number;
   bearing: number;
   radius: number;
+  halfWidth: number;
+  span: number;
 }
 
 /**
  * Where each lane meets the channel.
- *
- * ⚠ FOUND BY WALKING THE LANE, never typed in. Three hand coordinates would be
- * wrong the first time either a lane OR the river's curve moved, and wrong
- * invisibly: the bridge still draws, just no longer over water.
  */
 export function findCrossings(): Crossing[] {
   const out: Crossing[] = [];
@@ -191,12 +186,16 @@ export function findCrossings(): Crossing[] {
     const [x, z] = pts[bestI];
     const back = pts[Math.max(0, bestI - 6)];
     const fwd = pts[Math.min(pts.length - 1, bestI + 6)];
+    const rHalf = riverAt(x, z).half;
+    const span = (rHalf + 3.5) * 2;
     out.push({
       lane: lane.id,
       x,
       z,
       bearing: Math.atan2(fwd[0] - back[0], fwd[1] - back[1]),
-      radius: riverAt(x, z).half + 5,
+      radius: span / 2,
+      halfWidth: 5.6,
+      span,
     });
   }
 
@@ -208,16 +207,21 @@ const CROSSINGS = findCrossings();
 /** Is this point on a crossing? */
 export function onCrossing(x: number, z: number): Crossing | null {
   for (const c of CROSSINGS) {
-    if (Math.hypot(x - c.x, z - c.z) <= c.radius) return c;
+    const dx = x - c.x;
+    const dz = z - c.z;
+    const cosB = Math.cos(c.bearing);
+    const sinB = Math.sin(c.bearing);
+    const along = dx * sinB + dz * cosB;
+    const across = -dx * cosB + dz * sinB;
+    if (Math.abs(across) <= c.halfWidth && Math.abs(along) <= c.span / 2) {
+      return c;
+    }
   }
   return null;
 }
 
 /**
  * How much a crossing lifts the riverbed here: 1 at its centre, 0 at its edge.
- *
- * This is the ford. The bed rises so the water is ankle-deep and a hero WADES
- * across visibly rather than dropping into a trench and climbing out.
  */
 export function fordLift(x: number, z: number): number {
   let best = 0;
@@ -230,10 +234,6 @@ export function fordLift(x: number, z: number): number {
 
 /**
  * The riverbed's own height. Zero outside the channel.
- *
- * ⚠ THE BANKS ARE A SLOPE, NOT A STEP. Cubed rather than linear, which gives a
- * shallow shoulder at the top and a steeper fall near the middle: that is the
- * shape of a real bank, and a linear drop reads as a trench someone dug.
  */
 export function riverFloor(x: number, z: number): number {
   const r = riverAt(x, z);
@@ -242,12 +242,25 @@ export function riverFloor(x: number, z: number): number {
   const cut = -RIVER_DEPTH * eased;
   // A ford fills the trough back in, leaving a shallow that still reads as
   // water rather than as dry road.
-  return cut * (1 - fordLift(x, z) * 0.82);
+  return cut * (1 - fordLift(x, z) * 0.88);
 }
 
-/** Ground height including bridge decks. */
+/** Ground height including smooth bridge decks and approach ramps. */
 export function groundHeight(x: number, z: number): number {
-  if (onCrossing(x, z)) return DECK_HEIGHT;
+  const c = onCrossing(x, z);
+  if (c) {
+    const dx = x - c.x;
+    const dz = z - c.z;
+    const cosB = Math.cos(c.bearing);
+    const sinB = Math.sin(c.bearing);
+    const along = dx * sinB + dz * cosB;
+    const t = Math.abs(along) / (c.span / 2);
+    // Smooth transition from DECK_HEIGHT across the span to 0 at the bank edges
+    if (t <= 0.70) return DECK_HEIGHT;
+    const k = Math.max(0, (1 - t) / 0.30);
+    const smooth = k * k * (3 - 2 * k);
+    return DECK_HEIGHT * smooth;
+  }
   return riverFloor(x, z);
 }
 
@@ -255,7 +268,7 @@ export function groundHeight(x: number, z: number): number {
 export function riverSpeed(x: number, z: number): number {
   if (onCrossing(x, z)) return 1;
   const d = riverDepth(x, z);
-  return d > 0 ? 1 - 0.32 * d : 1;
+  return d > 0 ? 1 - 0.24 * d : 1;
 }
 
 /** The sampled centre line, for anything that needs to build along it. */

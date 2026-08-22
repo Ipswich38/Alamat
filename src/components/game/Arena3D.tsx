@@ -10,6 +10,7 @@
 // nothing; arriving there costs a refactor.
 
 import { useEffect, useRef, useState } from 'react';
+import * as THREE from 'three';
 import { HEROES, SELECTION_RING, heroHeight, heroRadius, type Ability, type Hero } from '@/game/heroes';
 import HeroHud from './HeroHud';
 
@@ -32,9 +33,13 @@ import { resolveWalls } from '@/game/arena/walls';
 import { createSantelmo } from '@/game/render3d/santelmo';
 import { createActor, type Actor } from '@/game/render3d/actor';
 import { createMinionRender } from '@/game/render3d/minions';
+import { createCreepRender } from '@/game/render3d/creeps';
+import { createBossRender } from '@/game/render3d/bosses';
 import {
   BASIC_WIDTH,
+  createBossManager,
   createBrute,
+  createCreepManager,
   createMinionManager,
   createObjectives,
   createTowerFire,
@@ -55,6 +60,7 @@ import {
   type DashCast,
   type ProjectileCast,
   type WindupCast,
+  type JungleBuffType,
 } from '@/game/combat';
 import { combatGroundY, createCombatFx } from '@/game/render3d/combat';
 
@@ -91,6 +97,10 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
   const [cooldowns, setCooldowns] = useState<CooldownState>(EMPTY_COOLDOWNS);
   const [playerHp, setPlayerHp] = useState(hero.health);
   const [kapreHp, setKapreHp] = useState(KAPRE.health);
+  const [activeBuffs, setActiveBuffs] = useState<{ id: string; name: string; emoji: string; remaining: number }[]>([]);
+  const [bossName, setBossName] = useState<string | undefined>(undefined);
+  const [bossHp, setBossHp] = useState<number>(0);
+  const [bossMaxHp, setBossMaxHp] = useState<number>(1);
   const [combatLine, setCombatLine] = useState('J basic · 1/2/R abilities · aim by facing');
   const [objectiveLine, setObjectiveLine] = useState('');
   /** Set once, when the enemy core breaks. A match ends and does not un-end. */
@@ -124,7 +134,8 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     // thirty pixels tall in normal play. The wheel takes over from there.
     const zoomParam = Number(new URLSearchParams(window.location.search).get('zoom'));
     const startZoom = Number.isFinite(zoomParam) && zoomParam > 0 ? zoomParam : VIEW_HEIGHT;
-    stage.scene.add(buildTerrain());
+    const terrain = buildTerrain();
+    stage.scene.add(terrain);
     const clutter = buildClutter();
     stage.scene.add(clutter.group);
     const nexus = createNexus();
@@ -151,6 +162,12 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     const minionManager = createMinionManager();
     const minionRender = createMinionRender();
     stage.scene.add(minionRender.group);
+    const creepManager = createCreepManager();
+    const creepRender = createCreepRender();
+    stage.scene.add(creepRender.group);
+    const bossManager = createBossManager();
+    const bossRender = createBossRender();
+    stage.scene.add(bossRender.group);
 
     // What the match is about. The towers and cores were already drawn; this is
     // the layer that makes them mean something.
@@ -178,16 +195,15 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     // generated CREATURES work and generated SCENERY does not. The credits
     // belong to the Bakunawa and the Kapre, not to trees.
 
-    // ?at=8,-4 drops the player on a chosen tile, for looking at a hero
-    // somewhere that is not behind a bush.
+    // Spawner Platforms: Set hero spawn points inside circular stone-carved Baybayin rune circle
+    // on high-ground platform behind the Nexus core.
     const atParam = new URLSearchParams(window.location.search).get('at');
     const at = atParam?.split(',').map(Number);
-    // Spawn just outside the Anito sanctuary, facing the map.
-    const spawnX = at && at.length === 2 && at.every(Number.isFinite) ? at[0] : TEAMS.anito.x + 14;
-    const spawnZ = at && at.length === 2 && at.every(Number.isFinite) ? at[1] : TEAMS.anito.z - 14;
+    const spawnX = at && at.length === 2 && at.every(Number.isFinite) ? at[0] : TEAMS.anito.spawn.x;
+    const spawnZ = at && at.length === 2 && at.every(Number.isFinite) ? at[1] : TEAMS.anito.spawn.z;
     let px = spawnX;
     let pz = spawnZ;
-    let heading = Math.PI * 0.75;
+    let heading = Math.PI * 0.25;
     let hiddenSeen = false;
 
     // Loaded asynchronously, so the frame loop has to cope with there being no
@@ -318,7 +334,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     const resetPlayer = (message: string) => {
       px = spawnX;
       pz = spawnZ;
-      heading = Math.PI * 0.75;
+      heading = Math.PI * 0.25;
       playerHealth = heroRef.current.health;
       setPlayerHp(playerHealth);
       setCombatLine(message);
@@ -338,13 +354,35 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       }
     };
 
+    interface BuffInstance {
+      type: JungleBuffType | 'moons_eclipse';
+      name: string;
+      emoji: string;
+      expiresAt: number;
+    }
+    const liveBuffs: BuffInstance[] = [];
+
+    const grantBuff = (type: JungleBuffType | 'moons_eclipse', name: string, duration: number) => {
+      const emojis: Record<string, string> = {
+        wind_stride: '💨',
+        blood_thirst: '🩸',
+        bulul_blessing: '🌾',
+        moons_eclipse: '🌙',
+      };
+      const emoji = emojis[type] ?? '✨';
+      const existing = liveBuffs.find((b) => b.type === type);
+      if (existing) {
+        existing.expiresAt = clock + duration;
+      } else {
+        liveBuffs.push({ type, name, emoji, expiresAt: clock + duration });
+      }
+    };
+
     /**
      * Everything an aimed shape does when it lands.
      *
      * ⚠ ONE PATH FOR EVERY SHAPE. The basic attack, the three ability shapes
-     * and a projectile all arrive here as a coverage predicate, because the
-     * alternative is five places that each decide separately whether a tower
-     * counts as a target, and four of them will be wrong.
+     * and a projectile all arrive here as a coverage predicate.
      */
     const resolveHit = (
       label: string,
@@ -352,34 +390,70 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       covers: (x: number, z: number, radius: number) => boolean
     ): boolean => {
       let foeOutcome: FoeOutcome | null = null;
+      let damageDealtToFoes = 0;
+
+      // Has Moon's Eclipse buff: +20% bonus damage to structures & true damage
+      const hasEclipse = liveBuffs.some((b) => b.type === 'moons_eclipse' && clock < b.expiresAt);
+      const appliedDamage = hasEclipse ? amount * 1.2 : amount;
+
       if (covers(brute.x, brute.z, FOE_RADIUS) && brute.hurt(amount, clock)) {
         foeOutcome = { name: KAPRE.name, amount, downed: !brute.alive };
         setKapreHp(brute.health);
         combatFx.addBurst(brute.x, brute.z, TEAMS.anito.light);
         if (!brute.alive && foe) foe.object.visible = false;
+        damageDealtToFoes += amount;
       }
 
-      const minionReport = minionManager.strike(ENEMY, covers, amount);
-      for (const hit of minionReport.hits) combatFx.addBurst(hit.x, hit.z, TEAMS.anito.light);
+      // ── Neutral Jungle Creeps Strike ──────────────────────────────────────
+      const creepReport = creepManager.strike(covers, amount);
+      for (const hit of creepReport.hits) {
+        combatFx.addBurst(hit.x, hit.z, TEAMS.anito.light);
+        damageDealtToFoes += amount;
+      }
 
-      const report = objectives.strike(ENEMY, covers, amount);
+      // ── Major Epic Boss Strike (Bakunawa & Kapre) ─────────────────────────
+      const bossReport = bossManager.strike(covers, amount, clock);
+      for (const hit of bossReport.hits) {
+        combatFx.addBurst(hit.x, hit.z, TEAMS.anito.light);
+        damageDealtToFoes += amount;
+      }
+
+      // ── Minion Waves Strike ───────────────────────────────────────────────
+      const minionReport = minionManager.strike(ENEMY, covers, amount);
+      for (const hit of minionReport.hits) {
+        combatFx.addBurst(hit.x, hit.z, TEAMS.anito.light);
+        damageDealtToFoes += amount;
+      }
+
+      // ── Objectives / Structure Strike ─────────────────────────────────────
+      const report = objectives.strike(ENEMY, covers, appliedDamage);
       for (const hit of report.hits) combatFx.addBurst(hit.x, hit.z, TEAMS.anito.light);
       for (const down of report.felled) {
         if (down.kind === 'core') {
           nexus.shatter(down.team);
+          stage.addCameraShake(0.95);
           setWon(true);
         } else {
           towers.fell(down.id);
+          stage.addCameraShake(0.65);
         }
       }
       if (report.hits.length > 0) reportObjectives();
 
+      // Blood Thirst Buff: Lifesteal on all damage dealt
+      const hasBloodThirst = liveBuffs.some((b) => b.type === 'blood_thirst' && clock < b.expiresAt);
+      if (hasBloodThirst && damageDealtToFoes > 0 && playerHealth > 0) {
+        const heal = damageDealtToFoes * 0.2;
+        playerHealth = Math.min(heroRef.current.health, playerHealth + heal);
+        setPlayerHp(playerHealth);
+      }
+
       const line = strikeLine(label, foeOutcome, report, minionReport);
       if (line) setCombatLine(line);
+      else if (creepReport.hits.length > 0) setCombatLine(`Struck ${creepReport.hits[0].name}.`);
+      else if (bossReport.hits.length > 0) setCombatLine(`Struck ${bossReport.hits[0].name}!`);
 
-      // A warded structure stopped the shot without taking damage, so it still
-      // counts as contact for anything consumed on impact.
-      return !!line;
+      return !!(line || creepReport.hits.length > 0 || bossReport.hits.length > 0);
     };
 
     const startWindup = (slot: CastSlot, ability: Ability) => {
@@ -580,7 +654,9 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         const len = Math.hypot(dx, dz) || 1;
         // The river slows you; a bridge does not. That difference is the whole
         // reason the three crossings are worth contesting.
-        const step = want.speed * riverSpeed(px, pz) * dt;
+        const hasWindStride = liveBuffs.some((b) => b.type === 'wind_stride' && clock < b.expiresAt);
+        const speedMult = (hasWindStride ? 1.35 : 1.0) * riverSpeed(px, pz);
+        const step = want.speed * speedMult * dt;
         // Clamped to the map for now. Pathing blockades arrive with the jungle
         // assets; until they exist there is nothing to collide with.
         // Walls first, then the map edge. A body pushed out of a wall must not
@@ -601,6 +677,16 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       if (inBrush !== hiddenSeen) {
         hiddenSeen = inBrush;
         setHidden(inBrush);
+      }
+
+      // Expired buffs cleanup & Bulul Blessing health regeneration
+      for (let i = liveBuffs.length - 1; i >= 0; i--) {
+        if (clock >= liveBuffs[i].expiresAt) liveBuffs.splice(i, 1);
+      }
+      const hasBululBlessing = liveBuffs.some((b) => b.type === 'bulul_blessing' && clock < b.expiresAt);
+      if (hasBululBlessing && playerHealth < want.health && playerHealth > 0) {
+        playerHealth = Math.min(want.health, playerHealth + 35 * dt);
+        setPlayerHp(playerHealth);
       }
 
       for (let i = windups.length - 1; i >= 0; i--) {
@@ -665,6 +751,81 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         foe.update(dt);
       }
 
+      // ── Neutral Jungle Creeps Simulation ──────────────────────────────────
+      const bodyRadius = heroRadius(want.build.scale);
+      const creepTick = creepManager.update(dt, clock, {
+        x: px,
+        z: pz,
+        radius: bodyRadius,
+        hidden: hiddenSeen,
+      });
+      if (creepTick.damageToPlayer > 0) hurtPlayer(creepTick.damageToPlayer, 'Forest Creep');
+      if (creepTick.buffGranted) {
+        grantBuff(creepTick.buffGranted.type, creepTick.buffGranted.name, creepTick.buffGranted.duration);
+        setCombatLine(`${creepTick.buffGranted.name} acquired! ${creepTick.buffGranted.description}`);
+      }
+      if (creepTick.aoeSlam) {
+        combatFx.addCircle(creepTick.aoeSlam.x, creepTick.aoeSlam.z, creepTick.aoeSlam.radius, 0xffd06f, 0.45);
+        stage.addCameraShake(0.35);
+      }
+      creepRender.update(creepManager.creeps, clock);
+
+      // ── Major Epic Bosses (Bakunawa & Kapre) & Pushing Kapre Simulation ─────
+      const bossTick = bossManager.update(
+        dt,
+        clock,
+        { x: px, z: pz, radius: bodyRadius, hidden: hiddenSeen },
+        objectives,
+        (_k, tx, tz) => {
+          combatFx.addBurst(tx, tz, 0xffd06f);
+        }
+      );
+      if (bossTick.damageToPlayer > 0) hurtPlayer(bossTick.damageToPlayer, 'Epic Boss');
+      if (bossTick.buffGranted) {
+        grantBuff(bossTick.buffGranted.type, bossTick.buffGranted.name, bossTick.buffGranted.duration);
+        setCombatLine(`${bossTick.buffGranted.name} granted! ${bossTick.buffGranted.description}`);
+      }
+      if (bossTick.announcement) {
+        setCombatLine(bossTick.announcement);
+        if (bossTick.announcement.includes('Bakunawa') || bossTick.announcement.includes('Kapre')) {
+          stage.addCameraShake(0.75);
+        }
+      }
+      for (const tel of bossTick.telegraphs) {
+        if (tel.type === 'circle') {
+          combatFx.addCircle(tel.x, tel.z, tel.radius ?? 5.5, tel.colour, 0.6);
+          stage.addCameraShake(0.55); // Ground stomp / tail sweep rumble
+        } else if (tel.type === 'cone') {
+          combatFx.addCone(
+            tel.x,
+            tel.z,
+            tel.heading ?? 0,
+            tel.range ?? 8.5,
+            tel.halfAngle ?? Math.PI / 6,
+            tel.colour,
+            0.6
+          );
+          stage.addCameraShake(0.4);
+        }
+      }
+      bossRender.update(bossManager.bakunawa, bossManager.kapre, bossManager.pushingKapre, clock);
+
+      // Closest boss distance for Epic Boss HUD bar
+      const distBakunawa = Math.hypot(px - bossManager.bakunawa.x, pz - bossManager.bakunawa.z);
+      const distKapre = Math.hypot(px - bossManager.kapre.x, pz - bossManager.kapre.z);
+      if (bossManager.bakunawa.alive && (distBakunawa <= 32 || bossManager.bakunawa.inCombat)) {
+        setBossName('Bakunawa — The Moon-Eater');
+        setBossHp(bossManager.bakunawa.health);
+        setBossMaxHp(bossManager.bakunawa.maxHealth);
+      } else if (bossManager.kapre.alive && (distKapre <= 32 || bossManager.kapre.inCombat)) {
+        setBossName('Kapre — Giant Tree Warden');
+        setBossHp(bossManager.kapre.health);
+        setBossMaxHp(bossManager.kapre.maxHealth);
+      } else {
+        setBossName(undefined);
+        setBossHp(0);
+      }
+
       // Minion simulation and combat
       minionManager.update(dt, clock, objectives, (from, tx, tz, isRanged) => {
         const teamColour = from.team === 'anito' ? TEAMS.anito.light : TEAMS.malakas.light;
@@ -695,20 +856,23 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       if (playerHealth > 0) {
         const shot = towerFire.update(clock, px, pz, minionManager);
         if (shot.from) {
-          const gap = Math.hypot(shot.targetX - shot.from.x, shot.targetZ - shot.from.z);
-          combatFx.addLine(
+          const maskY = terrainHeight(shot.from.x, shot.from.z) + (shot.from.tier === 1 ? 7.6 : shot.from.tier === 2 ? 9.1 : 10.8);
+          const targetY = combatGroundY(shot.targetX, shot.targetZ) + 1.2;
+          const shotColour = TEAMS[shot.from.team as TeamId]?.light ?? TEAMS[ENEMY].light;
+          combatFx.addEnergyOrb(
             shot.from.x,
+            maskY,
             shot.from.z,
-            Math.atan2(shot.targetX - shot.from.x, shot.targetZ - shot.from.z),
-            gap,
-            0.22,
-            TEAMS[ENEMY].light,
-            0.22
+            shot.targetX,
+            targetY,
+            shot.targetZ,
+            shotColour,
+            0.26
           );
           if (shot.damage > 0) {
             hurtPlayer(shot.damage, 'A tower');
           } else if (shot.minionHit) {
-            combatFx.addBurst(shot.targetX, shot.targetZ, TEAMS[ENEMY].light);
+            combatFx.addBurst(shot.targetX, shot.targetZ, shotColour);
           }
         }
       }
@@ -720,6 +884,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         player.play(moving ? 'run' : 'idle');
         player.update(dt);
       }
+      terrain.userData.update?.(clock);
       clutter.update(clock);
       nexus.update(clock);
       towers.update(clock);
@@ -729,6 +894,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       backdrop.update(clock);
       santelmo.update(clock);
       combatFx.update(dt);
+      stage.update(dt, clock, bossManager.bakunawa.inCombat);
       stage.lookAtGround(px, pz);
       stage.render();
 
@@ -742,6 +908,14 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       combatUiClock += dt;
       if (combatUiClock >= 0.12) {
         syncCooldowns();
+        setActiveBuffs(
+          liveBuffs.map((b) => ({
+            id: b.type,
+            name: b.name,
+            emoji: b.emoji,
+            remaining: Math.max(0, b.expiresAt - clock),
+          }))
+        );
         combatUiClock = 0;
       }
     };
@@ -756,6 +930,14 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       window.removeEventListener('keyup', onUp);
       window.removeEventListener('resize', onResize);
       camera.dispose();
+      terrain.traverse((n) => {
+        const m = n as THREE.Mesh;
+        if (m.isMesh) {
+          m.geometry.dispose();
+          const mats = Array.isArray(m.material) ? m.material : [m.material];
+          for (const mat of mats) mat.dispose();
+        }
+      });
       clutter.dispose();
       nexus.dispose();
       towers.dispose();
@@ -767,6 +949,8 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       santelmo.dispose();
       combatFx.dispose();
       minionRender.dispose();
+      creepRender.dispose();
+      bossRender.dispose();
       player?.dispose();
       foe?.dispose();
       stage.dispose();
@@ -801,6 +985,10 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         onTurn={(dir) => {
           turnRef.current = dir;
         }}
+        activeBuffs={activeBuffs}
+        bossName={bossName}
+        bossHp={bossHp}
+        bossMaxHp={bossMaxHp}
       />
     </div>
   );

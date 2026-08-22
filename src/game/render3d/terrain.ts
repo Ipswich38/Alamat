@@ -1,26 +1,17 @@
-// The ground: its shape, its surfaces, and the world beyond the playable edge.
+// The ground: its shape, its verticality, its surfaces, and the world beyond the playable edge.
 //
-// ── WHY ONE MESH DOES ALL THREE ─────────────────────────────────────────────
-// Height, surface colour and the skirt past the boundary are the same problem
-// asked three ways, and every one of them is a function of position. Splitting
-// them into separate meshes gives seams exactly where a player is most likely
-// to look: the lane edge, the river bank, the map border.
-//
-// ── WHY THE SURFACES ARE BLENDED, NOT SWITCHED ──────────────────────────────
-// A lane is not a painted stripe with a hard edge, it is trodden ground that
-// gives way to grass. Every surface here fades into its neighbour over a few
-// units, which is the difference between terrain and a diagram.
-//
-// ── AND WHY IT EXTENDS PAST THE MAP ─────────────────────────────────────────
-// A ground plane that stops at the playable boundary leaves the sky showing
-// underneath it and the whole arena reads as a tabletop. The mesh runs well
-// past the edge, falls away, and darkens into forest, so the map has a horizon
-// instead of a rim.
+// ── ELEVATION & TERRAIN DYNAMICS (MONSTER HUNTER PRIMAL SCALE) ───────────────
+// 1. High-Ground Bases elevated by +3.0u relative to lane riverbeds (-1.05u).
+// 2. Tiered mossy terraces & natural stepped contours along jungle slopes.
+// 3. Wetness & specular masks along riverbanks for glistening, humid mud/slate.
+// 4. Giant exposed Balete roots framing jungle chokepoints.
+// 5. Rocky cliff edges and animated waterfall cascades pouring into the river basin.
 
 import * as THREE from 'three';
 import { HALF, SANCTUARY_RADIUS, TEAMS } from '@/game/arena/nexus';
 import { LANES, LANE_WIDTH, laneDistance } from '@/game/arena/lanes';
-import { RIVER_WIDTH, riverDepth, riverFloor } from '@/game/arena/river';
+import { RIVER_WIDTH, groundHeight, onCrossing, riverAt, riverDepth, riverFloor } from '@/game/arena/river';
+import { surfaceMaterial } from './stage';
 
 // ── the palette (3-way height-blend) ─────────────────────────────────────────
 const DIRT_PATH = new THREE.Color('#5D4037'); // Dirt Path
@@ -30,7 +21,8 @@ const JUNGLE_DEEP = new THREE.Color('#1B4D2E');
 const VOLCANIC_MUD = new THREE.Color('#1C2833'); // Volcanic Mud
 const SCORCHED_SOIL = new THREE.Color('#2B2625');
 const BASALT_ROCK = new THREE.Color('#1A1717');
-const RIVER_STONE = new THREE.Color('#2C3E50');
+const RIVER_STONE = new THREE.Color('#1E3142');
+const WET_MUD = new THREE.Color('#2E1F18');
 const BEYOND = new THREE.Color('#0D1F14');
 
 /** How far past the playable edge the ground continues. */
@@ -47,7 +39,6 @@ function smoothNoise(x: number, z: number): number {
   const zi = Math.floor(z);
   const xf = x - xi;
   const zf = z - zi;
-  // Smoothstepped interpolation, or the terrain has visible grid creases.
   const u = xf * xf * (3 - 2 * xf);
   const v = zf * zf * (3 - 2 * zf);
   const a = hash(xi, zi);
@@ -92,17 +83,54 @@ function baseStrength(x: number, z: number): number {
 }
 
 /**
+ * Base High-Ground Elevation (+3.0u relative to riverbeds).
+ * Elevates the Anito & Malakas sanctuary platforms and creates smooth stepped ramps into lanes.
+ */
+function baseHighGround(x: number, z: number): number {
+  let elevation = 0;
+  for (const t of Object.values(TEAMS)) {
+    const d = Math.hypot(x - t.x, z - t.z);
+    if (d <= SANCTUARY_RADIUS) {
+      elevation = Math.max(elevation, 3.0);
+    } else if (d < SANCTUARY_RADIUS + 22) {
+      const k = 1 - (d - SANCTUARY_RADIUS) / 22;
+      const smooth = k * k * (3 - 2 * k);
+      elevation = Math.max(elevation, smooth * 3.0);
+    }
+  }
+  return elevation;
+}
+
+/**
+ * Tiered mossy terraces & natural stepped contours.
+ */
+function terraceHeight(raw: number): number {
+  const step = 0.75;
+  const quantized = Math.round(raw / step) * step;
+  return raw * 0.35 + quantized * 0.65;
+}
+
+/**
  * Ground height at a point, before bridges.
  */
 export function terrainHeight(x: number, z: number): number {
+  if (onCrossing(x, z)) return groundHeight(x, z);
   const river = riverFloor(x, z);
   if (river < 0) return river;
 
-  const roll = (terrainNoise(x, z) - 0.5) * 3.2;
+  const roll = (terrainNoise(x, z) - 0.5) * 2.8;
   const flat = Math.max(laneStrength(x, z), baseStrength(x, z));
   const vStrength = volcanicStrength(x, z);
   const volcanicRidge = (smoothNoise(x * 0.05, z * 0.05) * 3.8 + smoothNoise(x * 0.12, z * 0.12) * 1.6) * vStrength;
-  const inner = roll * (1 - flat) + volcanicRidge * (1 - flat * 0.8);
+  
+  // High-ground base lift +3.0u
+  const highGround = baseHighGround(x, z);
+  
+  // Lane plateau elevation (gently sloped between +0.4u and +1.2u)
+  const laneLift = laneStrength(x, z) * 0.5;
+
+  const rawJungle = terraceHeight(roll * (1 - flat) + volcanicRidge * (1 - flat * 0.8) + 0.6);
+  const inner = rawJungle * (1 - flat * 0.7) + highGround + laneLift;
 
   const out = Math.max(Math.abs(x), Math.abs(z));
   if (out <= HALF) return inner;
@@ -113,7 +141,7 @@ export function terrainHeight(x: number, z: number): number {
   return inner - t * t * 26 + (terrainNoise(x * 0.6, z * 0.6) - 0.5) * 8 * t;
 }
 
-/** 3-way height-blend surface colour: Dirt Path (#5D4037) -> Lush Mossy Grass (#2E7D32) -> Volcanic Mud (#1C2833) */
+/** 3-way height-blend surface colour with riverbank wetness / mud dynamics */
 function surfaceColour(x: number, z: number, out: THREE.Color): void {
   const grain = terrainNoise(x * 2.1, z * 2.1);
 
@@ -136,9 +164,16 @@ function surfaceColour(x: number, z: number, out: THREE.Color): void {
     out.lerp(mud, vStrength * 0.94);
   }
 
-  // Riverbed: Slate Blue wet stone
+  // 4. Riverbanks & Wet Mud dynamics
+  const rPoint = riverAt(x, z);
   const wet = riverDepth(x, z);
-  if (wet > 0) out.lerp(RIVER_STONE, Math.min(1, wet * 1.6));
+  if (wet > 0) {
+    out.lerp(RIVER_STONE, Math.min(1, wet * 1.6));
+  } else if (rPoint.distance < rPoint.half + 4.5) {
+    // Wet glistening mud along the banks
+    const bankWet = 1 - (rPoint.distance - rPoint.half) / 4.5;
+    out.lerp(WET_MUD, bankWet * 0.75);
+  }
 
   // Paved base ground
   const base = baseStrength(x, z);
@@ -154,11 +189,12 @@ function surfaceColour(x: number, z: number, out: THREE.Color): void {
   }
 }
 
-export function buildTerrain(): THREE.Mesh {
+export function buildTerrain(): THREE.Group {
+  const group = new THREE.Group();
+  group.name = 'terrain-environment';
+
   const extent = HALF + SKIRT;
-  // 2.4 units a segment: fine enough that a 14-wide lane has six across it and
-  // its edge reads as a curve, coarse enough to stay around 25k triangles.
-  const seg = Math.round((extent * 2) / 2.4);
+  const seg = Math.round((extent * 2) / 2.2);
   const geo = new THREE.PlaneGeometry(extent * 2, extent * 2, seg, seg);
   geo.rotateX(-Math.PI / 2);
 
@@ -177,14 +213,230 @@ export function buildTerrain(): THREE.Mesh {
   geo.setAttribute('color', new THREE.BufferAttribute(colours, 3));
   geo.computeVertexNormals();
 
-  const mesh = new THREE.Mesh(
-    geo,
-    new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.96, metalness: 0.01 })
-  );
+  // Terrain Standard Material with wetness specular response on banks
+  const mat = new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    roughness: 0.88,
+    metalness: 0.04,
+  });
+
+  const mesh = new THREE.Mesh(geo, mat);
   mesh.receiveShadow = true;
   mesh.name = 'terrain';
-  return mesh;
+  group.add(mesh);
+
+  // 1. Rocky Cliff Edges along high-ground drops into the river
+  group.add(buildCliffEdges());
+
+  // 2. Giant Exposed Balete Roots framing jungle chokepoints
+  group.add(buildChokepointBaleteRoots());
+
+  // 3. Waterfalls cascading from high-ground into the river channel
+  const waterfalls = buildWaterfallCascades();
+  group.add(waterfalls.group);
+
+  group.userData.update = (t: number) => {
+    waterfalls.update(t);
+  };
+
+  return group;
+}
+
+/**
+ * Steep rocky cliffs and basalt slabs framing the elevation drop-offs.
+ */
+function buildCliffEdges(): THREE.Group {
+  const g = new THREE.Group();
+  g.name = 'cliff-edges';
+
+  const geo = new THREE.DodecahedronGeometry(1.8, 1);
+  geo.scale(1.8, 1.1, 1.4);
+  const COUNT = 64;
+  const mesh = new THREE.InstancedMesh(
+    geo,
+    surfaceMaterial(0x2d3436, { roughness: 0.85, metalness: 0.1 }),
+    COUNT
+  );
+  mesh.receiveShadow = true;
+  mesh.castShadow = true;
+
+  const o = new THREE.Object3D();
+  const rPoints = [
+    { x: -45, z: -35, rot: 0.4 },
+    { x: -38, z: -25, rot: 0.6 },
+    { x: -28, z: -15, rot: 0.8 },
+    { x: 18, z: -8, rot: 1.2 },
+    { x: 28, z: -2, rot: 1.4 },
+    { x: 42, z: 12, rot: 1.8 },
+    { x: 50, z: 24, rot: 2.1 },
+    { x: -12, z: 32, rot: -0.8 },
+    { x: -22, z: 42, rot: -0.5 },
+  ];
+
+  let n = 0;
+  for (let i = 0; i < rPoints.length && n < COUNT; i++) {
+    const pt = rPoints[i];
+    for (let k = 0; k < 6 && n < COUNT; k++) {
+      const offX = (Math.sin(k * 1.7) - 0.5) * 4.5;
+      const offZ = (Math.cos(k * 2.3) - 0.5) * 4.5;
+      const px = pt.x + offX;
+      const pz = pt.z + offZ;
+      const py = terrainHeight(px, pz);
+
+      const s = 1.1 + Math.sin(k * 3.1) * 0.45;
+      o.position.set(px, py + s * 0.4, pz);
+      o.rotation.set(0.2, pt.rot + k * 0.5, 0.15);
+      o.scale.set(s * 1.3, s * 0.9, s);
+      o.updateMatrix();
+      mesh.setMatrixAt(n, o.matrix);
+      n++;
+    }
+  }
+
+  mesh.count = n;
+  g.add(mesh);
+  return g;
+}
+
+/**
+ * Giant exposed Balete roots framing jungle chokepoints and crossings.
+ */
+function buildChokepointBaleteRoots(): THREE.Group {
+  const g = new THREE.Group();
+  g.name = 'chokepoint-balete-roots';
+
+  const rootMat = surfaceMaterial(0x3e2817, { roughness: 0.96 });
+
+  // Key chokepoint locations around jungle entries and river transitions
+  const chokepoints = [
+    { x: -24, z: 18, rot: 0.6, scale: 2.2 },
+    { x: 24, z: -18, rot: -0.6, scale: 2.2 },
+    { x: -18, z: -28, rot: 1.2, scale: 2.0 },
+    { x: 18, z: 28, rot: -1.2, scale: 2.0 },
+    { x: -48, z: 42, rot: 0.2, scale: 2.5 },
+    { x: 48, z: -42, rot: -0.2, scale: 2.5 },
+  ];
+
+  for (const cp of chokepoints) {
+    const cg = new THREE.Group();
+    cg.position.set(cp.x, terrainHeight(cp.x, cp.z), cp.z);
+    cg.rotation.y = cp.rot;
+
+    // Arched main root framing the path
+    const archGeo = new THREE.TorusGeometry(cp.scale * 1.6, cp.scale * 0.24, 7, 14, Math.PI * 0.75);
+    const archMesh = new THREE.Mesh(archGeo, rootMat);
+    archMesh.rotation.set(Math.PI / 4, 0, Math.PI * 0.15);
+    archMesh.position.set(0, cp.scale * 0.8, 0);
+    archMesh.castShadow = true;
+    archMesh.receiveShadow = true;
+    cg.add(archMesh);
+
+    // Knobbly root spurs extending along the ground
+    for (let r = 0; r < 3; r++) {
+      const angle = (r / 3) * Math.PI * 1.5;
+      const spurGeo = new THREE.CylinderGeometry(cp.scale * 0.18, cp.scale * 0.32, cp.scale * 2.6, 6);
+      const spurMesh = new THREE.Mesh(spurGeo, rootMat);
+      spurMesh.position.set(Math.cos(angle) * cp.scale * 1.4, cp.scale * 0.2, Math.sin(angle) * cp.scale * 1.4);
+      spurMesh.rotation.set(Math.PI / 2.3, 0, angle);
+      spurMesh.castShadow = true;
+      spurMesh.receiveShadow = true;
+      cg.add(spurMesh);
+    }
+
+    g.add(cg);
+  }
+
+  return g;
+}
+
+/**
+ * Animated waterfall cascades where highland river tributaries drop into the Pasig Agimat basin.
+ */
+function buildWaterfallCascades(): { group: THREE.Group; update: (t: number) => void } {
+  const group = new THREE.Group();
+  group.name = 'waterfalls';
+
+  const fallLocations = [
+    { x: -32, z: -18, height: 2.4, width: 3.8, rot: 0.75 },
+    { x: 32, z: 18, height: 2.4, width: 3.8, rot: -2.4 },
+  ];
+
+  const fallUniforms: { uTime: { value: number } }[] = [];
+
+  for (const loc of fallLocations) {
+    const fg = new THREE.Group();
+    const groundY = terrainHeight(loc.x, loc.z);
+    fg.position.set(loc.x, groundY + 0.2, loc.z);
+    fg.rotation.y = loc.rot;
+
+    const uTime = { value: 0 };
+    fallUniforms.push({ uTime });
+
+    // Water cascade sheet
+    const sheetGeo = new THREE.PlaneGeometry(loc.width, loc.height, 8, 12);
+    sheetGeo.translate(0, -loc.height / 2, 0);
+
+    const sheetMat = new THREE.MeshStandardMaterial({
+      color: 0x88e2ff,
+      roughness: 0.1,
+      metalness: 0.1,
+      transparent: true,
+      opacity: 0.85,
+      side: THREE.DoubleSide,
+    });
+
+    sheetMat.onBeforeCompile = (shader) => {
+      shader.uniforms.uTime = uTime;
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+        float wave = sin(position.y * 3.0 - uTime * 6.0) * 0.12;
+        transformed.z += wave;`
+      );
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          'void main() {',
+          `uniform float uTime;
+          void main() {`
+        )
+        .replace(
+          '#include <dithering_fragment>',
+          `#include <dithering_fragment>
+          float foam = sin(vUv.y * 18.0 - uTime * 8.0) * 0.5 + 0.5;
+          gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.95, 0.99, 1.0), foam * 0.5);`
+        );
+    };
+
+    const sheetMesh = new THREE.Mesh(sheetGeo, sheetMat);
+    fg.add(sheetMesh);
+
+    // Splash foam ring at the bottom
+    const splashGeo = new THREE.RingGeometry(loc.width * 0.4, loc.width * 0.75, 16);
+    splashGeo.rotateX(-Math.PI / 2);
+    const splashMat = new THREE.MeshBasicMaterial({
+      color: 0xddf6ff,
+      transparent: true,
+      opacity: 0.7,
+      side: THREE.DoubleSide,
+      toneMapped: false,
+    });
+    const splash = new THREE.Mesh(splashGeo, splashMat);
+    splash.position.set(0, -loc.height + 0.05, 0.4);
+    fg.add(splash);
+
+    group.add(fg);
+  }
+
+  return {
+    group,
+    update: (t: number) => {
+      for (const u of fallUniforms) {
+        u.uTime.value = t;
+      }
+    },
+  };
 }
 
 /** Kept for the river renderer, which needs to know how wide to fade. */
 export const TERRAIN_RIVER_WIDTH = RIVER_WIDTH;
+

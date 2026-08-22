@@ -19,6 +19,13 @@ import { TEAMS } from '@/game/arena/nexus';
 import type { CastSlot, CooldownState } from '@/game/combat';
 import type { Hero } from '@/game/heroes';
 
+interface ActiveBuff {
+  id: string;
+  name: string;
+  emoji: string;
+  remaining: number;
+}
+
 interface HeroHudProps {
   hero: Hero;
   playable: Hero[];
@@ -42,6 +49,10 @@ interface HeroHudProps {
   onZoom: (factor: number) => void;
   /** -1, 0 or 1, held while a turn button is pressed. */
   onTurn: (dir: number) => void;
+  activeBuffs?: ActiveBuff[];
+  bossName?: string;
+  bossHp?: number;
+  bossMaxHp?: number;
 }
 
 export default function HeroHud({
@@ -63,6 +74,10 @@ export default function HeroHud({
   zoomShown,
   onZoom,
   onTurn,
+  activeBuffs = [],
+  bossName,
+  bossHp = 0,
+  bossMaxHp = 1,
 }: HeroHudProps) {
   const combatControls = [
     {
@@ -128,7 +143,39 @@ export default function HeroHud({
         </div>
         <span style={combatLineStyle}>{combatLine}</span>
         <span style={objectiveLineStyle}>{objectiveLine}</span>
+
+        {activeBuffs.length > 0 ? (
+          <div style={buffsContainer}>
+            {activeBuffs.map((b) => (
+              <div key={b.id} style={buffBadge} title={b.name}>
+                <span>{b.emoji}</span>
+                <span>{Math.ceil(b.remaining)}s</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </div>
+
+      {/* ── EPIC BOSS HEALTH BAR ────────────────────────────────────────── */}
+      {bossName && bossHp > 0 ? (
+        <div style={bossBarContainer}>
+          <div style={bossTitleRow}>
+            <span style={bossCrown}>⚔ EPIC OBJECTIVE</span>
+            <strong style={bossNameStyle}>{bossName}</strong>
+            <span style={bossHpNums}>
+              {Math.ceil(bossHp)} / {bossMaxHp}
+            </span>
+          </div>
+          <div style={bossBarShell}>
+            <div
+              style={{
+                ...bossBarFill,
+                width: `${Math.max(0, Math.min(100, (bossHp / bossMaxHp) * 100))}%`,
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
 
       {/* The end of a match. Deliberately the only thing on screen that covers
           the arena: everything else here is a corner overlay, and a result that
@@ -339,19 +386,24 @@ const combatLineStyle: React.CSSProperties = {
 const picker: React.CSSProperties = {
   position: 'absolute',
   left: '50%',
-  bottom: 18,
+  top: 14,
   transform: 'translateX(-50%)',
   display: 'flex',
-  gap: 8,
+  gap: 6,
   flexWrap: 'wrap',
   justifyContent: 'center',
-  padding: '0 12px',
+  padding: '6px 10px',
+  borderRadius: 999,
+  background: 'rgba(6,18,20,0.65)',
+  backdropFilter: 'blur(8px)',
+  maxWidth: 'calc(100vw - 320px)',
+  zIndex: 10,
 };
 
 const cameraBox: React.CSSProperties = {
   position: 'absolute',
   right: 16,
-  bottom: 92,
+  bottom: 82,
   display: 'flex',
   alignItems: 'center',
   gap: 8,
@@ -360,7 +412,7 @@ const cameraBox: React.CSSProperties = {
 const zoomBox: React.CSSProperties = {
   position: 'absolute',
   right: 16,
-  bottom: 22,
+  bottom: 18,
   display: 'flex',
   alignItems: 'center',
   gap: 8,
@@ -369,7 +421,7 @@ const zoomBox: React.CSSProperties = {
 const combatHud: React.CSSProperties = {
   position: 'absolute',
   left: '50%',
-  bottom: 78,
+  bottom: 18,
   transform: 'translateX(-50%)',
   display: 'flex',
   justifyContent: 'center',
@@ -490,12 +542,96 @@ const zoomLabel: React.CSSProperties = {
 };
 
 const pick: React.CSSProperties = {
-  minHeight: 44,
-  padding: '0 14px',
+  minHeight: 32,
+  padding: '0 10px',
   borderRadius: 999,
-  border: 'none',
+  border: '1px solid rgba(255,255,255,0.25)',
   fontWeight: 700,
-  fontSize: 13.5,
+  fontSize: 12,
   cursor: 'pointer',
   fontFamily: 'system-ui, sans-serif',
+  transition: 'background 120ms ease, color 120ms ease',
+};
+
+const buffsContainer: React.CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 6,
+  marginTop: 6,
+  paddingTop: 6,
+  borderTop: '1px solid rgba(255,255,255,0.12)',
+};
+
+const buffBadge: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+  padding: '2px 7px',
+  borderRadius: 6,
+  background: 'rgba(255,200,74,0.18)',
+  border: '1px solid rgba(255,200,74,0.45)',
+  color: '#ffc84a',
+  fontSize: 11,
+  fontWeight: 700,
+  fontVariantNumeric: 'tabular-nums',
+};
+
+const bossBarContainer: React.CSSProperties = {
+  position: 'absolute',
+  top: 14,
+  left: '50%',
+  transform: 'translateX(-50%)',
+  width: 'min(480px, calc(100vw - 120px))',
+  display: 'grid',
+  gap: 5,
+  padding: '8px 14px',
+  borderRadius: 12,
+  background: 'radial-gradient(ellipse at 50% 0%, rgba(30,12,45,0.85), rgba(6,18,20,0.85))',
+  border: '1px solid rgba(255,120,74,0.5)',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
+  zIndex: 9,
+  fontFamily: 'system-ui, sans-serif',
+};
+
+const bossTitleRow: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  fontSize: 11,
+  color: '#f7f5ee',
+};
+
+const bossCrown: React.CSSProperties = {
+  color: '#ff7a36',
+  fontWeight: 900,
+  letterSpacing: 0.5,
+  fontSize: 10,
+};
+
+const bossNameStyle: React.CSSProperties = {
+  fontSize: 13,
+  fontWeight: 800,
+  color: '#ffc84a',
+  letterSpacing: 0.3,
+};
+
+const bossHpNums: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 700,
+  opacity: 0.8,
+  fontVariantNumeric: 'tabular-nums',
+};
+
+const bossBarShell: React.CSSProperties = {
+  height: 9,
+  borderRadius: 999,
+  overflow: 'hidden',
+  background: 'rgba(255,255,255,0.12)',
+};
+
+const bossBarFill: React.CSSProperties = {
+  height: '100%',
+  borderRadius: 999,
+  background: 'linear-gradient(90deg, #ff3366, #ff7a36, #ffd06f)',
+  transition: 'width 120ms ease-out',
 };

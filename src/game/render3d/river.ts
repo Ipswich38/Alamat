@@ -11,8 +11,7 @@
 // 7. Volumetric ground mist (alpha 0.15) settled inside the trough.
 
 import * as THREE from 'three';
-import { RIVER_DEPTH, findCrossings, riverCentre } from '@/game/arena/river';
-import { loadModel } from './models';
+import { type Crossing, DECK_HEIGHT, RIVER_DEPTH, findCrossings, riverCentre } from '@/game/arena/river';
 import { surfaceMaterial } from './stage';
 import { terrainHeight } from './terrain';
 
@@ -42,30 +41,9 @@ export function createRiver(): River {
 
   // ── Bridges & Crossings ───────────────────────────────────────────────────
   const crossings = findCrossings();
-  const fallbackDecks: THREE.Mesh[] = [];
   for (const c of crossings) {
-    const deck = new THREE.Mesh(
-      new THREE.BoxGeometry(9.2, 0.55, c.radius * 1.9),
-      surfaceMaterial(0x7a5a36, { roughness: 0.92 })
-    );
-    deck.position.set(c.x, 0.75, c.z);
-    deck.rotation.y = c.bearing;
-    deck.castShadow = true;
-    deck.receiveShadow = true;
-    group.add(deck);
-    fallbackDecks.push(deck);
+    group.add(buildBridgeStructure(c));
   }
-
-  loadModel('/models/props/bridge.glb', { width: 26 }).then((model) => {
-    if (!model) return;
-    for (const c of crossings) {
-      const built = model.clone(true);
-      built.position.set(c.x, 0, c.z);
-      built.rotation.y = c.bearing + Math.PI / 2;
-      group.add(built);
-    }
-    for (const d of fallbackDecks) d.visible = false;
-  });
 
   return {
     group,
@@ -544,4 +522,113 @@ void main() {`
   mesh.renderOrder = 3;
   mesh.name = 'trough-mist';
   return mesh;
+}
+
+/**
+ * Procedural authentic pre-colonial timber & bamboo bridge, perfectly level with bank terrain.
+ */
+function buildBridgeStructure(c: Crossing): THREE.Group {
+  const g = new THREE.Group();
+  g.name = `bridge-${c.lane}`;
+  g.position.set(c.x, 0, c.z);
+  g.rotation.y = c.bearing;
+
+  const woodMat = surfaceMaterial(0x6b4a28, { roughness: 0.88 });
+  const darkWoodMat = surfaceMaterial(0x3e2815, { roughness: 0.94 });
+  const bambooMat = surfaceMaterial(0x8a7243, { roughness: 0.72 });
+  const okirGoldMat = surfaceMaterial(0xb58b38, { roughness: 0.55, metalness: 0.2 });
+
+  const deckWidth = c.halfWidth * 2 - 0.4;
+  const deckSpan = c.span * 0.72;
+  const rampSpan = c.span * 0.16;
+
+  // 1. Central Flat Deck (top exactly at DECK_HEIGHT)
+  const deckGeo = new THREE.BoxGeometry(deckWidth, 0.22, deckSpan);
+  const deck = new THREE.Mesh(deckGeo, woodMat);
+  deck.position.set(0, DECK_HEIGHT - 0.11, 0);
+  deck.castShadow = true;
+  deck.receiveShadow = true;
+  g.add(deck);
+
+  // Planks
+  const PLANK_COUNT = 18;
+  for (let i = 0; i < PLANK_COUNT; i++) {
+    const pz = -deckSpan / 2 + (i / (PLANK_COUNT - 1)) * deckSpan;
+    const plank = new THREE.Mesh(new THREE.BoxGeometry(deckWidth, 0.04, 0.12), darkWoodMat);
+    plank.position.set(0, DECK_HEIGHT + 0.01, pz);
+    plank.receiveShadow = true;
+    g.add(plank);
+  }
+
+  // 2. Approach Ramps (Tapering from DECK_HEIGHT down to 0 at the bank edges)
+  for (const sign of [-1, 1]) {
+    const ramp = new THREE.Mesh(new THREE.BoxGeometry(deckWidth, 0.18, rampSpan), woodMat);
+    ramp.position.set(0, (DECK_HEIGHT - 0.09) * 0.5, sign * (deckSpan / 2 + rampSpan / 2));
+    ramp.rotation.x = -sign * 0.07;
+    ramp.castShadow = true;
+    ramp.receiveShadow = true;
+    g.add(ramp);
+  }
+
+  // 3. Side Railings (along left and right edges, leaving the center corridor completely open)
+  const railX = deckWidth / 2 - 0.22;
+  const railHeight = 0.95;
+  const POSTS = 7;
+  for (const side of [-1, 1]) {
+    const x = side * railX;
+
+    // Top Handrail
+    const topRail = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.14, c.span * 0.96), bambooMat);
+    topRail.position.set(x, DECK_HEIGHT + railHeight, 0);
+    topRail.castShadow = true;
+    g.add(topRail);
+
+    // Mid Rail
+    const midRail = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.1, c.span * 0.92), darkWoodMat);
+    midRail.position.set(x, DECK_HEIGHT + railHeight * 0.48, 0);
+    g.add(midRail);
+
+    // Carved Okir Balustrade Panel
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(0.08, railHeight * 0.36, c.span * 0.88), okirGoldMat);
+    panel.position.set(x, DECK_HEIGHT + railHeight * 0.48, 0);
+    g.add(panel);
+
+    // Posts along the rail
+    for (let p = 0; p < POSTS; p++) {
+      const pz = -c.span * 0.46 + (p / (POSTS - 1)) * c.span * 0.92;
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, railHeight + 0.3, 6), darkWoodMat);
+      post.position.set(x, DECK_HEIGHT + railHeight * 0.5, pz);
+      post.castShadow = true;
+      g.add(post);
+
+      // Corner Lanterns
+      if (p === 0 || p === POSTS - 1) {
+        const lantern = new THREE.Mesh(
+          new THREE.SphereGeometry(0.24, 6, 6),
+          new THREE.MeshBasicMaterial({ color: 0xffb84d, toneMapped: false })
+        );
+        lantern.position.set(x, DECK_HEIGHT + railHeight + 0.32, pz);
+        g.add(lantern);
+      }
+    }
+  }
+
+  // 4. Stilt Support Pylons (into riverbed)
+  const STILT_PAIRS = 4;
+  for (let s = 0; s < STILT_PAIRS; s++) {
+    const sz = -c.span * 0.32 + (s / (STILT_PAIRS - 1)) * c.span * 0.64;
+    for (const side of [-1, 1]) {
+      const sx = side * (deckWidth * 0.4);
+      const stilt = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.36, 2.4, 7), darkWoodMat);
+      stilt.position.set(sx, -0.85, sz);
+      stilt.castShadow = true;
+      stilt.receiveShadow = true;
+      g.add(stilt);
+    }
+    const brace = new THREE.Mesh(new THREE.BoxGeometry(deckWidth * 0.85, 0.18, 0.18), darkWoodMat);
+    brace.position.set(0, -0.45, sz);
+    g.add(brace);
+  }
+
+  return g;
 }

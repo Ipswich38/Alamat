@@ -222,8 +222,8 @@ function buildBioluminescentMushrooms(count: number): {
   return {
     mesh,
     update: (t) => {
-      // 0.5Hz smooth sine-wave pulsing between 0.8 and 2.2 intensity
-      const pulse = 1.5 + Math.sin(t * Math.PI) * 0.7;
+      // 0.5Hz smooth sine-wave pulsing between 1.0 and 2.8 intensity
+      const pulse = 1.8 + Math.sin(t * Math.PI) * 0.8;
       mat.emissiveIntensity = pulse;
     },
   };
@@ -285,38 +285,45 @@ function buildAnitoRunicStones(): { group: THREE.Group; update: (t: number) => v
     group,
     update: (t) => {
       // Gentle breathing glow on carved runic grooves
-      runeMat.emissiveIntensity = 1.3 + Math.sin(t * 1.8) * 0.5;
+      runeMat.emissiveIntensity = 1.4 + Math.sin(t * 1.8) * 0.6;
     },
   };
 }
 
 /**
- * Diwata Spirit Particles (ambient floating golden/cyan motes drifting through jungle volume).
- * Particle count: 180 motes (< 1,000 active limit).
+ * Diwata Spirit Particles & Ground Fireflies (ambient floating golden/cyan motes drifting through jungle volume).
+ * Particle count: 360 motes (dynamic +200% density boost at night).
  */
 function buildDiwataSpiritParticles(): {
   points: THREE.Points;
   update: (t: number) => void;
 } {
-  const COUNT = 180;
+  const COUNT = 360;
   const positions = new Float32Array(COUNT * 3);
   const colors = new Float32Array(COUNT * 3);
-  const particleData: { originX: number; originZ: number; baseY: number; seed: number; speed: number }[] = [];
+  const particleData: { originX: number; originZ: number; baseY: number; seed: number; speed: number; isFirefly: boolean }[] = [];
 
-  const cGold = new THREE.Color('#FFD700');
-  const cCyan = new THREE.Color('#00E5FF');
+  const cGold = new THREE.Color('#FFB300'); // Bioluminescent Gold
+  const cCyan = new THREE.Color('#00E5FF'); // Bioluminescent Cyan
+  const cLime = new THREE.Color('#76FF03'); // Firefly Green
   const c = new THREE.Color();
 
   for (let i = 0; i < COUNT; i++) {
     const x = (rand(i, 521) * 2 - 1) * (HALF - 10);
     const z = (rand(i, 541) * 2 - 1) * (HALF - 10);
-    const y = terrainHeight(x, z) + 1.2;
+    const y = terrainHeight(x, z) + 0.6;
 
     positions[i * 3] = x;
     positions[i * 3 + 1] = y;
     positions[i * 3 + 2] = z;
 
-    c.copy(i % 2 === 0 ? cGold : cCyan).offsetHSL((rand(i, 563) - 0.5) * 0.1, 0, 0);
+    const isFirefly = i >= 180;
+    if (isFirefly) {
+      c.copy(i % 2 === 0 ? cLime : cGold).offsetHSL((rand(i, 563) - 0.5) * 0.1, 0, 0);
+    } else {
+      c.copy(i % 2 === 0 ? cGold : cCyan).offsetHSL((rand(i, 563) - 0.5) * 0.1, 0, 0);
+    }
+
     colors[i * 3] = c.r;
     colors[i * 3 + 1] = c.g;
     colors[i * 3 + 2] = c.b;
@@ -326,7 +333,8 @@ function buildDiwataSpiritParticles(): {
       originZ: z,
       baseY: y,
       seed: rand(i, 577) * Math.PI * 2,
-      speed: 0.25 + rand(i, 587) * 0.15, // ~0.3u/s upward drift
+      speed: (isFirefly ? 0.45 : 0.25) + rand(i, 587) * 0.2,
+      isFirefly,
     });
   }
 
@@ -335,10 +343,10 @@ function buildDiwataSpiritParticles(): {
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
   const mat = new THREE.PointsMaterial({
-    size: 0.38, // Size ~0.15u in world units with point attenuation
+    size: 0.45,
     vertexColors: true,
     transparent: true,
-    opacity: 0.72,
+    opacity: 0.85,
     depthWrite: false,
     toneMapped: false,
   });
@@ -350,19 +358,25 @@ function buildDiwataSpiritParticles(): {
     points,
     update: (t) => {
       const pos = geo.attributes.position;
+      const todClock = (t % 600 + 600) % 600;
+      // Night is from 420s to 600s: fireflies glow +200% brighter/active
+      const isNight = todClock >= 420 || todClock < 60;
+      const nightFactor = isNight ? 1.0 : 0.35;
+
       for (let i = 0; i < COUNT; i++) {
         const d = particleData[i];
-        const heightSpan = 5.5;
+        const heightSpan = d.isFirefly ? 3.5 : 6.0;
         const progress = ((t * d.speed + d.seed) % heightSpan) / heightSpan;
 
-        // Slow upward drift with noise turbulence
-        const curY = d.baseY + progress * heightSpan;
-        const driftX = Math.sin(t * 0.6 + d.seed) * 0.8;
-        const driftZ = Math.cos(t * 0.6 + d.seed) * 0.8;
+        // Upward drift with lively noise turbulence
+        const curY = d.baseY + progress * heightSpan + Math.sin(t * 2.5 + d.seed) * 0.3;
+        const driftX = Math.sin(t * (d.isFirefly ? 1.4 : 0.6) + d.seed) * (d.isFirefly ? 1.4 : 0.8);
+        const driftZ = Math.cos(t * (d.isFirefly ? 1.4 : 0.6) + d.seed) * (d.isFirefly ? 1.4 : 0.8);
 
         pos.setXYZ(i, d.originX + driftX, curY, d.originZ + driftZ);
       }
       pos.needsUpdate = true;
+      mat.opacity = 0.5 + nightFactor * 0.45;
     },
   };
 }

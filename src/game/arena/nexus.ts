@@ -23,6 +23,8 @@ export interface Team {
   /** Where the base sits. South-west and north-east, per the brief. */
   x: number;
   z: number;
+  /** High-ground hero spawner position behind the Nexus core. */
+  spawn: { x: number; z: number };
   /**
    * The team's light, as a hex colour.
    *
@@ -32,6 +34,8 @@ export interface Team {
    * and nothing else does.
    */
   light: number;
+  /** Point light color for elemental sanctuary illumination. */
+  lampColor: number;
   /** The same colour as a CSS string, for anything drawn in the DOM. */
   css: string;
 }
@@ -42,16 +46,20 @@ export const TEAMS: Record<TeamId, Team> = {
     name: 'Anito Sentinels',
     x: -78,
     z: 78,
-    light: 0xffc84a,
-    css: '#ffc84a',
+    spawn: { x: -84.5, z: 84.5 },
+    light: 0xffb300, // Glowing Gold/Amber Sun Crystal (#FFB300)
+    lampColor: 0xffa000, // Warm radial point light (#FFA000)
+    css: '#ffb300',
   },
   malakas: {
     id: 'malakas',
     name: 'Malakas Clan',
     x: 78,
     z: -78,
-    light: 0x4ad8ff,
-    css: '#4ad8ff',
+    spawn: { x: 84.5, z: -84.5 },
+    light: 0x00e5ff, // Glowing Sapphire/Cyan Mana Crystal (#00E5FF)
+    lampColor: 0x00b0ff, // Cool radial point light (#00B0FF)
+    css: '#00e5ff',
   },
 };
 

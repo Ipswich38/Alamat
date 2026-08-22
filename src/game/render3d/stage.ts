@@ -1,37 +1,21 @@
-// The renderer, the camera, the light and the grade.
+// The renderer, the camera, the light, dynamic Time-of-Day, camera-shake, and the grade.
 //
 // ── WHY THIS IS STYLISED PBR AND NOT FLAT SHADING ───────────────────────────
-// A previous project committed to flat-shaded Lambert and therefore had to
-// THROW AWAY the PBR textures that came with its generated assets, because
-// photoreal next to flat-shaded looks broken. That was the right call there.
+// Committing to stylised PBR means a generated asset's own textures are an asset
+// rather than a mismatch, and it buys the weight flat shading cannot produce.
 //
-// It is the wrong call here, because the target look is soft, rounded and lit
-// from every direction. Committing to stylised PBR means a generated asset's
-// own textures are an asset rather than a mismatch, and it is what buys the
-// weight that flat shading cannot produce at any polygon count.
-//
-// ── THE FOUR THINGS DOING THE WORK ──────────────────────────────────────────
-// 1. ENVIRONMENT LIGHTING. Every material samples the whole sky, not one lamp.
-//    See sky.ts. This is most of the difference on its own.
-// 2. FILMIC TONE MAPPING. Raw linear output clips bright areas to flat white.
-//    ACES rolls highlights off the way film does, so a lit edge stays coloured.
-// 3. BLOOM. Only things brighter than the scene bleed, which is what makes
-//    sunlit rims and effects read as light rather than as pale paint.
-// 4. CONTACT SHADOW. A soft dark patch under every body. Without it, objects
-//    float no matter how good the lighting is.
-//
-// ── AND WHY THERE IS A QUALITY TIER ─────────────────────────────────────────
-// This has to run on a cheap Android phone in a browser. Bloom is a second
-// full-screen pass and shadow maps are the most expensive thing in the frame,
-// so both are switchable, and the switch exists from the first version rather
-// than being retrofitted after the first bad review.
+// ── THE DYNAMIC LIGHTING & TIME-OF-DAY ENGINE ─────────────────────────────────
+// 1. Dynamic 10-Minute Day/Night/Eclipse skybox and directional sun/moon illumination.
+// 2. Cascaded/tuned shadow maps with PCF soft filtering for top-down isometric perspectives.
+// 3. Camera-shake engine with trauma-squared decay for heavy primal monster impacts.
+// 4. Filmic tone mapping and Unreal bloom for bioluminescent accents.
 
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { createSky } from './sky';
+import { createSky, getTodLighting } from './sky';
 import { createGradePass } from './grade';
 
 export type Quality = 'high' | 'low';
@@ -75,30 +59,19 @@ export interface Stage {
   lookAtGround(x: number, z: number): void;
   setViewHeight(units: number): void;
   setQuality(q: Quality): void;
+  /** Add trauma for camera shake (0 to 1). Decays smoothly. */
+  addCameraShake(trauma: number): void;
+  /** Update dynamic skybox, lighting, and camera shake */
+  update(dt: number, clock: number, isEclipse: boolean): void;
   resize(): void;
   render(): void;
   dispose(): void;
 }
 
-/**
- * The camera's orbit, as a height and a radius rather than a fixed offset.
- *
- * ⚠ IT USED TO BE A FIXED VECTOR, and that quietly forbade rotation: the yaw
- * was baked into the numbers 26 and 26. Splitting it means the camera can turn
- * without anything else in the scene needing to know, and the DEFAULT yaw of a
- * quarter turn reproduces the old (26, 30, 26) exactly.
- */
 const ORBIT_RADIUS = Math.SQRT2 * 26;
 const ORBIT_HEIGHT = 30;
 const DEFAULT_YAW = Math.PI / 4;
 
-/**
- * How far in and out the camera may go.
- *
- * The near limit is where a hero fills a useful part of the frame; the far is
- * where you can see a whole quadrant of the map. Beyond that the world is
- * unreadable in one direction and pointless in the other.
- */
 export const ZOOM_MIN = 16;
 export const ZOOM_MAX = 90;
 
@@ -110,20 +83,8 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   });
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFShadowMap;
-  // ⚠ BOTH OF THESE OR NEITHER. Tone mapping without the correct output colour
-  // space gives a washed, milky image, which reads as "the renderer is broken"
-  // and is the most common way a three.js scene looks worse than its assets.
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  // ⚠ ACES EATS MIDTONES. It is the right curve, but it darkens and desaturates
-  // everything between black and white, and at exposure 1.0 a scene that looked
-  // correct un-graded comes out muddy. The exposure and the light intensities
-  // below are set TOGETHER against the tone curve, not independently.
-  // ⚠ THE REFERENCE LOOK IS DARK WITH BRIGHT ACCENTS, not evenly lit. Two
-  // earlier passes missed by pushing exposure up until the scene was readable
-  // everywhere, which produces a flat, uniformly saturated picture. Most of the
-  // frame should sit in the lower half of the range so the santelmo, the rim
-  // light and the key have somewhere to be bright against.
   renderer.toneMappingExposure = 1.25;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
@@ -131,25 +92,14 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
 
   const sky = createSky(renderer);
   scene.add(sky.dome);
+  scene.add(sky.eclipseGroup);
   scene.environment = sky.environment;
-  // Fog matched to the horizon colour so distance dissolves into the sky
-  // instead of ending at a visible edge. This is the whole of "atmosphere".
-  // ⚠ THE FOG IS THE ART DIRECTION, not a distance cull. Pulled in close and
-  // coloured, it is what makes the treeline dissolve into atmosphere and gives
-  // the picture depth. A far, pale fog only trims the horizon and changes
-  // nothing about how the scene reads.
-  // ⚠ LINEAR, AND IT STARTS PAST THE ARENA. Exponential fog drowned the whole
-  // picture, and the reason is the camera: an orthographic view sitting 47
-  // units back means the ground the player is standing on is ALREADY at depth
-  // 47, so a density tuned for "distance" fogged the foreground just as hard.
-  // Linear fog with a near plane beyond the far wall keeps the fight clear and
-  // dissolves only the treeline, which is where atmosphere belongs.
-  scene.fog = new THREE.Fog(0xbfe4e0, 62, 130);
+  
+  const fog = new THREE.Fog(0xbfe4e0, 62, 130);
+  scene.fog = fog;
 
   let viewHeight = 21;
   let yaw = DEFAULT_YAW;
-  // ⚠ FAR PLANE REACHES THE BACKDROP. At 400 the horizon volcano sat just
-  // beyond it and was clipped away entirely, with no error and no warning.
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 900);
   camera.position.set(
     Math.sin(yaw) * ORBIT_RADIUS,
@@ -158,46 +108,39 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   );
   camera.lookAt(0, 0, 0);
 
-  // The sun. Warm, and the only shadow caster: a second casting light doubles
-  // the most expensive thing in the frame and looks worse, not better.
-  // Low and warm, cutting across the arena rather than shining down it. A key
-  // light straight overhead flattens every form it touches.
-  // Golden rather than neutral. A warm key against the cool sky is what makes
-  // the two read as sunlight and shade rather than as two lamps.
-  // Primary Directional Light (Sun): Warm Amber/Golden-Hour (#F39C12), intensity 1.8
-  const sun = new THREE.DirectionalLight(0xf39c12, 1.8);
+  // ── Directional Key Light (Sun / Moon) ──────────────────────────────────
+  const sun = new THREE.DirectionalLight(0xf39c12, 2.2);
   sun.position.set(-65, 55, -65);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  const s = 26;
+  const s = 32;
   sun.shadow.camera.left = -s;
   sun.shadow.camera.right = s;
   sun.shadow.camera.top = s;
   sun.shadow.camera.bottom = -s;
-  sun.shadow.camera.far = 160;
-  sun.shadow.bias = -0.0008;
-  sun.shadow.normalBias = 0.04;
+  sun.shadow.camera.near = 0.5;
+  sun.shadow.camera.far = 190;
+  sun.shadow.bias = -0.0004;
+  sun.shadow.normalBias = 0.035;
   scene.add(sun);
   scene.add(sun.target);
 
-  // Ambient / Sky Light: Deep Emerald Teal (#112D29) at 0.6 intensity
-  // Creates high-contrast, moody deep-green shadows under tree canopies.
-  const ambientSky = new THREE.HemisphereLight(0x112d29, 0x0a1c19, 0.6);
+  // Ambient / Sky Light
+  const ambientSky = new THREE.HemisphereLight(0x112d29, 0x0a1c19, 0.65);
   scene.add(ambientSky);
 
-  // Rim light: Bioluminescent rim separation
-  const rim = new THREE.DirectionalLight(0x00e5ff, 1.35);
+  // Rim Light (Bioluminescent / Moon Separation)
+  const rim = new THREE.DirectionalLight(0x00e5ff, 1.45);
   rim.position.set(35, 22, 35);
   scene.add(rim);
   scene.add(rim.target);
 
-  // ── post ──────────────────────────────────────────────────────────────────
+  // ── Post-processing Pipeline ──────────────────────────────────────────────
   const composer = new EffectComposer(renderer);
   const renderPass = new RenderPass(scene, camera);
   composer.addPass(renderPass);
   const bloom = new UnrealBloomPass(
     new THREE.Vector2(1, 1),
-    // Threshold 0.8 | Intensity 1.2 | Diffusion 0.85 (softly blooms bioluminescent cyan and gold)
     1.2,
     0.85,
     0.80
@@ -207,14 +150,39 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   const grade = createGradePass({
     shadowTint: new THREE.Color('#0A221C'),
     highlightTint: new THREE.Color('#FFE0B0'),
-    strength: 0.35,
-    vignette: 0.45,
-    contrast: 1.28,
-    saturation: 1.22,
+    strength: 0.28,
+    vignette: 0.38,
+    contrast: 1.24,
+    saturation: 1.20,
   });
   composer.addPass(grade);
 
   let quality: Quality = 'high';
+
+  // ── Camera Shake Engine ───────────────────────────────────────────────────
+  let shakeTrauma = 0.0;
+  let shakeX = 0.0;
+  let shakeY = 0.0;
+  let shakeZ = 0.0;
+
+  function addCameraShake(trauma: number): void {
+    shakeTrauma = Math.min(1.0, shakeTrauma + trauma);
+  }
+
+  function updateCameraShake(dt: number, clock: number): void {
+    if (shakeTrauma > 0.001) {
+      shakeTrauma = Math.max(0, shakeTrauma - dt * 1.8);
+      const intensity = shakeTrauma * shakeTrauma;
+      const maxOffset = 1.4;
+      shakeX = (Math.sin(clock * 48.0) * 0.7 + Math.cos(clock * 31.0) * 0.3) * maxOffset * intensity;
+      shakeY = (Math.cos(clock * 54.0) * 0.6 + Math.sin(clock * 37.0) * 0.4) * maxOffset * intensity * 0.6;
+      shakeZ = (Math.sin(clock * 42.0) * 0.6 + Math.cos(clock * 29.0) * 0.4) * maxOffset * intensity;
+    } else {
+      shakeX = 0;
+      shakeY = 0;
+      shakeZ = 0;
+    }
+  }
 
   function resize(): void {
     const w = canvas.clientWidth || 1;
@@ -234,21 +202,21 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
 
   function lookAtGround(x: number, z: number): void {
     camera.position.set(
-      x + Math.sin(yaw) * ORBIT_RADIUS,
-      ORBIT_HEIGHT,
-      z + Math.cos(yaw) * ORBIT_RADIUS
+      x + Math.sin(yaw) * ORBIT_RADIUS + shakeX,
+      ORBIT_HEIGHT + shakeY,
+      z + Math.cos(yaw) * ORBIT_RADIUS + shakeZ
     );
-    camera.lookAt(x, 0, z);
-    // ⚠ THE LIGHTS DO NOT ORBIT. Positioned behind and above the NW Mayon peak
-    // at a 45-degree angle to cast dramatic backlighting and long cinematic shadows
-    // toward the center of the arena.
+    camera.lookAt(x + shakeX * 0.5, shakeY * 0.5, z + shakeZ * 0.5);
+
+    // Follow player with lights and sky dome
     sun.position.set(x - 65, 55, z - 65);
     sun.target.position.set(x, 0, z);
     sun.target.updateMatrixWorld();
-    // Rim light from the opposite side (SE) to separate characters from background
+
     rim.position.set(x + 35, 22, z + 35);
     rim.target.position.set(x, 0, z);
     rim.target.updateMatrixWorld();
+
     sky.dome.position.set(x, 0, z);
   }
 
@@ -258,8 +226,6 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
     bloom.enabled = q === 'high';
     grade.enabled = q === 'high';
     renderer.setPixelRatio(q === 'high' ? Math.min(2, window.devicePixelRatio || 1) : 1);
-    // Shadow materials are compiled with the map on or off, so every material
-    // in the scene has to be told to recompile.
     scene.traverse((n) => {
       const m = n as THREE.Mesh;
       if (m.isMesh && m.material) {
@@ -272,14 +238,41 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
 
   function setMood(m: Mood): void {
     renderer.toneMappingExposure = m.exposure;
-    (scene.fog as THREE.Fog).near = m.fogNear;
-    (scene.fog as THREE.Fog).far = m.fogFar;
+    fog.near = m.fogNear;
+    fog.far = m.fogFar;
     sun.intensity = m.sun;
     rim.intensity = m.rim;
     grade.uniforms.uVignette.value = m.vignette;
     grade.uniforms.uSaturation.value = m.saturation;
     grade.uniforms.uContrast.value = m.contrast;
     grade.uniforms.uStrength.value = m.gradeStrength;
+  }
+
+  function update(dt: number, clock: number, isEclipse: boolean): void {
+    updateCameraShake(dt, clock);
+    sky.update(clock, isEclipse);
+
+    // Smooth dynamic lighting transitions
+    const tod = getTodLighting(clock, isEclipse);
+    sun.color.lerp(tod.sunColor, 0.05);
+    sun.intensity += (tod.sunIntensity - sun.intensity) * 0.05;
+
+    ambientSky.color.lerp(tod.ambientColor, 0.05);
+    ambientSky.groundColor.lerp(tod.ambientGround, 0.05);
+    ambientSky.intensity += (tod.ambientIntensity - ambientSky.intensity) * 0.05;
+
+    rim.color.lerp(tod.rimColor, 0.05);
+    rim.intensity += (tod.rimIntensity - rim.intensity) * 0.05;
+
+    fog.color.lerp(tod.fogColor, 0.05);
+    fog.near += (tod.fogNear - fog.near) * 0.05;
+    fog.far += (tod.fogFar - fog.far) * 0.05;
+
+    renderer.toneMappingExposure += (tod.exposure - renderer.toneMappingExposure) * 0.05;
+    grade.uniforms.uVignette.value += (tod.vignette - grade.uniforms.uVignette.value) * 0.05;
+    grade.uniforms.uSaturation.value += (tod.saturation - grade.uniforms.uSaturation.value) * 0.05;
+    grade.uniforms.uContrast.value += (tod.contrast - grade.uniforms.uContrast.value) * 0.05;
+    grade.uniforms.uStrength.value += (tod.gradeStrength - grade.uniforms.uStrength.value) * 0.05;
   }
 
   return {
@@ -298,9 +291,9 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
       resize();
     },
     setQuality,
+    addCameraShake,
+    update,
     resize,
-    // Composer when there is something to compose, plain render when there is
-    // not: on the low tier the extra full-screen pass would be pure cost.
     render: () => (quality === 'high' ? composer.render() : renderer.render(scene, camera)),
     dispose: () => {
       composer.dispose();
@@ -312,10 +305,6 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
 
 /**
  * The one material recipe. Everything visible goes through here.
- *
- * Standard rather than Lambert, so it takes the environment light from sky.ts.
- * `roughness` is the dial that matters: 1 is chalk, 0 is a mirror, and stylised
- * work lives around 0.7 where a surface has a soft sheen without looking wet.
  */
 export function surfaceMaterial(
   colour: number | string,
@@ -328,5 +317,5 @@ export function surfaceMaterial(
   });
 }
 
-/** Kept so existing callers compile. Everything is Standard now. */
 export const flatMaterial = surfaceMaterial;
+

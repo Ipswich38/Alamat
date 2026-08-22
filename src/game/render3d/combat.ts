@@ -24,6 +24,7 @@ export interface CombatFx {
   addCircle(x: number, z: number, radius: number, colour: number, life: number): void;
   addCone(x: number, z: number, heading: number, range: number, halfAngle: number, colour: number, life: number): void;
   addBurst(x: number, z: number, colour: number): void;
+  addEnergyOrb(fromX: number, fromY: number, fromZ: number, toX: number, toY: number, toZ: number, colour: number, life?: number): void;
   makeProjectile(colour: number): THREE.Object3D;
   removeObject(object: THREE.Object3D): void;
   update(dt: number): void;
@@ -208,6 +209,44 @@ export function createCombatFx(): CombatFx {
     });
   }
 
+  function addEnergyOrb(
+    fromX: number,
+    fromY: number,
+    fromZ: number,
+    toX: number,
+    toY: number,
+    toZ: number,
+    colour: number,
+    life = 0.28
+  ): void {
+    const g = new THREE.Group();
+    const orbMat = new THREE.MeshBasicMaterial({ color: colour, toneMapped: false });
+    const haloMat = new THREE.MeshBasicMaterial({
+      color: colour,
+      transparent: true,
+      opacity: 0.35,
+      toneMapped: false,
+    });
+
+    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 2), orbMat);
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(0.78, 12, 8), haloMat);
+    g.add(core, halo);
+
+    // Initial position at spirit mask mouth height
+    g.position.set(fromX, fromY, fromZ);
+
+    track(g, life, (t) => {
+      // Direct ballistic trajectory towards target
+      g.position.x = fromX + (toX - fromX) * t;
+      g.position.y = fromY + (toY - fromY) * t;
+      g.position.z = fromZ + (toZ - fromZ) * t;
+      g.scale.setScalar(0.8 + Math.sin(t * Math.PI) * 0.45);
+      if (t >= 0.95) {
+        fadeObject(g, (1 - t) * 20);
+      }
+    });
+  }
+
   function makeProjectile(colour: number): THREE.Object3D {
     const g = new THREE.Group();
     const core = new THREE.Mesh(
@@ -242,6 +281,7 @@ export function createCombatFx(): CombatFx {
     addCircle,
     addCone,
     addBurst,
+    addEnergyOrb,
     makeProjectile,
     removeObject,
     update: (dt) => {

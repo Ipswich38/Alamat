@@ -27,5 +27,11 @@ export type { FoeOutcome } from './report';
 export { createTowerFire } from './towerfire';
 export type { TowerFire, TowerShot } from './towerfire';
 
-export { createMinionManager } from './minions';
+export { createMinionManager, MINION_STATS } from './minions';
 export type { Minion, MinionKind, MinionManager, MinionStrikeReport } from './minions';
+
+export { createCreepManager } from './creeps';
+export type { CreepKind, CreepManager, CreepStrikeReport, CreepTickResult, CreepUnit, JungleBuffType } from './creeps';
+
+export { createBossManager } from './bosses';
+export type { BossKind, BossManager, BossStrikeReport, BossTickResult, EpicBoss, PushingKapreUnit } from './bosses';

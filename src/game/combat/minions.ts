@@ -1,20 +1,15 @@
-// Minion waves for the three lanes.
+// Lane minion waves: Mandirigma (Melee), Mapanahong (Ranged), and Bagani (Siege).
 //
-// ── WHY MINIONS ARE THE HEART OF A MOBA ───────────────────────────────────────
-// Without minions, a tower is an impassable roadblock that one hero cannot dive,
-// and lanes are empty corridors. Minions provide the meat shield that absorbs
-// tower shots, create lane momentum that pushes objectives, and give players a
-// reason to fight in the lanes.
-//
-// ── DERIVED FROM LANE PATHS ──────────────────────────────────────────────────
-// Minions march along the exact same lane paths defined in `arena/lanes.ts`.
-// Anito minions travel 0 -> 1; Malakas minions travel 1 -> 0.
+// ── THE THREE PANGKAT (DIVISIONS) ───────────────────────────────────────────
+// 1. Mandirigma (Melee): Pre-colonial warriors with Kalasag shield & Kampilan short sword. High HP frontline.
+// 2. Mapanahong (Ranged): Village hunters with bamboo bow / Sumpit blowgun. Ranged poison dart / spirit arrow fire.
+// 3. Bagani (Siege): Armored battering ram vanguard dealing 2.5x bonus damage against turrets & palisade gates.
 
 import { LANES, type LaneId } from '@/game/arena/lanes';
 import type { TeamId } from '@/game/arena/nexus';
 import type { Objectives } from './objectives';
 
-export type MinionKind = 'vanguard' | 'archer';
+export type MinionKind = 'mandirigma' | 'mapanahong' | 'bagani';
 
 export interface Minion {
   id: string;
@@ -23,6 +18,8 @@ export interface Minion {
   kind: MinionKind;
   /** Position along lane 0..1 */
   progress: number;
+  /** Lateral offset across the lane path perpendicular to tangent */
+  lateralOffset: number;
   x: number;
   z: number;
   facing: number;
@@ -32,6 +29,7 @@ export interface Minion {
   damage: number;
   range: number;
   attackCooldown: number;
+  structureMultiplier: number;
   alive: boolean;
 }
 
@@ -71,15 +69,54 @@ const MINION_SPEED = 5.2;
 /** Seconds between minion waves. */
 const WAVE_INTERVAL = 22;
 /** First wave delay from match start. */
-const FIRST_WAVE = 3;
+const FIRST_WAVE = 2.5;
 
-/** Stats per minion type. */
-const STATS: Record<MinionKind, { health: number; damage: number; range: number; cooldown: number; radius: number }> = {
-  vanguard: { health: 440, damage: 26, range: 2.3, cooldown: 1.1, radius: 0.9 },
-  archer: { health: 260, damage: 20, range: 7.2, cooldown: 1.25, radius: 0.75 },
+/** Stats per minion division. */
+export const MINION_STATS: Record<
+  MinionKind,
+  {
+    name: string;
+    health: number;
+    damage: number;
+    range: number;
+    cooldown: number;
+    radius: number;
+    structureMultiplier: number;
+  }
+> = {
+  mandirigma: {
+    name: 'Pangkat Mandirigma',
+    health: 520,
+    damage: 28,
+    range: 2.2,
+    cooldown: 1.05,
+    radius: 0.9,
+    structureMultiplier: 1.0,
+  },
+  mapanahong: {
+    name: 'Pangkat Mapanahong',
+    health: 280,
+    damage: 22,
+    range: 7.5,
+    cooldown: 1.2,
+    radius: 0.75,
+    structureMultiplier: 1.0,
+  },
+  bagani: {
+    name: 'Pangkat Bagani',
+    health: 820,
+    damage: 45,
+    range: 2.5,
+    cooldown: 1.4,
+    radius: 1.15,
+    structureMultiplier: 2.5, // 2.5x bonus siege damage vs turrets & gates
+  },
 };
 
-function along(path: [number, number][], frac: number): { x: number; z: number } {
+function alongWithTangent(
+  path: [number, number][],
+  frac: number
+): { x: number; z: number; tx: number; tz: number } {
   const segs: { a: [number, number]; b: [number, number]; len: number }[] = [];
   let total = 0;
   for (let i = 0; i < path.length - 1; i++) {
@@ -93,12 +130,24 @@ function along(path: [number, number][], frac: number): { x: number; z: number }
   for (const s of segs) {
     if (want <= s.len) {
       const t = s.len === 0 ? 0 : want / s.len;
-      return { x: s.a[0] + (s.b[0] - s.a[0]) * t, z: s.a[1] + (s.b[1] - s.a[1]) * t };
+      const x = s.a[0] + (s.b[0] - s.a[0]) * t;
+      const z = s.a[1] + (s.b[1] - s.a[1]) * t;
+      const tLen = s.len || 1;
+      const tx = (s.b[0] - s.a[0]) / tLen;
+      const tz = (s.b[1] - s.a[1]) / tLen;
+      return { x, z, tx, tz };
     }
     want -= s.len;
   }
   const last = path[path.length - 1];
-  return { x: last[0], z: last[1] };
+  const prev = path[Math.max(0, path.length - 2)];
+  const tLen = Math.hypot(last[0] - prev[0], last[1] - prev[1]) || 1;
+  return {
+    x: last[0],
+    z: last[1],
+    tx: (last[0] - prev[0]) / tLen,
+    tz: (last[1] - prev[1]) / tLen,
+  };
 }
 
 function pathTotalLength(path: [number, number][]): number {
@@ -123,56 +172,82 @@ export function createMinionManager(): MinionManager {
   function spawnWave() {
     waveId++;
     for (const lane of LANES) {
-      const kinds: MinionKind[] = ['vanguard', 'archer', 'archer'];
-      // Spacing offsets so they march in single file
-      const offsets = [0, 0.016, 0.032];
+      // Formation:
+      // Row 1 (Front): 3 Melee Mandirigma (left, center, right)
+      // Row 2 (Mid): 2 Ranged Mapanahong (left, right)
+      // Row 3 (Rear): 1 Siege Bagani (center)
+      const waveUnits: { kind: MinionKind; progressOffset: number; lateralOffset: number }[] = [
+        // Frontline Mandirigma
+        { kind: 'mandirigma', progressOffset: 0.0, lateralOffset: -1.8 },
+        { kind: 'mandirigma', progressOffset: 0.0, lateralOffset: 0.0 },
+        { kind: 'mandirigma', progressOffset: 0.0, lateralOffset: 1.8 },
+        // Ranged Mapanahong
+        { kind: 'mapanahong', progressOffset: -0.015, lateralOffset: -1.2 },
+        { kind: 'mapanahong', progressOffset: -0.015, lateralOffset: 1.2 },
+        // Siege Bagani
+        { kind: 'bagani', progressOffset: -0.03, lateralOffset: 0.0 },
+      ];
 
-      for (let i = 0; i < kinds.length; i++) {
-        const kind = kinds[i];
-        const stat = STATS[kind];
-        const off = offsets[i];
+      for (let i = 0; i < waveUnits.length; i++) {
+        const u = waveUnits[i];
+        const stat = MINION_STATS[u.kind];
 
-        // Anito minion (starts near 0)
-        const aProg = Math.max(0, 0 + off);
-        const aPt = along(lane.path, aProg);
-        const aNext = along(lane.path, aProg + 0.01);
+        // Anito minion (starts near 0, marching towards 1)
+        const aProg = Math.max(0, 0.005 - u.progressOffset);
+        const aSample = alongWithTangent(lane.path, aProg);
+        // Perpendicular normal (-tz, tx)
+        const aPx = -aSample.tz;
+        const aPz = aSample.tx;
+        const aX = aSample.x + aPx * u.lateralOffset;
+        const aZ = aSample.z + aPz * u.lateralOffset;
+        const aHeading = Math.atan2(aSample.tx, aSample.tz);
+
         minions.push({
           id: `anito-${lane.id}-w${waveId}-${i}`,
           team: 'anito',
           lane: lane.id,
-          kind,
+          kind: u.kind,
           progress: aProg,
-          x: aPt.x,
-          z: aPt.z,
-          facing: Math.atan2(aNext.x - aPt.x, aNext.z - aPt.z),
+          lateralOffset: u.lateralOffset,
+          x: aX,
+          z: aZ,
+          facing: aHeading,
           health: stat.health,
           maxHealth: stat.health,
           radius: stat.radius,
           damage: stat.damage,
           range: stat.range,
           attackCooldown: stat.cooldown,
+          structureMultiplier: stat.structureMultiplier,
           alive: true,
         });
 
-        // Malakas minion (starts near 1)
-        const mProg = Math.min(1, 1 - off);
-        const mPt = along(lane.path, mProg);
-        const mNext = along(lane.path, mProg - 0.01);
+        // Malakas minion (starts near 1, marching towards 0)
+        const mProg = Math.min(1, 0.995 + u.progressOffset);
+        const mSample = alongWithTangent(lane.path, mProg);
+        const mPx = -mSample.tz;
+        const mPz = mSample.tx;
+        const mX = mSample.x + mPx * (-u.lateralOffset);
+        const mZ = mSample.z + mPz * (-u.lateralOffset);
+        const mHeading = Math.atan2(-mSample.tx, -mSample.tz);
+
         minions.push({
           id: `malakas-${lane.id}-w${waveId}-${i}`,
           team: 'malakas',
           lane: lane.id,
-          kind,
+          kind: u.kind,
           progress: mProg,
-          x: mPt.x,
-          z: mPt.z,
-          facing: Math.atan2(mNext.x - mPt.x, mNext.z - mPt.z),
+          lateralOffset: -u.lateralOffset,
+          x: mX,
+          z: mZ,
+          facing: mHeading,
           health: stat.health,
           maxHealth: stat.health,
           radius: stat.radius,
           damage: stat.damage,
           range: stat.range,
           attackCooldown: stat.cooldown,
+          structureMultiplier: stat.structureMultiplier,
           alive: true,
         });
       }
@@ -225,7 +300,7 @@ export function createMinionManager(): MinionManager {
         nextWaveClock = clock + WAVE_INTERVAL;
       }
 
-      // Filter out dead minions after a delay to keep memory clean
+      // Filter out dead minions
       minions = minions.filter((m) => m.alive);
 
       for (const m of minions) {
@@ -233,9 +308,9 @@ export function createMinionManager(): MinionManager {
         const lane = LANES.find((l) => l.id === m.lane)!;
         const len = laneLengths.get(m.lane) ?? 200;
         const stepFrac = (MINION_SPEED * dt) / len;
-
-        // Check for opposing minions in range
         const enemyTeam = m.team === 'anito' ? 'malakas' : 'anito';
+
+        // 1. Check for opposing minions in range
         let targetMinion: Minion | null = null;
         let minionGap = Infinity;
 
@@ -248,7 +323,7 @@ export function createMinionManager(): MinionManager {
           }
         }
 
-        // Check for opposing enemy structures in range
+        // 2. Check for opposing enemy structures in range
         let targetStructure = null;
         if (!targetMinion) {
           for (const s of objectives.all) {
@@ -261,37 +336,36 @@ export function createMinionManager(): MinionManager {
           }
         }
 
-        // Combat behavior: attack target or advance
+        // 3. Combat Execution or Lane Advance
         if (targetMinion) {
-          // Face target
           m.facing = Math.atan2(targetMinion.x - m.x, targetMinion.z - m.z);
           const nextAtk = attackTimers.get(m.id) ?? 0;
           if (clock >= nextAtk) {
             attackTimers.set(m.id, clock + m.attackCooldown);
             targetMinion.health = Math.max(0, targetMinion.health - m.damage);
             if (targetMinion.health <= 0) targetMinion.alive = false;
-            onMinionAttack?.(m, targetMinion.x, targetMinion.z, m.kind === 'archer');
+            onMinionAttack?.(m, targetMinion.x, targetMinion.z, m.kind === 'mapanahong');
           }
         } else if (targetStructure) {
           m.facing = Math.atan2(targetStructure.x - m.x, targetStructure.z - m.z);
           const nextAtk = attackTimers.get(m.id) ?? 0;
           if (clock >= nextAtk) {
             attackTimers.set(m.id, clock + m.attackCooldown);
-            targetStructure.health = Math.max(0, targetStructure.health - m.damage);
-            onMinionAttack?.(m, targetStructure.x, targetStructure.z, m.kind === 'archer');
+            const appliedDamage = m.damage * m.structureMultiplier;
+            targetStructure.health = Math.max(0, targetStructure.health - appliedDamage);
+            onMinionAttack?.(m, targetStructure.x, targetStructure.z, m.kind === 'mapanahong');
           }
         } else {
-          // Advance along lane
+          // Advance along lane spline keeping lateral formation offset
           const dir = m.team === 'anito' ? 1 : -1;
           const nextProg = Math.max(0, Math.min(1, m.progress + dir * stepFrac));
           m.progress = nextProg;
-          const pt = along(lane.path, m.progress);
-          const lookAhead = along(lane.path, Math.max(0, Math.min(1, m.progress + dir * 0.015)));
-          m.x = pt.x;
-          m.z = pt.z;
-          if (Math.hypot(lookAhead.x - pt.x, lookAhead.z - pt.z) > 0.001) {
-            m.facing = Math.atan2(lookAhead.x - pt.x, lookAhead.z - pt.z);
-          }
+          const sample = alongWithTangent(lane.path, m.progress);
+          const px = -sample.tz;
+          const pz = sample.tx;
+          m.x = sample.x + px * m.lateralOffset;
+          m.z = sample.z + pz * m.lateralOffset;
+          m.facing = Math.atan2(sample.tx * dir, sample.tz * dir);
         }
       }
     },
