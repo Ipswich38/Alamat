@@ -212,6 +212,18 @@ export const ASSETS = {
       'Hand-painted stylised texturing, dark weathered oak with deep grain and pale cracks, ochre ' +
       'tribal markings, intense glowing cyan runes at the eyes and chest, not photorealistic.',
   },
+  bridge: {
+    dir: `${OUT_DIR}/props`,
+    prompt:
+      'Stylised wooden bridge, low-poly 3D game model, SINGLE OBJECT. A straight span built from ' +
+      'thick jungle logs and woven bamboo planks, with low railings carved in okir relief along ' +
+      'both sides, pre-colonial Southeast Asian design. Flat deck, flat ends so both ends meet the ' +
+      'bank, seen from above at a shallow angle, game-ready topology. No ground, no terrain, no ' +
+      'water, no riverbank, no base plinth, no background.',
+    texture:
+      'Hand-painted stylised texturing, weathered brown jungle logs, pale golden bamboo decking, ' +
+      'dark rattan lashings, carved okir shadow lines on the railings, clean saturated colours.',
+  },
   bakunawa: {
     dir: `${OUT_DIR}/creatures`,
     prompt:

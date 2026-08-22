@@ -20,6 +20,8 @@ import { createWalls } from '@/game/render3d/walls';
 import { createCamps } from '@/game/render3d/camps';
 import { createJungle } from '@/game/render3d/jungle';
 import { brushAt, resolveJungle } from '@/game/arena/jungle';
+import { createRiver } from '@/game/render3d/river';
+import { groundHeight, riverSpeed } from '@/game/arena/river';
 import { resolveWalls } from '@/game/arena/walls';
 import { loadModel } from '@/game/render3d/models';
 import { createSantelmo } from '@/game/render3d/santelmo';
@@ -74,6 +76,8 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     stage.scene.add(camps.group);
     const jungle = createJungle();
     stage.scene.add(jungle.group);
+    const river = createRiver();
+    stage.scene.add(river.group);
 
     const santelmo = createSantelmo();
     stage.scene.add(santelmo.group);
@@ -194,7 +198,9 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         const dx = ix * cos - iz * sin;
         const dz = ix * sin + iz * cos;
         const len = Math.hypot(dx, dz) || 1;
-        const step = want.speed * dt;
+        // The river slows you; a bridge does not. That difference is the whole
+        // reason the three crossings are worth contesting.
+        const step = want.speed * riverSpeed(px, pz) * dt;
         // Clamped to the map for now. Pathing blockades arrive with the jungle
         // assets; until they exist there is nothing to collide with.
         // Walls first, then the map edge. A body pushed out of a wall must not
@@ -222,14 +228,14 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         // Always turns to face you, even when standing still, which is what
         // makes a thing feel aware rather than idle.
         if (gap > 0.1) fFacing = Math.atan2(dx, dz);
-        foe.setPosition(fx, 0, fz);
+        foe.setPosition(fx, groundHeight(fx, fz), fz);
         foe.setFacing(fFacing);
         foe.play(closing ? 'walk' : 'idle');
         foe.update(dt);
       }
 
       if (player) {
-        player.setPosition(px, 0, pz);
+        player.setPosition(px, groundHeight(px, pz), pz);
         player.setFacing(heading);
         player.play(moving ? 'run' : 'idle');
         player.update(dt);
@@ -238,6 +244,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       towers.update(clock);
       camps.update(clock);
       jungle.update(clock);
+      river.update(clock);
       santelmo.update(clock);
       stage.lookAtGround(px, pz);
       stage.render();
@@ -263,6 +270,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       walls.dispose();
       camps.dispose();
       jungle.dispose();
+      river.dispose();
       santelmo.dispose();
       player?.dispose();
       foe?.dispose();

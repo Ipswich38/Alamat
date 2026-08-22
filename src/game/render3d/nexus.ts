@@ -14,6 +14,7 @@
 
 import * as THREE from 'three';
 import { CORE_HEIGHT, HALF, SANCTUARY_RADIUS, TEAMS, type Team } from '@/game/arena/nexus';
+import { riverDepth, riverFloor } from '@/game/arena/river';
 import { loadModel } from './models';
 import { surfaceMaterial } from './stage';
 
@@ -150,6 +151,7 @@ export function buildGround(): THREE.Mesh {
   const c = new THREE.Color();
   const anito = new THREE.Color('#5f8f4a');
   const malakas = new THREE.Color('#4a6f7f');
+  const BED = new THREE.Color('#6b7a5c');
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
     const z = pos.getZ(i);
@@ -159,10 +161,17 @@ export function buildGround(): THREE.Mesh {
     c.copy(anito).lerp(malakas, t);
     const grain = Math.sin(x * 0.7 + z * 1.3) * 0.5 + 0.5;
     c.offsetHSL(0, 0, (grain - 0.5) * 0.05);
+    // The riverbed is silt, not grass, and it has to read as bed even where the
+    // water above it is thin.
+    const wet = riverDepth(x, z);
+    if (wet > 0) c.lerp(BED, Math.min(1, wet * 1.5));
     colours[i * 3] = c.r;
     colours[i * 3 + 1] = c.g;
     colours[i * 3 + 2] = c.b;
-    pos.setY(i, (grain - 0.5) * 0.3);
+    // ⚠ THE TROUGH IS CARVED HERE, not drawn as a separate mesh. The river's
+    // shape belongs to the ground, so anything standing near a bank sits on a
+    // slope rather than hovering over a hole.
+    pos.setY(i, riverFloor(x, z) + (grain - 0.5) * 0.3);
   }
   geo.setAttribute('color', new THREE.BufferAttribute(colours, 3));
   geo.computeVertexNormals();
