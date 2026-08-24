@@ -23,6 +23,16 @@ export const HEROES: Hero[] = [
   {
     id: 'tikbalang',
     name: 'Tikbalang',
+    title: 'Ang Tagapagligaw ng Kagubatan',
+    baybayin: 'ᜆᜒᜃ᜔ᜊᜎᜅ᜔',
+    quote: 'Ibaligtad mo ang iyong damit, bago ka tuluyang mawala sa gubat.',
+    passive: {
+      id: 'tikbalang-passive',
+      name: 'Baliktad na Damit',
+      blurb: 'Moving through jungle brush grants 25% movement speed and generates a 120 HP earthen shield.',
+      emoji: '🌿',
+      effect: '+25% Brush SPD & +120 HP Shield',
+    },
     model: {
       rigged: '/models/heroes/tikbalang-rigged.glb',
       walk: '/models/heroes/tikbalang-walk.glb',
@@ -72,6 +82,19 @@ export const HEROES: Hero[] = [
         windup: 0.6,
         lock: 0.25,
       },
+      {
+        id: 'tikbalang-stomp',
+        name: 'Hoof Stomp',
+        blurb: 'Slams hooves down, sending a shockwave in front of the caster.',
+        emoji: '💥',
+        shape: 'cone',
+        cooldown: 7,
+        range: 4.5,
+        width: 0.9,
+        damage: 100,
+        windup: 0.25,
+        lock: 0.1,
+      },
     ],
     ultimate: {
       id: 'tikbalang-stampede',
@@ -90,15 +113,22 @@ export const HEROES: Hero[] = [
   {
     id: 'mangkukulam',
     name: 'Mangkukulam',
+    title: 'Ang Mananambal at Manggagaway',
+    baybayin: 'ᜋᜅ᜔ᜃᜓᜃᜓᜎᜋ᜔',
+    quote: 'Isang hibla ng buhok mo lamang, hawak ko na ang iyong kapalaran.',
+    passive: {
+      id: 'kulam-passive',
+      name: 'Buhok at Karayom',
+      blurb: 'Abilities apply a Hex stack. At 3 stacks, detonates for 140 bonus magic damage and slows target.',
+      emoji: '🪡',
+      effect: '3-Stack Hex Detonation (+140 Dmg)',
+    },
     origin: 'The one who works harm at a distance',
     lore:
       'Never seen at the act. A doll, a strand of hair, a name said the wrong number of times, and a person three towns away sits down and does not get up.',
     role: 'mystic',
     emoji: '🪡',
     palette: { skin: '#b07f57', cloth: '#7a3fa8', accent: '#ff5f8f', hair: '#1a1418' },
-    // Lowest health in the roster. Everything this hero does is at range and
-    // delayed, so the counter has to be closing the distance.
-    // Small and swamped by a robe, with the working bag always on them.
     build: { scale: 0.94, bulk: 0.92, gear: ['cape', 'pouch'] },
     model: {
       rigged: '/models/heroes/diwata-rigged.glb',
@@ -120,8 +150,6 @@ export const HEROES: Hero[] = [
         range: 9,
         width: 1.8,
         damage: 130,
-        // The longest wind-up of any damage ability, on purpose: it hits hard
-        // and it is entirely avoidable if you are looking.
         windup: 0.85,
         lock: 0.3,
       },
@@ -136,6 +164,19 @@ export const HEROES: Hero[] = [
         width: 0.5,
         damage: 70,
         windup: 0.25,
+        lock: 0.2,
+      },
+      {
+        id: 'kulam-hex',
+        name: 'Hex Curse',
+        blurb: 'Blows a cone of cursed ash that dazes and weakens everything it touches.',
+        emoji: '🧿',
+        shape: 'cone',
+        cooldown: 8,
+        range: 6.5,
+        width: 0.8,
+        damage: 95,
+        windup: 0.3,
         lock: 0.2,
       },
     ],
@@ -156,6 +197,16 @@ export const HEROES: Hero[] = [
   {
     id: 'aswang',
     name: 'Aswang',
+    title: 'Ang Maninila ng Kadiliman',
+    baybayin: 'ᜀᜐ᜔ᜏᜅ᜔',
+    quote: 'Huwag kang titingin sa tubig, baka makita mo ang iyong sariling wakas.',
+    passive: {
+      id: 'aswang-passive',
+      name: 'Amoy ng Dugo',
+      blurb: 'Gains 30% bonus attack speed against targets below 40% HP and 15% physical lifesteal.',
+      emoji: '🩸',
+      effect: '+30% Low-HP ATK Speed & 15% Lifesteal',
+    },
     model: {
       rigged: '/models/heroes/aswang-rigged.glb',
       walk: '/models/heroes/aswang-walk.glb',
@@ -166,11 +217,8 @@ export const HEROES: Hero[] = [
     role: 'stalker',
     emoji: '🦇',
     palette: { skin: '#9a6a4f', cloth: '#3a2f4a', accent: '#e03a4a', hair: '#0f0d10' },
-    // Lean and low. Blades out, because it never fights anything facing it.
     build: { scale: 0.98, bulk: 0.82, gear: ['knives'] },
     health: 780,
-    // The fastest thing in the game and the most fragile. Nothing here can win
-    // a fight it did not choose.
     speed: 7.6,
     attack: 74,
     attackRange: 2.0,
@@ -202,6 +250,19 @@ export const HEROES: Hero[] = [
         windup: 0.2,
         lock: 0.15,
       },
+      {
+        id: 'aswang-slash',
+        name: 'Blood Arc',
+        blurb: 'Sweeps razor talons in a wide crimson arc that slices nearby foes.',
+        emoji: '🗡',
+        shape: 'cone',
+        cooldown: 6,
+        range: 4.0,
+        width: 0.7,
+        damage: 125,
+        windup: 0.2,
+        lock: 0.15,
+      },
     ],
     ultimate: {
       id: 'aswang-unmake',
@@ -220,6 +281,16 @@ export const HEROES: Hero[] = [
   {
     id: 'diwata',
     name: 'Diwata',
+    title: 'Ang Tagapag-ingat ng Kagubatan',
+    baybayin: 'ᜇᜒᜏᜆ',
+    quote: 'Magbigay-galang sa lupa, bago kayo lamunin ng mga ugat.',
+    passive: {
+      id: 'diwata-passive',
+      name: 'Tabi-tabi Po',
+      blurb: 'Standing near allied structures or shrines heals 18 HP/sec and grants 10% cooldown haste.',
+      emoji: '🌿',
+      effect: '+18 HP/s Structure Aura & 10% Haste',
+    },
     model: {
       rigged: '/models/heroes/diwata-rigged.glb',
       walk: '/models/heroes/diwata-walk.glb',
@@ -230,7 +301,6 @@ export const HEROES: Hero[] = [
     role: 'warden',
     emoji: '🌿',
     palette: { skin: '#e0b98a', cloth: '#2fae7a', accent: '#ffe98a', hair: '#4a3220' },
-    // Upright and still, wrapped in something that moves when she does.
     build: { scale: 1.04, bulk: 0.95, gear: ['cape'] },
     health: 860,
     speed: 6.4,
@@ -264,6 +334,19 @@ export const HEROES: Hero[] = [
         windup: 0.2,
         lock: 0,
       },
+      {
+        id: 'diwata-gust',
+        name: 'Amihan Breeze',
+        blurb: 'Calls a gust of mountain wind that pushes foes and invigorates allies.',
+        emoji: '🍃',
+        shape: 'cone',
+        cooldown: 9,
+        range: 6.0,
+        width: 0.9,
+        damage: 70,
+        windup: 0.25,
+        lock: 0.1,
+      },
     ],
     ultimate: {
       id: 'diwata-grove',
@@ -282,6 +365,16 @@ export const HEROES: Hero[] = [
   {
     id: 'bernardo',
     name: 'Bernardo Carpio',
+    title: 'Ang Higante ng Montalban',
+    baybayin: 'ᜊᜒᜇ᜔ᜈᜇ᜔ᜇᜓ',
+    quote: 'Kapag akoy kumilos, yayanig ang buong kapuluan!',
+    passive: {
+      id: 'bernardo-passive',
+      name: 'Gipit na Bundok',
+      blurb: 'Takes 15% reduced damage from physical strikes; basic attacks cleave in a 1.5u seismic arc.',
+      emoji: '⛰',
+      effect: '+15% Physical Armor & Seismic Cleave',
+    },
     model: {
       rigged: '/models/heroes/tikbalang-rigged.glb',
       walk: '/models/heroes/tikbalang-walk.glb',
@@ -292,13 +385,10 @@ export const HEROES: Hero[] = [
     role: 'ranger',
     emoji: '⛰',
     palette: { skin: '#c08a58', cloth: '#c96a2f', accent: '#cfd8de', hair: '#20160f' },
-    // Broad through the shoulders, and the only one at range with something
-    // in both hands.
     build: { scale: 1.14, bulk: 1.18, gear: ['crossbow'] },
     health: 820,
     speed: 6.1,
     attack: 66,
-    // The longest reach in the roster, and the slowest attack to go with it.
     attackRange: 8.5,
     attackCooldown: 1.15,
     abilities: [
@@ -328,6 +418,19 @@ export const HEROES: Hero[] = [
         windup: 0.5,
         lock: 0.3,
       },
+      {
+        id: 'bernardo-cleave',
+        name: 'Fault Line',
+        blurb: 'Slams a seismic fissure through the ground in front of him.',
+        emoji: '⚡',
+        shape: 'cone',
+        cooldown: 8,
+        range: 5.5,
+        width: 0.8,
+        damage: 150,
+        windup: 0.3,
+        lock: 0.2,
+      },
     ],
     ultimate: {
       id: 'bernardo-quake',
@@ -346,6 +449,16 @@ export const HEROES: Hero[] = [
   {
     id: 'manananggal',
     name: 'Manananggal',
+    title: 'Ang Maninila sa Hatinggabi',
+    baybayin: 'ᜋᜈᜈᜅ᜔ᜄᜎ᜔',
+    quote: 'Sa pagpatak ng dilim, maririnig mo ang pagaspas ng aking pakpak.',
+    passive: {
+      id: 'manananggal-passive',
+      name: 'Hating-Katawan',
+      blurb: 'Glides across river water and jungle chokepoints with zero terrain friction and +12% lifesteal.',
+      emoji: '🦇',
+      effect: 'Water Glide Terrain Ignore & 12% Vamp',
+    },
     model: {
       rigged: '/models/heroes/aswang-rigged.glb',
       walk: '/models/heroes/aswang-walk.glb',
@@ -389,6 +502,19 @@ export const HEROES: Hero[] = [
         windup: 0.22,
         lock: 0.15,
       },
+      {
+        id: 'manananggal-mist',
+        name: 'Blood Mist',
+        blurb: 'Releases a noxious cloud of cursed blood mist on target ground.',
+        emoji: '🩸',
+        shape: 'ground',
+        cooldown: 8,
+        range: 7.0,
+        width: 2.8,
+        damage: 90,
+        windup: 0.25,
+        lock: 0.15,
+      },
     ],
     ultimate: {
       id: 'manananggal-screech',
@@ -407,6 +533,16 @@ export const HEROES: Hero[] = [
   {
     id: 'mayari',
     name: 'Mayari',
+    title: 'Ang Diyosa ng Buwan at Digmaan',
+    baybayin: 'ᜋᜌᜇᜒ',
+    quote: 'Bagamat iisa ang aking mata, malinaw kong nakikita ang inyong kahihinatnan.',
+    passive: {
+      id: 'mayari-passive',
+      name: 'Sinag ng Bulan',
+      blurb: 'Landing skillshots at max range restores 45 HP and slows target movement by 20% for 1.5s.',
+      emoji: '🌙',
+      effect: 'Max-Range Spell +45 HP Heal & 20% Slow',
+    },
     model: {
       rigged: '/models/heroes/diwata-rigged.glb',
       walk: '/models/heroes/diwata-walk.glb',
@@ -450,6 +586,19 @@ export const HEROES: Hero[] = [
         windup: 0.25,
         lock: 0.1,
       },
+      {
+        id: 'mayari-sweep',
+        name: 'Crescent Sweep',
+        blurb: 'Sweeps an arc of silver moonlight that cuts through nearby adversaries.',
+        emoji: '🌙',
+        shape: 'cone',
+        cooldown: 7,
+        range: 5.2,
+        width: 0.85,
+        damage: 110,
+        windup: 0.22,
+        lock: 0.1,
+      },
     ],
     ultimate: {
       id: 'mayari-eclipse',
@@ -468,6 +617,16 @@ export const HEROES: Hero[] = [
   {
     id: 'apolaki',
     name: 'Apolaki',
+    title: 'Ang Soberanong Diyos ng Araw at Digmaan',
+    baybayin: 'ᜀᜉᜓᜎᜃᜒ',
+    quote: 'Sa ngalan ng Araw, walang aninong makapagtatago sa aking sibat!',
+    passive: {
+      id: 'apolaki-passive',
+      name: 'Haring Araw',
+      blurb: 'Attacks and spells ignite foes for 15 solar burn damage/sec and illuminate brush hiding spots.',
+      emoji: '☀️',
+      effect: '+15 Burn Dmg/s & True Sight in Brush',
+    },
     model: {
       rigged: '/models/heroes/tikbalang-rigged.glb',
       walk: '/models/heroes/tikbalang-walk.glb',
@@ -511,6 +670,19 @@ export const HEROES: Hero[] = [
         windup: 0.3,
         lock: 0.2,
       },
+      {
+        id: 'apolaki-flare',
+        name: 'Solar Flare',
+        blurb: 'Unleashes a blinding arc of solar rays that sears enemies in front of him.',
+        emoji: '✨',
+        shape: 'cone',
+        cooldown: 7.5,
+        range: 5.5,
+        width: 0.85,
+        damage: 135,
+        windup: 0.24,
+        lock: 0.15,
+      },
     ],
     ultimate: {
       id: 'apolaki-wrath',
@@ -529,6 +701,16 @@ export const HEROES: Hero[] = [
   {
     id: 'bakunawa',
     name: 'Bakunawa',
+    title: 'Ang Higanteng Dragon ng Kalawakan',
+    baybayin: 'ᜊᜃᜓᜈᜏ',
+    quote: 'Ako ang lalamon sa liwanag, hanggang sa maghari ang walang hanggang dilim!',
+    passive: {
+      id: 'bakunawa-passive',
+      name: 'Lamon ng Pitong Buwan',
+      blurb: 'Slaying minions and creeps grants +2 ATK and +20 Max HP (stacks up to 20 times).',
+      emoji: '🐉',
+      effect: 'Stacking Moon Devour (+ATK & +HP on Kills)',
+    },
     model: {
       rigged: '/models/creatures/kapre-rigged.glb',
       walk: '/models/creatures/kapre-walk.glb',
@@ -571,6 +753,19 @@ export const HEROES: Hero[] = [
         damage: 110,
         windup: 0.6,
         lock: 0.3,
+      },
+      {
+        id: 'bakunawa-coil',
+        name: 'Leviathan Dash',
+        blurb: 'Surges forward through tidal currents, crashing into enemies.',
+        emoji: '🌊',
+        shape: 'dash',
+        cooldown: 8,
+        range: 8.0,
+        width: 1.1,
+        damage: 120,
+        windup: 0.25,
+        lock: 0,
       },
     ],
     ultimate: {

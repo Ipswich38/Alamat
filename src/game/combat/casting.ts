@@ -9,7 +9,7 @@
 import type { Ability, Hero } from '@/game/heroes';
 import type * as THREE from 'three';
 
-export type CastSlot = 'basic' | 'ability0' | 'ability1' | 'ultimate';
+export type CastSlot = 'basic' | 'ability0' | 'ability1' | 'ability2' | 'ultimate' | 'potion' | 'spell';
 
 /** Seconds remaining on each slot. Zero means ready. */
 export type CooldownState = Record<CastSlot, number>;
@@ -18,15 +18,26 @@ export const EMPTY_COOLDOWNS: CooldownState = {
   basic: 0,
   ability0: 0,
   ability1: 0,
+  ability2: 0,
   ultimate: 0,
+  potion: 0,
+  spell: 0,
 };
 
 /** Keyboard bindings. The on-screen buttons cast through the same path. */
 export const CAST_KEYS: Record<string, CastSlot> = {
   j: 'basic',
+  ' ': 'basic',
+  q: 'ability0',
   '1': 'ability0',
+  w: 'ability1',
   '2': 'ability1',
+  e: 'ability2',
+  '3': 'ability2',
   r: 'ultimate',
+  '4': 'ultimate',
+  d: 'potion',
+  f: 'spell',
 };
 
 /** Half-width of a basic attack, which has no ability record to carry one. */
@@ -38,6 +49,7 @@ export const PROJECTILE_SPEED = 20;
 export function abilityForSlot(hero: Hero, slot: CastSlot): Ability | null {
   if (slot === 'ability0') return hero.abilities[0];
   if (slot === 'ability1') return hero.abilities[1];
+  if (slot === 'ability2') return hero.abilities[2] ?? hero.abilities[0];
   if (slot === 'ultimate') return hero.ultimate;
   return null;
 }

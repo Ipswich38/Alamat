@@ -34,13 +34,13 @@ export interface Mood {
 }
 
 export const DEFAULT_MOOD: Mood = {
-  exposure: 1.25,
-  fogNear: 62,
-  fogFar: 130,
-  vignette: 0.34,
-  saturation: 1.12,
+  exposure: 1.5,
+  fogNear: 65,
+  fogFar: 145,
+  vignette: 0.22,
+  saturation: 1.20,
   contrast: 1.14,
-  gradeStrength: 0.22,
+  gradeStrength: 0.20,
   sun: 3.2,
   rim: 1.8,
 };
@@ -83,9 +83,9 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   });
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.25;
+  renderer.toneMappingExposure = 1.5;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   const scene = new THREE.Scene();
@@ -95,7 +95,7 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   scene.add(sky.eclipseGroup);
   scene.environment = sky.environment;
   
-  const fog = new THREE.Fog(0xbfe4e0, 62, 130);
+  const fog = new THREE.Fog(0xbfe4e0, 65, 145);
   scene.fog = fog;
 
   let viewHeight = 21;
@@ -108,29 +108,29 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   );
   camera.lookAt(0, 0, 0);
 
-  // ── Directional Key Light (Sun / Moon) ──────────────────────────────────
-  const sun = new THREE.DirectionalLight(0xf39c12, 2.2);
+  // ── Directional Key Light (Warm Bright Sun / Moon) ──────────────────────
+  const sun = new THREE.DirectionalLight(0xfff4e0, 3.2);
   sun.position.set(-65, 55, -65);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  const s = 32;
+  const s = 36;
   sun.shadow.camera.left = -s;
   sun.shadow.camera.right = s;
   sun.shadow.camera.top = s;
   sun.shadow.camera.bottom = -s;
   sun.shadow.camera.near = 0.5;
   sun.shadow.camera.far = 190;
-  sun.shadow.bias = -0.0004;
-  sun.shadow.normalBias = 0.035;
+  sun.shadow.bias = -0.0003;
+  sun.shadow.normalBias = 0.03;
   scene.add(sun);
   scene.add(sun.target);
 
-  // Ambient / Sky Light
-  const ambientSky = new THREE.HemisphereLight(0x112d29, 0x0a1c19, 0.65);
+  // ── Ambient / Sky Light (Daylight Sky Blue Fill #87CEEB) ─────────────────
+  const ambientSky = new THREE.HemisphereLight(0x87ceeb, 0x4a6b66, 1.8);
   scene.add(ambientSky);
 
-  // Rim Light (Bioluminescent / Moon Separation)
-  const rim = new THREE.DirectionalLight(0x00e5ff, 1.45);
+  // ── Rim Light (Bioluminescent / Moon Separation) ─────────────────────────
+  const rim = new THREE.DirectionalLight(0x00e5ff, 1.8);
   rim.position.set(35, 22, 35);
   scene.add(rim);
   scene.add(rim.target);
@@ -141,18 +141,18 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   composer.addPass(renderPass);
   const bloom = new UnrealBloomPass(
     new THREE.Vector2(1, 1),
-    1.2,
+    1.1,
     0.85,
     0.80
   );
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
   const grade = createGradePass({
-    shadowTint: new THREE.Color('#0A221C'),
-    highlightTint: new THREE.Color('#FFE0B0'),
-    strength: 0.28,
-    vignette: 0.38,
-    contrast: 1.24,
+    shadowTint: new THREE.Color('#35505C'),
+    highlightTint: new THREE.Color('#FFF4E0'),
+    strength: 0.20,
+    vignette: 0.22,
+    contrast: 1.14,
     saturation: 1.20,
   });
   composer.addPass(grade);

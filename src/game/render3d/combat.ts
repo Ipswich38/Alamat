@@ -25,6 +25,10 @@ export interface CombatFx {
   addCone(x: number, z: number, heading: number, range: number, halfAngle: number, colour: number, life: number): void;
   addBurst(x: number, z: number, colour: number): void;
   addEnergyOrb(fromX: number, fromY: number, fromZ: number, toX: number, toY: number, toZ: number, colour: number, life?: number): void;
+  addCastRune(x: number, z: number, radius: number, colour: number, life: number): void;
+  addSlashArc(x: number, z: number, heading: number, radius: number, colour: number, life?: number): void;
+  addBlessingBurst(x: number, z: number, colour: number): void;
+  addStepRipple(x: number, z: number, isWater?: boolean): void;
   makeProjectile(colour: number): THREE.Object3D;
   removeObject(object: THREE.Object3D): void;
   update(dt: number): void;
@@ -247,6 +251,153 @@ export function createCombatFx(): CombatFx {
     });
   }
 
+  function addCastRune(x: number, z: number, radius: number, colour: number, life: number): void {
+    const g = new THREE.Group();
+    g.position.set(x, combatGroundY(x, z) + 0.02, z);
+
+    // Outer Baybayin/Runic Ring
+    const outerRing = new THREE.Mesh(
+      new THREE.RingGeometry(radius * 0.88, radius, 36),
+      new THREE.MeshBasicMaterial({
+        color: colour,
+        transparent: true,
+        opacity: 0.75,
+        depthWrite: false,
+        toneMapped: false,
+        side: THREE.DoubleSide,
+      })
+    );
+    outerRing.rotation.x = -Math.PI / 2;
+
+    // Inner 8-ray Sunburst / Agimat Star
+    const star = new THREE.Mesh(
+      new THREE.RingGeometry(radius * 0.45, radius * 0.55, 8),
+      new THREE.MeshBasicMaterial({
+        color: colour,
+        transparent: true,
+        opacity: 0.85,
+        depthWrite: false,
+        toneMapped: false,
+        side: THREE.DoubleSide,
+      })
+    );
+    star.rotation.x = -Math.PI / 2;
+
+    // Glowing core disc
+    const core = new THREE.Mesh(
+      new THREE.CircleGeometry(radius * 0.35, 16),
+      new THREE.MeshBasicMaterial({
+        color: colour,
+        transparent: true,
+        opacity: 0.25,
+        depthWrite: false,
+        toneMapped: false,
+      })
+    );
+    core.rotation.x = -Math.PI / 2;
+
+    g.add(outerRing, star, core);
+    g.renderOrder = 8;
+
+    track(g, life, (t) => {
+      outerRing.rotation.z = t * Math.PI * 2;
+      star.rotation.z = -t * Math.PI * 1.5;
+      const pulse = 1.0 + Math.sin(t * Math.PI * 6) * 0.08;
+      g.scale.setScalar(pulse);
+      fadeObject(g, Math.max(0, 1 - t * 0.5));
+    });
+  }
+
+  function addSlashArc(x: number, z: number, heading: number, radius: number, colour: number, life = 0.22): void {
+    const g = new THREE.Group();
+    g.position.set(x, combatGroundY(x, z) + 0.35, z);
+    g.rotation.y = heading;
+
+    // Crescent Arc Slash
+    const arcGeo = new THREE.TorusGeometry(radius, 0.12, 6, 20, Math.PI * 0.65);
+    const arcMat = new THREE.MeshBasicMaterial({
+      color: colour,
+      transparent: true,
+      opacity: 0.85,
+      toneMapped: false,
+      side: THREE.DoubleSide,
+    });
+    const arc = new THREE.Mesh(arcGeo, arcMat);
+    arc.rotation.set(Math.PI / 2, 0, -Math.PI * 0.32);
+    g.add(arc);
+
+    track(g, life, (t) => {
+      arc.scale.setScalar(0.7 + t * 0.6);
+      fadeObject(g, 1 - t);
+    });
+  }
+
+  function addBlessingBurst(x: number, z: number, colour: number): void {
+    const g = new THREE.Group();
+    g.position.set(x, combatGroundY(x, z), z);
+
+    // Upward spiraling pillar beam
+    const pillarGeo = new THREE.CylinderGeometry(0.8, 1.4, 6.0, 16, 1, true);
+    const pillarMat = new THREE.MeshBasicMaterial({
+      color: colour,
+      transparent: true,
+      opacity: 0.65,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      toneMapped: false,
+    });
+    const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+    pillar.position.y = 3.0;
+    g.add(pillar);
+
+    // Ground Rune Halo
+    const halo = new THREE.Mesh(
+      new THREE.RingGeometry(1.2, 2.2, 32),
+      new THREE.MeshBasicMaterial({
+        color: colour,
+        transparent: true,
+        opacity: 0.8,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        toneMapped: false,
+      })
+    );
+    halo.rotation.x = -Math.PI / 2;
+    halo.position.y = 0.05;
+    g.add(halo);
+
+    track(g, 0.65, (t) => {
+      pillar.scale.set(1 - t * 0.3, 1 + t * 0.5, 1 - t * 0.3);
+      pillar.position.y = 3.0 + t * 2.0;
+      halo.scale.setScalar(1 + t * 1.5);
+      fadeObject(g, 1 - t);
+    });
+  }
+
+  function addStepRipple(x: number, z: number, isWater = false): void {
+    const g = new THREE.Group();
+    g.position.set(x, combatGroundY(x, z) + 0.02, z);
+
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.15, 0.38, 16),
+      new THREE.MeshBasicMaterial({
+        color: isWater ? 0x88e2ff : 0xa89078,
+        transparent: true,
+        opacity: isWater ? 0.65 : 0.35,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        toneMapped: false,
+      })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    g.add(ring);
+
+    track(g, 0.35, (t) => {
+      ring.scale.setScalar(1 + t * 2.0);
+      fadeObject(g, 1 - t);
+    });
+  }
+
   function makeProjectile(colour: number): THREE.Object3D {
     const g = new THREE.Group();
     const core = new THREE.Mesh(
@@ -282,6 +433,10 @@ export function createCombatFx(): CombatFx {
     addCone,
     addBurst,
     addEnergyOrb,
+    addCastRune,
+    addSlashArc,
+    addBlessingBurst,
+    addStepRipple,
     makeProjectile,
     removeObject,
     update: (dt) => {

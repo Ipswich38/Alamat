@@ -259,6 +259,45 @@ export const ASSETS = {
       'Very dark brown skin with a rough matte finish, coarse black hair, faded woven loincloth, ' +
       'glowing orange cigar ember.',
   },
+  // ── VIETNAMESE MYTHIC TERRITORY: VẠN LONG UYÊN ────────────────────────────
+  dongSonDrum: {
+    dir: `${OUT_DIR}/props`,
+    prompt:
+      'Stylised Dong Son bronze drum altar monument, low-poly 3D game prop, SINGLE OBJECT. An ancient ' +
+      'flared Southeast Asian bronze ceremonial drum with an iconic starburst sun medallion carved on ' +
+      'the top face, geometric bird and warrior reliefs circling the bronze mantle, resting on a carved ' +
+      'stone lotus base. Standing upright, clean readable silhouette from above at a shallow angle, ' +
+      'game-ready topology. No ground, no terrain, no base plinth, no background.',
+    texture:
+      'Hand-painted stylised texturing, aged bronze with warm golden-amber highlights, emerald green ' +
+      'patina in the carved grooves, deep engraved shadow lines, subtle glowing golden runes on the ' +
+      'central sunburst, clean saturated colours, not photorealistic.',
+  },
+  kimQuyAltar: {
+    dir: `${OUT_DIR}/props`,
+    prompt:
+      'Stylised sacred Vietnamese Golden Turtle god statue (Thần Kim Quy), low-poly 3D game prop, ' +
+      'SINGLE OBJECT. A majestic ancient carved stone and bronze river turtle carrying a glowing dragon ' +
+      'broadsword across its shell, adorned with sacred lotus patterns, resting with head raised calmly. ' +
+      'Upright, clean readable silhouette from above at a shallow angle, game-ready. No ground, no ' +
+      'terrain, no base plinth, no background.',
+    texture:
+      'Hand-painted stylised texturing, ancient mossy green and slate stone shell with gold filigree, ' +
+      'warm bronze limbs with jade highlights, glowing cyan blade on the sword, clean saturated colours, ' +
+      'not photorealistic.',
+  },
+  dragonSpire: {
+    dir: `${OUT_DIR}/props`,
+    prompt:
+      'Stylised Vietnamese imperial dragon guardian pillar, low-poly 3D game prop, SINGLE OBJECT. ' +
+      'A tall ornate carved wooden and stone tower column with a coiled dragon ascending towards a ' +
+      'multi-tiered pagoda roof crown with sweeping curved eaves, holding a glowing jade pearl at ' +
+      'the peak. Standing upright, clean readable silhouette from above at a shallow angle, game-ready. ' +
+      'No ground, no terrain, no base plinth, no background.',
+    texture:
+      'Hand-painted stylised texturing, dark lacquered vermilion wood, gold leaf dragon scales, ' +
+      'jade green glazed roof tiles, glowing emerald pearl, clean saturated colours, not photorealistic.',
+  },
 };
 
 const key = apiKey();

@@ -58,22 +58,22 @@ export function getTodLighting(clock: number, isEclipse: boolean): SkyColors {
     mid: new THREE.Color(),
     horizon: new THREE.Color(),
     ground: new THREE.Color(),
-    sunColor: new THREE.Color(),
-    sunIntensity: 2.2,
+    sunColor: new THREE.Color('#FFF4E0'),
+    sunIntensity: 3.2,
     sunPos: new THREE.Vector3(-65, 55, -65),
-    ambientColor: new THREE.Color(),
-    ambientGround: new THREE.Color(),
-    ambientIntensity: 0.6,
-    rimColor: new THREE.Color(),
-    rimIntensity: 1.4,
-    fogColor: new THREE.Color(),
-    fogNear: 55,
-    fogFar: 130,
-    exposure: 1.25,
-    gradeStrength: 0.28,
-    contrast: 1.22,
-    saturation: 1.18,
-    vignette: 0.38,
+    ambientColor: new THREE.Color('#87CEEB'),
+    ambientGround: new THREE.Color('#4A6B66'),
+    ambientIntensity: 1.8,
+    rimColor: new THREE.Color('#00E5FF'),
+    rimIntensity: 1.8,
+    fogColor: new THREE.Color('#B2E0DC'),
+    fogNear: 65,
+    fogFar: 145,
+    exposure: 1.5,
+    gradeStrength: 0.20,
+    contrast: 1.14,
+    saturation: 1.20,
+    vignette: 0.22,
   };
 
   if (isEclipse) {
@@ -82,22 +82,22 @@ export function getTodLighting(clock: number, isEclipse: boolean): SkyColors {
     colors.mid.set('#26050F');
     colors.horizon.set('#590A18');
     colors.ground.set('#140206');
-    colors.sunColor.set('#B31010');
-    colors.sunIntensity = 0.95;
+    colors.sunColor.set('#E62020');
+    colors.sunIntensity = 1.8;
     colors.sunPos.set(-75, 45, -75);
-    colors.ambientColor.set('#24060C');
-    colors.ambientGround.set('#100205');
-    colors.ambientIntensity = 0.45;
+    colors.ambientColor.set('#5A1828');
+    colors.ambientGround.set('#2A0810');
+    colors.ambientIntensity = 1.1;
     colors.rimColor.set('#FF204E');
-    colors.rimIntensity = 2.4;
+    colors.rimIntensity = 2.6;
     colors.fogColor.set('#2E060F');
-    colors.fogNear = 35;
-    colors.fogFar = 98;
-    colors.exposure = 1.15;
-    colors.gradeStrength = 0.48;
-    colors.contrast = 1.42;
-    colors.saturation = 1.35;
-    colors.vignette = 0.55;
+    colors.fogNear = 45;
+    colors.fogFar = 115;
+    colors.exposure = 1.25;
+    colors.gradeStrength = 0.35;
+    colors.contrast = 1.25;
+    colors.saturation = 1.30;
+    colors.vignette = 0.38;
     return colors;
   }
 
@@ -108,48 +108,47 @@ export function getTodLighting(clock: number, isEclipse: boolean): SkyColors {
     colors.zenith.set('#1E1630').lerp(new THREE.Color('#2C3E60'), p);
     colors.mid.set('#7D4A68').lerp(new THREE.Color('#E56B6F'), p);
     colors.horizon.set('#F39C80').lerp(new THREE.Color('#FFC38B'), p);
-    colors.ground.set('#1A1424');
+    colors.ground.set('#2A2434');
     colors.sunColor.set('#FFA768');
-    colors.sunIntensity = 1.6 + p * 0.5;
+    colors.sunIntensity = 2.4 + p * 0.8;
     colors.sunPos.set(-75 + p * 10, 35 + p * 15, -75 + p * 10);
-    colors.ambientColor.set('#2A2035');
-    colors.ambientGround.set('#121620');
-    colors.ambientIntensity = 0.52;
+    colors.ambientColor.set('#87CEEB');
+    colors.ambientGround.set('#303848');
+    colors.ambientIntensity = 1.4 + p * 0.4;
     colors.rimColor.set('#FF9A76');
-    colors.rimIntensity = 1.3;
+    colors.rimIntensity = 1.6;
     colors.fogColor.set('#7A5F70').lerp(new THREE.Color('#9DC8C8'), p);
-    // Low morning mist over river (-1.5u height fog effect)
-    colors.fogNear = 45;
-    colors.fogFar = 115;
-    colors.exposure = 1.18;
-    colors.gradeStrength = 0.32;
-    colors.contrast = 1.16;
-    colors.saturation = 1.12;
-    colors.vignette = 0.42;
+    colors.fogNear = 55;
+    colors.fogFar = 135;
+    colors.exposure = 1.35 + p * 0.15;
+    colors.gradeStrength = 0.24;
+    colors.contrast = 1.14;
+    colors.saturation = 1.16;
+    colors.vignette = 0.28;
   } else if (t < 300) {
     // ── MIDDAY (2:00 - 5:00) ────────────────────────────────────────────────
     const p = (t - 120) / 180;
-    // High-intensity tropical sunlight (#FFF4E0), crisp shadows, vibrant green canopy
+    // High-intensity tropical sunlight (#FFF4E0), daylight sky blue ambient (#87CEEB), soft readable shadows
     colors.zenith.set('#15528A').lerp(new THREE.Color('#1B74BA'), p);
     colors.mid.set('#4FA3CE').lerp(new THREE.Color('#5DB7CD'), p);
-    colors.horizon.set('#FFF2D6').lerp(new THREE.Color('#F7E3B5'), p);
-    colors.ground.set('#112D29');
+    colors.horizon.set('#FFF2D6').lerp(new THREE.Color('#FFF4E0'), p);
+    colors.ground.set('#244A42');
     colors.sunColor.set('#FFF4E0');
-    colors.sunIntensity = 2.6 + Math.sin(p * Math.PI) * 0.4;
+    colors.sunIntensity = 3.2;
     colors.sunPos.set(-60, 68, -60);
-    colors.ambientColor.set('#1C3D36');
-    colors.ambientGround.set('#0E1D19');
-    colors.ambientIntensity = 0.68;
+    colors.ambientColor.set('#87CEEB');
+    colors.ambientGround.set('#4A6B66');
+    colors.ambientIntensity = 1.8;
     colors.rimColor.set('#00E5FF');
-    colors.rimIntensity = 1.45;
+    colors.rimIntensity = 1.8;
     colors.fogColor.set('#B2E0DC');
-    colors.fogNear = 68;
-    colors.fogFar = 145;
-    colors.exposure = 1.32;
-    colors.gradeStrength = 0.22;
-    colors.contrast = 1.25;
-    colors.saturation = 1.28;
-    colors.vignette = 0.32;
+    colors.fogNear = 70;
+    colors.fogFar = 155;
+    colors.exposure = 1.5;
+    colors.gradeStrength = 0.18;
+    colors.contrast = 1.14;
+    colors.saturation = 1.20;
+    colors.vignette = 0.22;
   } else if (t < 420) {
     // ── DUSK (5:00 - 7:00) ──────────────────────────────────────────────────
     const p = (t - 300) / 120;
@@ -157,47 +156,47 @@ export function getTodLighting(clock: number, isEclipse: boolean): SkyColors {
     colors.zenith.set('#1D102A').lerp(new THREE.Color('#120B20'), p);
     colors.mid.set('#C0392B').lerp(new THREE.Color('#E67E22'), 1 - p);
     colors.horizon.set('#D35400').lerp(new THREE.Color('#A93226'), p);
-    colors.ground.set('#1C1014');
-    colors.sunColor.set('#FF4500');
-    colors.sunIntensity = 2.2 - p * 0.7;
-    colors.sunPos.set(-82, 28 - p * 12, -82); // Long dramatic low-angle shadows
-    colors.ambientColor.set('#361C18');
-    colors.ambientGround.set('#180E10');
-    colors.ambientIntensity = 0.55;
-    colors.rimColor.set('#FF5722');
-    colors.rimIntensity = 1.75;
+    colors.ground.set('#2C1C24');
+    colors.sunColor.set('#FF5722');
+    colors.sunIntensity = 3.0 - p * 0.8;
+    colors.sunPos.set(-82, 28 - p * 12, -82);
+    colors.ambientColor.set('#A85A48');
+    colors.ambientGround.set('#3D2628');
+    colors.ambientIntensity = 1.5 - p * 0.2;
+    colors.rimColor.set('#FF7043');
+    colors.rimIntensity = 1.8;
     colors.fogColor.set('#6E2B24').lerp(new THREE.Color('#3A1828'), p);
-    colors.fogNear = 52;
-    colors.fogFar = 122;
-    colors.exposure = 1.22;
-    colors.gradeStrength = 0.38;
-    colors.contrast = 1.34;
-    colors.saturation = 1.32;
-    colors.vignette = 0.46;
+    colors.fogNear = 60;
+    colors.fogFar = 135;
+    colors.exposure = 1.38;
+    colors.gradeStrength = 0.26;
+    colors.contrast = 1.20;
+    colors.saturation = 1.25;
+    colors.vignette = 0.30;
   } else {
     // ── NIGHT (7:00 - 10:00) ────────────────────────────────────────────────
     const p = (t - 420) / 180;
-    // Cool moonlight (#1A2B4C) with heavy bioluminescent plant emission
-    colors.zenith.set('#040812');
-    colors.mid.set('#0B182B').lerp(new THREE.Color('#10223A'), p);
-    colors.horizon.set('#1A2B4C').lerp(new THREE.Color('#0D323A'), p);
-    colors.ground.set('#05101A');
-    colors.sunColor.set('#6B95D6'); // Moonlight
-    colors.sunIntensity = 0.95;
-    colors.sunPos.set(45, 55, 45); // Moon from opposite side
-    colors.ambientColor.set('#0C1C2E');
-    colors.ambientGround.set('#040A12');
-    colors.ambientIntensity = 0.42;
-    colors.rimColor.set('#00E5FF'); // Intense bioluminescent cyan rim
-    colors.rimIntensity = 1.95;
-    colors.fogColor.set('#0A1422');
-    colors.fogNear = 42;
-    colors.fogFar = 108;
-    colors.exposure = 1.14;
-    colors.gradeStrength = 0.42;
-    colors.contrast = 1.36;
-    colors.saturation = 1.15;
-    colors.vignette = 0.52;
+    // Cool moonlight with luminous sky fill and rich bioluminescent plant emission
+    colors.zenith.set('#081224');
+    colors.mid.set('#12243D').lerp(new THREE.Color('#162D4A'), p);
+    colors.horizon.set('#20395E').lerp(new THREE.Color('#15424D'), p);
+    colors.ground.set('#0E1D2A');
+    colors.sunColor.set('#88B2F0'); // Moonlight
+    colors.sunIntensity = 1.6;
+    colors.sunPos.set(45, 55, 45);
+    colors.ambientColor.set('#305278');
+    colors.ambientGround.set('#142232');
+    colors.ambientIntensity = 1.2;
+    colors.rimColor.set('#00E5FF'); // Bioluminescent cyan rim
+    colors.rimIntensity = 2.2;
+    colors.fogColor.set('#122238');
+    colors.fogNear = 50;
+    colors.fogFar = 125;
+    colors.exposure = 1.28;
+    colors.gradeStrength = 0.30;
+    colors.contrast = 1.22;
+    colors.saturation = 1.18;
+    colors.vignette = 0.35;
   }
 
   return colors;

@@ -32,22 +32,43 @@ export function createCamps(): Camps {
     group.add(clearing(camp, i, anchors));
   }
 
-  // One idol, four placements. Turned to face the centre of the map, so a
-  // player approaching from the lane meets its front rather than its back.
+  // Distinct 3D cultural props for each jungle camp category:
+  // 1. Bulul Idols for Bulul Guardian camps (NW & SE)
   loadModel('/models/props/bulul.glb', { height: 3.4 }).then((model) => {
     if (!model) return;
-    for (const camp of CAMPS) {
+    for (const camp of CAMPS.filter((c) => c.id.startsWith('bulul'))) {
       const idol = model.clone(true);
       idol.position.set(camp.x, terrainHeight(camp.x, camp.z), camp.z);
       idol.rotation.y = Math.atan2(-camp.x, -camp.z);
       group.add(idol);
     }
-    // ⚠ HIDE THE STAND-INS. Forgetting this leaves both drawn, overlapping,
-    // and the result reads as one slightly wrong statue rather than as two
-    // objects in the same place, which is why it is easy to miss.
-    group.traverse((n) => {
-      if (n.name === 'idol-placeholder') n.visible = false;
-    });
+  });
+
+  // 2. Ancient Dong Son Sunburst Drums for Tikbalang Trickster camps (NW & SE)
+  loadModel('/models/props/dongSonDrum.glb', { height: 2.6 }).then((model) => {
+    if (!model) return;
+    for (const camp of CAMPS.filter((c) => c.id.startsWith('tikbalang'))) {
+      const drum = model.clone(true);
+      drum.position.set(camp.x, terrainHeight(camp.x, camp.z), camp.z);
+      drum.rotation.y = Math.atan2(-camp.x, -camp.z);
+      group.add(drum);
+    }
+  });
+
+  // 3. Sacred Kim Quy Turtle Altars for Aswang Stalker camps (NE & SW)
+  loadModel('/models/props/kimQuyAltar.glb', { height: 3.0 }).then((model) => {
+    if (!model) return;
+    for (const camp of CAMPS.filter((c) => c.id.startsWith('aswang'))) {
+      const altar = model.clone(true);
+      altar.position.set(camp.x, terrainHeight(camp.x, camp.z), camp.z);
+      altar.rotation.y = Math.atan2(-camp.x, -camp.z);
+      group.add(altar);
+    }
+  });
+
+  // Hide placeholder stubs for all decorated camps
+  group.traverse((n) => {
+    if (n.name === 'idol-placeholder') n.visible = false;
   });
 
   return {

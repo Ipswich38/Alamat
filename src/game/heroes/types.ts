@@ -52,9 +52,25 @@ export interface Ability {
 
 export type HeroRole = 'vanguard' | 'mystic' | 'stalker' | 'warden' | 'ranger';
 
+export interface HeroPassive {
+  id: string;
+  name: string;
+  blurb: string;
+  emoji: string;
+  effect: string;
+}
+
 export interface Hero {
   id: string;
   name: string;
+  /** Mythological or ceremonial title in Filipino. */
+  title?: string;
+  /** Baybayin calligraphy glyph script. */
+  baybayin?: string;
+  /** Pre-battle warcry or folklore quote. */
+  quote?: string;
+  /** Innate Mythic Passive unique to this hero. */
+  passive?: HeroPassive;
   /** The creature or figure from folklore this is drawn from. */
   origin: string;
   /** Two or three lines. This is the only place the myth gets told. */
@@ -99,6 +115,6 @@ export interface Hero {
   attack: number;
   attackRange: number;
   attackCooldown: number;
-  abilities: [Ability, Ability];
+  abilities: Ability[];
   ultimate: Ability;
 }

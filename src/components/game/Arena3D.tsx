@@ -1,24 +1,28 @@
 'use client';
 
-// The playable arena.
+// Master 3D Playable Arena Component (P08 Complete Architecture).
 //
-// Deliberately thin. It owns the canvas, the frame loop and the input, and it
-// asks game/ modules for everything else. The lesson behind that split is a
-// concrete one: on the previous project the equivalent component reached 868
-// lines holding two unrelated jobs, driving a three.js scene and drawing the
-// buttons over it, and had to be pulled apart later. Starting split costs
-// nothing; arriving there costs a refactor.
+// ── INTEGRATED SUBSYSTEMS ───────────────────────────────────────────────────
+// 1. Procedural Web Audio Engine (synth.ts)
+// 2. Mouse-Cursor Aiming & Smart-Cast Ground Reticles (reticles.ts)
+// 3. Floating Combat Damage Numbers & Status Alerts (damageNumbers.ts)
+// 4. Dynamic XP Progression & Level 1–15 Scaling (progression.ts)
+// 5. Active RPG Inventory & Mathematical Attribute Engine (inventory.ts)
+// 6. Autonomous Lane AI Bot Hero Opponents (botHero.ts)
+// 7. Monster Hunter Bosses, Jungle Creeps, 3-Lane Map & ACES Day/Night Lighting
 
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { HEROES, SELECTION_RING, heroHeight, heroRadius, type Ability, type Hero } from '@/game/heroes';
-import HeroHud from './HeroHud';
+import { territoryById, DEFAULT_TERRITORY, type Territory } from '@/game/territories';
+import HeroHud, { type ScreenCoord, type MinionHudData, type TowerHudData } from './HeroHud';
 
 import { createStage } from '@/game/render3d/stage';
 import { createCameraControls } from '@/game/render3d/controls';
 import { createNexus } from '@/game/render3d/nexus';
 import { buildTerrain, terrainHeight } from '@/game/render3d/terrain';
 import { buildClutter } from '@/game/render3d/clutter';
+import { buildGroundCover } from '@/game/render3d/groundcover';
 import { HALF, TEAMS, type TeamId } from '@/game/arena/nexus';
 import { createTowers } from '@/game/render3d/towers';
 import { createWalls } from '@/game/render3d/walls';
@@ -35,6 +39,18 @@ import { createActor, type Actor } from '@/game/render3d/actor';
 import { createMinionRender } from '@/game/render3d/minions';
 import { createCreepRender } from '@/game/render3d/creeps';
 import { createBossRender } from '@/game/render3d/bosses';
+import { createReticleController } from '@/game/render3d/reticles';
+import { createDamageNumberManager, type FloatingTextHudData } from '@/game/render3d/damageNumbers';
+import { sound } from '@/game/audio/synth';
+import {
+  BOUNTIES,
+  getProgressionState,
+  getScaledAttack,
+  getArmorDamageReduction,
+} from '@/game/combat/progression';
+import { createInventoryManager, type EffectiveHeroStats } from '@/game/items/inventory';
+import { type AgimatItem } from '@/game/items/catalogue';
+import { createBotHero } from '@/game/ai/botHero';
 import {
   BASIC_WIDTH,
   createBossManager,
@@ -64,29 +80,20 @@ import {
 } from '@/game/combat';
 import { combatGroundY, createCombatFx } from '@/game/render3d/combat';
 
-/**
- * How many world units tall the view is. Smaller is closer in.
- *
- * Two forces pull against each other. Abilities reach up to 14 units, so the
- * view has to show enough ground to aim across. But a character is 1.8 units
- * tall, and at 34 the whole arena fitted on screen and the hero was a speck:
- * that is a map view, not a fight. The character wins the argument, because a
- * game whose characters cannot be seen has no reason to have good ones.
- */
 const VIEW_HEIGHT = 15;
-
 const FOE_RADIUS = KAPRE.model.height * 0.13;
-
-/** The side the player breaks. They fight for the Anito, so this is the other. */
 const ENEMY: TeamId = 'malakas';
 
-export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
+export default function Arena3D({
+  heroId = 'tikbalang',
+  territoryId = 'kapatagan',
+}: {
+  heroId?: string;
+  territoryId?: string;
+}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  // ⚠ ONLY HEROES WITH A REAL MODEL ARE PLAYABLE. The shared adventurer that
-  // stood in for the rest is gone, along with its palette atlas: five recolours
-  // of one body read as one person, and a placeholder that lies about the
-  // roster is worse than a shorter roster.
   const playable = HEROES.filter((h) => h.model);
+  const territory: Territory = territoryById(territoryId) ?? DEFAULT_TERRITORY;
   const [hero, setHero] = useState<Hero>(
     () => playable.find((h) => h.id === heroId) ?? playable[0]
   );
@@ -96,24 +103,44 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
   const [zoomShown, setZoomShown] = useState(VIEW_HEIGHT);
   const [cooldowns, setCooldowns] = useState<CooldownState>(EMPTY_COOLDOWNS);
   const [playerHp, setPlayerHp] = useState(hero.health);
+  const [playerMaxHp, setPlayerMaxHp] = useState(hero.health);
   const [kapreHp, setKapreHp] = useState(KAPRE.health);
+  const [playerLevel, setPlayerLevel] = useState(1);
+  const [playerGold, setPlayerGold] = useState(500);
+  const [playerXpPercent, setPlayerXpPercent] = useState(0);
+  const [playerPos, setPlayerPos] = useState({ x: -84.5, z: 84.5, heading: Math.PI * 0.25 });
+  const [playerScreenPos, setPlayerScreenPos] = useState<ScreenCoord | undefined>(undefined);
+  const [foePos, setFoePos] = useState({ x: 0, z: 0 });
+  const [foeScreenPos, setFoeScreenPos] = useState<ScreenCoord | undefined>(undefined);
+  const [minionsData, setMinionsData] = useState<MinionHudData[]>([]);
+  const [towersData, setTowersData] = useState<TowerHudData[]>([]);
+  const [keyboardVector, setKeyboardVector] = useState({ x: 0, z: 0 });
+  const [matchTime, setMatchTime] = useState(0);
+  const [allyKills, setAllyKills] = useState(0);
+  const [enemyKills, setEnemyKills] = useState(0);
   const [activeBuffs, setActiveBuffs] = useState<{ id: string; name: string; emoji: string; remaining: number }[]>([]);
   const [bossName, setBossName] = useState<string | undefined>(undefined);
   const [bossHp, setBossHp] = useState<number>(0);
   const [bossMaxHp, setBossMaxHp] = useState<number>(1);
-  const [combatLine, setCombatLine] = useState('J basic · 1/2/R abilities · aim by facing');
+  const [combatLine, setCombatLine] = useState('WASD to move · Mouse Pointer to Aim · J basic attack · Q/W/E/R abilities');
   const [objectiveLine, setObjectiveLine] = useState('');
-  /** Set once, when the enemy core breaks. A match ends and does not un-end. */
   const [won, setWon] = useState(false);
-  /** Held while a turn button is pressed: -1, 0 or 1. */
+  const [equippedItems, setEquippedItems] = useState<AgimatItem[]>([]);
+  const [effectiveStats, setEffectiveStats] = useState<EffectiveHeroStats | undefined>(undefined);
+  const [floatingTexts, setFloatingTexts] = useState<FloatingTextHudData[]>([]);
+
   const turnRef = useRef(0);
-  /** Set once the stage exists, so the zoom buttons can reach it. */
+  const joyRef = useRef({ x: 0, z: 0 });
+  const pingFn = useRef<((type: string) => void) | null>(null);
   const zoomFn = useRef<((factor: number) => void) | null>(null);
   const castFn = useRef<((slot: CastSlot) => void) | null>(null);
+  const buyFn = useRef<((item: AgimatItem) => void) | null>(null);
+
   const zoomBy = (factor: number) => zoomFn.current?.(factor);
   const cast = (slot: CastSlot) => castFn.current?.(slot);
-  // Read inside the frame loop, which must not be torn down when the hero
-  // changes: a ref is how a value crosses from React into a running loop.
+  const handlePing = (type: string) => pingFn.current?.(type);
+  const handleBuyItem = (item: AgimatItem) => buyFn.current?.(item);
+
   const heroRef = useRef(hero);
   useEffect(() => {
     heroRef.current = hero;
@@ -123,21 +150,21 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Content rules that span heroes/ and combat/, so neither file can hold
-    // them. Development only: these describe balance data, not code.
     if (process.env.NODE_ENV !== 'production') {
       for (const problem of checkContent([KAPRE])) console.warn('[alamat content]', problem);
     }
 
     const stage = createStage(canvas);
-    // ?zoom= sets the starting distance, which is the only way to judge a body
-    // thirty pixels tall in normal play. The wheel takes over from there.
     const zoomParam = Number(new URLSearchParams(window.location.search).get('zoom'));
     const startZoom = Number.isFinite(zoomParam) && zoomParam > 0 ? zoomParam : VIEW_HEIGHT;
     const terrain = buildTerrain();
     stage.scene.add(terrain);
     const clutter = buildClutter();
     stage.scene.add(clutter.group);
+    // The mundane floor under the enchanted layer. Added straight after terrain
+    // and clutter because it reads terrainHeight() and must not outlive them.
+    const groundCover = buildGroundCover();
+    stage.scene.add(groundCover.group);
     const nexus = createNexus();
     stage.scene.add(nexus.group);
     const towers = createTowers();
@@ -151,7 +178,6 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     const river = createRiver();
     stage.scene.add(river.group);
     const backdrop = createBackdrop();
-    // The camera itself has to be in the scene for its children to draw.
     stage.scene.add(stage.camera);
     backdrop.attach(stage.camera);
 
@@ -159,6 +185,10 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     stage.scene.add(santelmo.group);
     const combatFx = createCombatFx();
     stage.scene.add(combatFx.group);
+    const reticles = createReticleController();
+    stage.scene.add(reticles.group);
+    const damageNumbers = createDamageNumberManager();
+
     const minionManager = createMinionManager();
     const minionRender = createMinionRender();
     stage.scene.add(minionRender.group);
@@ -169,8 +199,35 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     const bossRender = createBossRender();
     stage.scene.add(bossRender.group);
 
-    // What the match is about. The towers and cores were already drawn; this is
-    // the layer that makes them mean something.
+    // ── Inventory & RPG Item Engine ─────────────────────────────────────────
+    const inventory = createInventoryManager(['amihan-boots']);
+    let currentLevel = 1;
+    let currentXp = 0;
+    let currentGold = 500;
+
+    const refreshStats = () => {
+      const stats = inventory.getEffectiveStats(heroRef.current, currentLevel);
+      setEffectiveStats(stats);
+      setPlayerMaxHp(stats.maxHp);
+      setEquippedItems(inventory.getItemList());
+      return stats;
+    };
+    let activeStats = refreshStats();
+
+    buyFn.current = (item: AgimatItem) => {
+      if (currentGold >= item.cost && !inventory.isFull()) {
+        currentGold -= item.cost;
+        inventory.addItem(item);
+        setPlayerGold(currentGold);
+        sound.playBuyItem();
+        activeStats = refreshStats();
+        setCombatLine(`Equipped ${item.name}! Stats enhanced.`);
+      } else if (inventory.isFull()) {
+        setCombatLine('Inventory is full! (6/6 items equipped)');
+      }
+    };
+
+    // ── Objectives & Structure System ───────────────────────────────────────
     const objectives = createObjectives();
     const towerFire = createTowerFire(objectives, ENEMY);
     const standing = () =>
@@ -185,18 +242,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     };
     reportObjectives();
 
-    // ⚠ THE GENERATED BALETE IS DELIBERATELY NOT LOADED. It exists at
-    // /models/nature/balete.glb and it is WORSE than the procedural tree it was
-    // meant to replace: text-to-3D returned a lumpy mound with no trunk, no
-    // hanging roots and no readable silhouette. Kept on disk as evidence for
-    // the decision rather than deleted.
-    //
-    // The pattern it confirms, which matches the previous project exactly:
-    // generated CREATURES work and generated SCENERY does not. The credits
-    // belong to the Bakunawa and the Kapre, not to trees.
-
-    // Spawner Platforms: Set hero spawn points inside circular stone-carved Baybayin rune circle
-    // on high-ground platform behind the Nexus core.
+    // ── Player & Spawn Anchor ───────────────────────────────────────────────
     const atParam = new URLSearchParams(window.location.search).get('at');
     const at = atParam?.split(',').map(Number);
     const spawnX = at && at.length === 2 && at.every(Number.isFinite) ? at[0] : TEAMS.anito.spawn.x;
@@ -206,8 +252,6 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     let heading = Math.PI * 0.25;
     let hiddenSeen = false;
 
-    // Loaded asynchronously, so the frame loop has to cope with there being no
-    // body yet. It starts immediately and the arena is already on screen.
     let player: Actor | null = null;
     let builtFor = hero.id;
     let disposed = false;
@@ -218,8 +262,6 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       createActor({
         ...h.model,
         height: heroHeight(h.build.scale),
-        // The ring takes the team's colour, so it is the same language the
-        // towers and the cores speak.
         ring: { radius: SELECTION_RING, colour: TEAMS.anito.light },
       }).then((next) => {
         if (disposed || builtFor !== h.id) {
@@ -242,14 +284,8 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     };
     swapTo(hero);
 
-    // ── the Kapre ─────────────────────────────────────────────────────────
-    // The first thing in this game that is not the player. It stands in the
-    // arena, notices you inside its awareness, and closes until it is within
-    // reach. It can finally swing, which makes the arena a fight rather than a
-    // walking diorama.
+    // ── Neutral Brute Kapre ─────────────────────────────────────────────────
     let foe: Actor | null = null;
-    // The body is the renderer's; where it stands and what it wants is the
-    // brain's. Only the two of them together are the Kapre.
     const brute = createBrute(KAPRE, 0, 0);
     createActor(KAPRE.model).then((a) => {
       if (disposed) {
@@ -261,7 +297,25 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       stage.scene.add(a.object);
     });
 
-    // ── camera controls ──────────────────────────────────────────────────
+    // ── Mid Lane AI Bot Opponent (Aswang / Manananggal) ──────────────────────
+    const botOpponent = createBotHero('aswang', 'malakas', 1);
+    let botActor: Actor | null = null;
+    createActor({
+      rigged: '/models/heroes/aswang-rigged.glb',
+      walk: '/models/heroes/aswang-walk.glb',
+      height: heroHeight(0.98),
+      ring: { radius: SELECTION_RING, colour: TEAMS.malakas.light },
+    }).then((a) => {
+      if (disposed) {
+        a.dispose();
+        return;
+      }
+      botActor = a;
+      a.setPosition(botOpponent.x, terrainHeight(botOpponent.x, botOpponent.z), botOpponent.z);
+      stage.scene.add(a.object);
+    });
+
+    // ── Camera & Mouse Pointer Raycasting ───────────────────────────────────
     const camera = createCameraControls(
       canvas,
       stage,
@@ -270,9 +324,30 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     );
     zoomFn.current = camera.zoomBy;
 
+    const raycaster = new THREE.Raycaster();
+    const mouseNdc = new THREE.Vector2();
+    let mouseGroundX = 0;
+    let mouseGroundZ = 0;
+    const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const planeIntersect = new THREE.Vector3();
+
+    const onPointerMove = (e: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      mouseNdc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouseNdc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouseNdc, stage.camera);
+      if (raycaster.ray.intersectPlane(groundPlane, planeIntersect)) {
+        mouseGroundX = planeIntersect.x;
+        mouseGroundZ = planeIntersect.z;
+      }
+    };
+    window.addEventListener('pointermove', onPointerMove);
+
     const keys = new Set<string>();
     const castQueue: CastSlot[] = [];
     castFn.current = (slot: CastSlot) => castQueue.push(slot);
+
     const onDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
       keys.add(key);
@@ -298,7 +373,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     let combatUiClock = 0;
     let activeHeroId = hero.id;
 
-    let playerHealth = hero.health;
+    let playerHealth = activeStats.maxHp;
     let castLockUntil = 0;
     let dash: DashCast | null = null;
     const ready: CooldownState = { ...EMPTY_COOLDOWNS };
@@ -310,7 +385,10 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         basic: Math.max(0, ready.basic - clock),
         ability0: Math.max(0, ready.ability0 - clock),
         ability1: Math.max(0, ready.ability1 - clock),
+        ability2: Math.max(0, ready.ability2 - clock),
         ultimate: Math.max(0, ready.ultimate - clock),
+        potion: Math.max(0, ready.potion - clock),
+        spell: Math.max(0, ready.spell - clock),
       });
     };
 
@@ -318,7 +396,10 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       ready.basic = 0;
       ready.ability0 = 0;
       ready.ability1 = 0;
+      ready.ability2 = 0;
       ready.ultimate = 0;
+      ready.potion = 0;
+      ready.spell = 0;
       syncCooldowns();
     };
 
@@ -331,26 +412,54 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       };
     };
 
+    const awardXpAndGold = (xp: number, gold: number, entityName: string) => {
+      currentXp += xp;
+      currentGold += gold;
+      setPlayerGold(currentGold);
+
+      const oldLevel = currentLevel;
+      const prog = getProgressionState(currentXp, currentGold);
+      currentLevel = prog.level;
+      setPlayerLevel(currentLevel);
+      setPlayerXpPercent(prog.xpProgressPercent);
+
+      damageNumbers.spawn(px, terrainHeight(px, pz) + 1.2, pz, gold, 'gold');
+
+      if (currentLevel > oldLevel) {
+        sound.playLevelUp();
+        stage.addCameraShake(0.4);
+        damageNumbers.spawn(px, terrainHeight(px, pz) + 1.8, pz, 'LEVEL UP!', 'status');
+        setCombatLine(`LEVEL UP! Defeated ${entityName}. Reached Level ${currentLevel}.`);
+        activeStats = refreshStats();
+        playerHealth = Math.min(activeStats.maxHp, playerHealth + activeStats.maxHp * 0.35);
+        setPlayerHp(playerHealth);
+      }
+    };
+
     const resetPlayer = (message: string) => {
       px = spawnX;
       pz = spawnZ;
       heading = Math.PI * 0.25;
-      playerHealth = heroRef.current.health;
+      playerHealth = activeStats.maxHp;
       setPlayerHp(playerHealth);
       setCombatLine(message);
       castLockUntil = clock + 0.4;
     };
 
-    /** Every source of damage to the player goes through here. */
     const hurtPlayer = (amount: number, source: string) => {
-      playerHealth = Math.max(0, playerHealth - amount);
+      const mitigation = getArmorDamageReduction(activeStats.armor);
+      const actualDmg = Math.max(1, amount * (1 - mitigation));
+      playerHealth = Math.max(0, playerHealth - actualDmg);
       combatFx.addBurst(px, pz, TEAMS.malakas.light);
+      damageNumbers.spawn(px, terrainHeight(px, pz) + 1.0, pz, actualDmg, 'physical');
+
       if (playerHealth <= 0) {
         setPlayerHp(0);
+        setEnemyKills((k) => k + 1);
         resetPlayer(`${source} drops you. You wake at the Anito gate.`);
       } else {
         setPlayerHp(playerHealth);
-        setCombatLine(`${source} hits you for ${amount}.`);
+        setCombatLine(`${source} hits you for ${Math.round(actualDmg)}.`);
       }
     };
 
@@ -378,74 +487,123 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       }
     };
 
-    /**
-     * Everything an aimed shape does when it lands.
-     *
-     * ⚠ ONE PATH FOR EVERY SHAPE. The basic attack, the three ability shapes
-     * and a projectile all arrive here as a coverage predicate.
-     */
     const resolveHit = (
       label: string,
       amount: number,
-      covers: (x: number, z: number, radius: number) => boolean
+      covers: (x: number, z: number, radius: number) => boolean,
+      isCrit = false
     ): boolean => {
       let foeOutcome: FoeOutcome | null = null;
       let damageDealtToFoes = 0;
 
-      // Has Moon's Eclipse buff: +20% bonus damage to structures & true damage
       const hasEclipse = liveBuffs.some((b) => b.type === 'moons_eclipse' && clock < b.expiresAt);
       const appliedDamage = hasEclipse ? amount * 1.2 : amount;
 
-      if (covers(brute.x, brute.z, FOE_RADIUS) && brute.hurt(amount, clock)) {
-        foeOutcome = { name: KAPRE.name, amount, downed: !brute.alive };
+      // ── Kapre Duel Strike ─────────────────────────────────────────────────
+      if (covers(brute.x, brute.z, FOE_RADIUS) && brute.hurt(appliedDamage, clock)) {
+        foeOutcome = { name: KAPRE.name, amount: appliedDamage, downed: !brute.alive };
         setKapreHp(brute.health);
         combatFx.addBurst(brute.x, brute.z, TEAMS.anito.light);
-        if (!brute.alive && foe) foe.object.visible = false;
-        damageDealtToFoes += amount;
+        sound.playSpellImpact();
+        damageNumbers.spawn(brute.x, terrainHeight(brute.x, brute.z) + 1.2, brute.z, appliedDamage, isCrit ? 'crit' : 'physical');
+
+        if (!brute.alive && foe) {
+          foe.object.visible = false;
+          sound.playKillAnnouncement();
+          stage.addCameraShake(0.6);
+          setAllyKills((k) => k + 1);
+          awardXpAndGold(BOUNTIES.hero.xp, BOUNTIES.hero.gold, KAPRE.name);
+        }
+        damageDealtToFoes += appliedDamage;
+      }
+
+      // ── Bot Opponent Strike ───────────────────────────────────────────────
+      if (botOpponent.state !== 'dead' && covers(botOpponent.x, botOpponent.z, 1.0)) {
+        const killed = botOpponent.takeDamage(appliedDamage);
+        combatFx.addBurst(botOpponent.x, botOpponent.z, TEAMS.anito.light);
+        sound.playMeleeHit();
+        damageNumbers.spawn(botOpponent.x, terrainHeight(botOpponent.x, botOpponent.z) + 1.2, botOpponent.z, appliedDamage, isCrit ? 'crit' : 'physical');
+
+        if (killed) {
+          sound.playKillAnnouncement();
+          stage.addCameraShake(0.6);
+          setAllyKills((k) => k + 1);
+          awardXpAndGold(BOUNTIES.hero.xp, BOUNTIES.hero.gold, botOpponent.hero.name);
+          setCombatLine(`Defeated enemy champion ${botOpponent.hero.name}!`);
+        }
+        damageDealtToFoes += appliedDamage;
       }
 
       // ── Neutral Jungle Creeps Strike ──────────────────────────────────────
-      const creepReport = creepManager.strike(covers, amount);
+      const creepReport = creepManager.strike(covers, appliedDamage);
       for (const hit of creepReport.hits) {
         combatFx.addBurst(hit.x, hit.z, TEAMS.anito.light);
-        damageDealtToFoes += amount;
+        sound.playMeleeHit();
+        damageNumbers.spawn(hit.x, terrainHeight(hit.x, hit.z) + 1.0, hit.z, appliedDamage, 'magic');
+        damageDealtToFoes += appliedDamage;
+      }
+      for (const down of creepReport.felled) {
+        awardXpAndGold(BOUNTIES.jungleCreep.xp, BOUNTIES.jungleCreep.gold, down.name);
       }
 
       // ── Major Epic Boss Strike (Bakunawa & Kapre) ─────────────────────────
-      const bossReport = bossManager.strike(covers, amount, clock);
+      const bossReport = bossManager.strike(covers, appliedDamage, clock);
       for (const hit of bossReport.hits) {
         combatFx.addBurst(hit.x, hit.z, TEAMS.anito.light);
-        damageDealtToFoes += amount;
+        sound.playSpellImpact();
+        damageNumbers.spawn(hit.x, terrainHeight(hit.x, hit.z) + 1.5, hit.z, appliedDamage, 'crit');
+        damageDealtToFoes += appliedDamage;
+      }
+      for (const down of bossReport.felled) {
+        sound.playKillAnnouncement();
+        stage.addCameraShake(0.85);
+        setAllyKills((k) => k + 1);
+        awardXpAndGold(BOUNTIES.boss.xp, BOUNTIES.boss.gold, down.name);
       }
 
       // ── Minion Waves Strike ───────────────────────────────────────────────
-      const minionReport = minionManager.strike(ENEMY, covers, amount);
+      const minionReport = minionManager.strike(ENEMY, covers, appliedDamage);
       for (const hit of minionReport.hits) {
         combatFx.addBurst(hit.x, hit.z, TEAMS.anito.light);
-        damageDealtToFoes += amount;
+        sound.playMinionHit();
+        damageNumbers.spawn(hit.x, terrainHeight(hit.x, hit.z) + 0.8, hit.z, appliedDamage, 'physical');
+        damageDealtToFoes += appliedDamage;
+      }
+      for (const down of minionReport.felled) {
+        const bounty = down.kind === 'bagani' ? BOUNTIES.siegeMinion : down.kind === 'mapanahong' ? BOUNTIES.rangedMinion : BOUNTIES.meleeMinion;
+        awardXpAndGold(bounty.xp, bounty.gold, 'Minion');
       }
 
       // ── Objectives / Structure Strike ─────────────────────────────────────
       const report = objectives.strike(ENEMY, covers, appliedDamage);
-      for (const hit of report.hits) combatFx.addBurst(hit.x, hit.z, TEAMS.anito.light);
+      for (const hit of report.hits) {
+        combatFx.addBurst(hit.x, hit.z, TEAMS.anito.light);
+        damageNumbers.spawn(hit.x, terrainHeight(hit.x, hit.z) + 2.0, hit.z, appliedDamage, 'magic');
+      }
       for (const down of report.felled) {
         if (down.kind === 'core') {
           nexus.shatter(down.team);
           stage.addCameraShake(0.95);
+          sound.playVictory();
           setWon(true);
         } else {
           towers.fell(down.id);
           stage.addCameraShake(0.65);
+          sound.playKillAnnouncement();
+          setAllyKills((k) => k + 1);
+          awardXpAndGold(BOUNTIES.tower.xp, BOUNTIES.tower.gold, 'Tower');
         }
       }
       if (report.hits.length > 0) reportObjectives();
 
-      // Blood Thirst Buff: Lifesteal on all damage dealt
+      // Lifesteal calculation (from Blood Thirst buff and items)
       const hasBloodThirst = liveBuffs.some((b) => b.type === 'blood_thirst' && clock < b.expiresAt);
-      if (hasBloodThirst && damageDealtToFoes > 0 && playerHealth > 0) {
-        const heal = damageDealtToFoes * 0.2;
-        playerHealth = Math.min(heroRef.current.health, playerHealth + heal);
+      const totalLifesteal = (hasBloodThirst ? 0.2 : 0) + activeStats.lifestealPct;
+      if (totalLifesteal > 0 && damageDealtToFoes > 0 && playerHealth > 0) {
+        const heal = damageDealtToFoes * totalLifesteal;
+        playerHealth = Math.min(activeStats.maxHp, playerHealth + heal);
         setPlayerHp(playerHealth);
+        damageNumbers.spawn(px, terrainHeight(px, pz) + 1.2, pz, heal, 'heal');
       }
 
       const line = strikeLine(label, foeOutcome, report, minionReport);
@@ -459,22 +617,30 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     const startWindup = (slot: CastSlot, ability: Ability) => {
       const startX = px;
       const startZ = pz;
-      const startHeading = heading;
-      const dir = direction(startHeading);
+      // Aim dynamically towards mouse cursor
+      const aimHeading = Math.atan2(mouseGroundX - startX, mouseGroundZ - startZ);
+      const castHeading = Number.isFinite(aimHeading) ? aimHeading : heading;
+      heading = castHeading;
+
+      const dir = direction(castHeading);
       const life = Math.max(0.12, ability.windup);
 
+      sound.playSpellCast(ability.shape);
+      // Spawn ancient Baybayin/Sunburst cast rune at caster feet
+      combatFx.addCastRune(startX, startZ, 2.4, TEAMS.anito.light, life + 0.1);
+
       if (ability.shape === 'ground') {
-        combatFx.addCircle(
-          startX + dir.x * ability.range,
-          startZ + dir.z * ability.range,
-          ability.width,
-          TEAMS.anito.light,
-          life
-        );
+        const targetDist = Math.min(ability.range, Math.hypot(mouseGroundX - startX, mouseGroundZ - startZ));
+        const tx = startX + dir.x * targetDist;
+        const tz = startZ + dir.z * targetDist;
+        combatFx.addCircle(tx, tz, ability.width, TEAMS.anito.light, life);
+        reticles.show(ability, startX, startZ, tx, tz, TEAMS.anito.light);
       } else if (ability.shape === 'cone') {
-        combatFx.addCone(startX, startZ, startHeading, ability.range, ability.width, TEAMS.anito.light, life);
+        combatFx.addCone(startX, startZ, castHeading, ability.range, ability.width, TEAMS.anito.light, life);
+        reticles.show(ability, startX, startZ, mouseGroundX, mouseGroundZ, TEAMS.anito.light);
       } else {
-        combatFx.addLine(startX, startZ, startHeading, ability.range, ability.width, TEAMS.anito.light, life);
+        combatFx.addLine(startX, startZ, castHeading, ability.range, ability.width, TEAMS.anito.light, life);
+        reticles.show(ability, startX, startZ, mouseGroundX, mouseGroundZ, TEAMS.anito.light);
       }
 
       windups.push({
@@ -482,10 +648,10 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         slot,
         x: startX,
         z: startZ,
-        heading: startHeading,
+        heading: castHeading,
         triggerAt: clock + ability.windup,
       });
-      ready[slot] = clock + ability.cooldown;
+      ready[slot] = clock + ability.cooldown * (1 - activeStats.cooldownHaste);
       castLockUntil = Math.max(castLockUntil, clock + ability.lock);
       setCombatLine(`${ability.name} aimed.`);
     };
@@ -495,18 +661,57 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       const currentHero = heroRef.current;
       const cooldown = ready[slot] - clock;
       const ability = abilityForSlot(currentHero, slot);
-      const label = ability?.name ?? 'Strike';
+      const label = slot === 'potion' ? 'Health Potion' : slot === 'spell' ? 'Flicker Spell' : ability?.name ?? 'Strike';
       if (cooldown > 0) {
         setCombatLine(`${label} ready in ${cooldown.toFixed(1)}s.`);
         return;
       }
 
+      if (slot === 'potion') {
+        ready.potion = clock + 35;
+        sound.playPotion();
+        grantBuff('bulul_blessing', 'Agimat Potion Regen', 5.0);
+        playerHealth = Math.min(activeStats.maxHp, playerHealth + 250);
+        setPlayerHp(playerHealth);
+        damageNumbers.spawn(px, terrainHeight(px, pz) + 1.2, pz, 250, 'heal');
+        combatFx.addBlessingBurst(px, pz, 0x10b981);
+        setCombatLine('Used Health Potion (+250 HP recovered).');
+        syncCooldowns();
+        return;
+      }
+
+      if (slot === 'spell') {
+        ready.spell = clock + 45;
+        sound.playDash();
+        const aimHeading = Math.atan2(mouseGroundX - px, mouseGroundZ - pz);
+        const castHeading = Number.isFinite(aimHeading) ? aimHeading : heading;
+        const dir = direction(castHeading);
+        const blinkDist = 6.5;
+        const next = resolveBody(px + dir.x * blinkDist, pz + dir.z * blinkDist, heroRadius(currentHero.build.scale));
+        combatFx.addBurst(px, pz, 0x00e5ff);
+        px = next.x;
+        pz = next.z;
+        heading = castHeading;
+        combatFx.addBurst(px, pz, 0x00e5ff);
+        stage.addCameraShake(0.25);
+        setCombatLine('Cast Flicker Spell (Instant Flash Dash)!');
+        syncCooldowns();
+        return;
+      }
+
       if (slot === 'basic') {
-        ready.basic = clock + currentHero.attackCooldown;
+        ready.basic = clock + currentHero.attackCooldown / activeStats.attackSpeedMultiplier;
         castLockUntil = Math.max(castLockUntil, clock + Math.min(0.18, currentHero.attackCooldown * 0.3));
-        combatFx.addLine(px, pz, heading, currentHero.attackRange, BASIC_WIDTH, TEAMS.anito.light, 0.16);
-        const landed = resolveHit('Strike', currentHero.attack, (tx, tz, r) =>
-          lineHitsPoint(px, pz, heading, currentHero.attackRange, BASIC_WIDTH, tx, tz, r)
+
+        const aimHeading = Math.atan2(mouseGroundX - px, mouseGroundZ - pz);
+        const castHeading = Number.isFinite(aimHeading) ? aimHeading : heading;
+        heading = castHeading;
+
+        sound.playMeleeHit();
+        combatFx.addLine(px, pz, castHeading, currentHero.attackRange, BASIC_WIDTH, TEAMS.anito.light, 0.16);
+        combatFx.addSlashArc(px, pz, castHeading, Math.max(1.8, currentHero.attackRange * 0.85), TEAMS.anito.light, 0.22);
+        const landed = resolveHit('Strike', activeStats.attack, (tx, tz, r) =>
+          lineHitsPoint(px, pz, castHeading, currentHero.attackRange, BASIC_WIDTH, tx, tz, r)
         );
         if (!landed) setCombatLine('Strike cuts empty air.');
         return;
@@ -516,6 +721,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     };
 
     const resolveWindup = (cast: WindupCast) => {
+      reticles.hide();
       const dir = direction(cast.heading);
       const targetX = cast.x + dir.x * cast.ability.range;
       const targetZ = cast.z + dir.z * cast.ability.range;
@@ -568,18 +774,15 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
     const loop = () => {
       raf = requestAnimationFrame(loop);
       const now = performance.now();
-      // Clamped: a backgrounded tab returns with a huge delta, and integrating
-      // that in one step teleports the body through the walls.
       const dt = last === 0 ? 0 : Math.min(0.05, (now - last) / 1000);
       last = now;
       clock += dt;
 
-      // Rebuild the body when the hero changes, rather than tearing the whole
-      // scene down: the arena and the lights are the expensive part.
       const want = heroRef.current;
       if (want.id !== activeHeroId) {
         activeHeroId = want.id;
-        playerHealth = want.health;
+        activeStats = refreshStats();
+        playerHealth = activeStats.maxHp;
         setPlayerHp(playerHealth);
         windups.length = 0;
         for (const p of projectiles.splice(0)) combatFx.removeObject(p.object);
@@ -597,13 +800,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         syncCooldowns();
       }
 
-      // ── input ────────────────────────────────────────────────────────────
-      // Rotated 45 degrees to match the camera's yaw, so "up" on the keyboard
-      // is up on the SCREEN rather than up on the world axis. Without this the
-      // controls feel diagonal to everyone who has not read the source.
-      // Q and E turn, as do the on-screen buttons and a right-drag. All three
-      // write the same yaw, so no control has its own idea of where the camera
-      // is pointing.
+      // ── Movement & Controls ───────────────────────────────────────────────
       const turnKey = (keys.has('q') ? 1 : 0) - (keys.has('e') ? 1 : 0);
       camera.update(dt, turnKey + turnRef.current);
       if (Math.abs(camera.yaw - yawShown) > 0.02) {
@@ -611,12 +808,20 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         setCompass(camera.yaw);
       }
 
-      let ix = 0;
-      let iz = 0;
+      let ix = joyRef.current.x;
+      let iz = joyRef.current.z;
       if (keys.has('w') || keys.has('arrowup')) iz -= 1;
       if (keys.has('s') || keys.has('arrowdown')) iz += 1;
       if (keys.has('a') || keys.has('arrowleft')) ix -= 1;
-      if (keys.has('d') || keys.has('arrowright')) ix += 1;
+      if (keys.has('d') || keys.has('arrowright')) ix -= 1;
+
+      const kx = (keys.has('d') || keys.has('arrowright') ? 1 : 0) - (keys.has('a') || keys.has('arrowleft') ? 1 : 0);
+      const kz = (keys.has('s') || keys.has('arrowdown') ? 1 : 0) - (keys.has('w') || keys.has('arrowup') ? 1 : 0);
+      if (kx !== 0 || kz !== 0) {
+        setKeyboardVector({ x: kx, z: kz });
+      } else if (joyRef.current.x === 0 && joyRef.current.z === 0) {
+        setKeyboardVector({ x: 0, z: 0 });
+      }
 
       let moving = false;
       if (dash) {
@@ -642,30 +847,14 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         if (actual < step * 0.25 || dash.remaining <= 0) dash = null;
       } else if ((ix !== 0 || iz !== 0) && clock >= castLockUntil && playerHealth > 0) {
         moving = true;
-        // ⚠ MOVEMENT IS ROTATED BY THE LIVE YAW, not by a baked 45 degrees.
-        // This was a constant, which was correct only while the camera could
-        // not turn; leaving it would mean that the moment a player rotated the
-        // view, "forward" stopped being up the screen and the controls became
-        // unusable at every angle except the original one.
         const cos = Math.cos(camera.yaw);
         const sin = Math.sin(camera.yaw);
         const dx = ix * cos + iz * sin;
         const dz = -ix * sin + iz * cos;
         const len = Math.hypot(dx, dz) || 1;
-        // The river slows you; a bridge does not. That difference is the whole
-        // reason the three crossings are worth contesting.
         const hasWindStride = liveBuffs.some((b) => b.type === 'wind_stride' && clock < b.expiresAt);
         const speedMult = (hasWindStride ? 1.35 : 1.0) * riverSpeed(px, pz);
-        const step = want.speed * speedMult * dt;
-        // Clamped to the map for now. Pathing blockades arrive with the jungle
-        // assets; until they exist there is nothing to collide with.
-        // Walls first, then the map edge. A body pushed out of a wall must not
-        // then be clamped back into it.
-        // Barriers first, then base walls. Both slide rather than stop.
-        // ⚠ ONE RADIUS, DERIVED FROM THE HERO'S HEIGHT. It was hard-coded at
-        // 0.7 in both calls, which was correct only while heroes were 1.75 tall;
-        // scaling the model without this leaves a giant rattling around inside
-        // a collider built for someone a third its size.
+        const step = activeStats.speed * speedMult * dt;
         const bodyR = heroRadius(want.build.scale);
         const next = resolveBody(px + (dx / len) * step, pz + (dz / len) * step, bodyR);
         px = next.x;
@@ -679,13 +868,19 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         setHidden(inBrush);
       }
 
+      // Passive health regeneration
+      if (playerHealth > 0 && playerHealth < activeStats.maxHp) {
+        playerHealth = Math.min(activeStats.maxHp, playerHealth + activeStats.hpRegen * dt);
+        setPlayerHp(playerHealth);
+      }
+
       // Expired buffs cleanup & Bulul Blessing health regeneration
       for (let i = liveBuffs.length - 1; i >= 0; i--) {
         if (clock >= liveBuffs[i].expiresAt) liveBuffs.splice(i, 1);
       }
       const hasBululBlessing = liveBuffs.some((b) => b.type === 'bulul_blessing' && clock < b.expiresAt);
-      if (hasBululBlessing && playerHealth < want.health && playerHealth > 0) {
-        playerHealth = Math.min(want.health, playerHealth + 35 * dt);
+      if (hasBululBlessing && playerHealth < activeStats.maxHp && playerHealth > 0) {
+        playerHealth = Math.min(activeStats.maxHp, playerHealth + 35 * dt);
         setPlayerHp(playerHealth);
       }
 
@@ -707,9 +902,6 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         p.object.position.set(p.x, combatGroundY(p.x, p.z) + 1.1, p.z);
         p.object.rotation.y += dt * 5;
 
-        // ⚠ TESTED AGAINST THE FOE ONLY WHILE IT IS ALIVE, so a shot cannot
-        // stop in mid-air on a corpse; structures are handled by the same
-        // predicate, which is why the whole test goes through resolveHit.
         const consumed = resolveHit(p.ability.name, p.ability.damage, (tx, tz, r) =>
           segmentHitsPoint(oldX, oldZ, p.x, p.z, tx, tz, p.ability.width + r)
         );
@@ -724,9 +916,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         }
       }
 
-      // ⚠ ONLY WHILE THE BODY EXISTS. The mesh loads asynchronously, and a
-      // brain ticking before it arrives means a Kapre that crosses half the map
-      // invisibly and pops into existence already swinging.
+      // ── Brute Simulation ──────────────────────────────────────────────────
       if (foe) {
         const tick = brute.update(dt, {
           clock,
@@ -751,7 +941,36 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         foe.update(dt);
       }
 
-      // ── Neutral Jungle Creeps Simulation ──────────────────────────────────
+      // ── Mid Lane AI Bot Hero Simulation ───────────────────────────────────
+      const botAction = botOpponent.update(dt, px, pz, playerHealth);
+      if (botActor) {
+        if (botOpponent.state === 'dead') {
+          botActor.object.visible = false;
+        } else {
+          botActor.object.visible = true;
+          botActor.setPosition(botOpponent.x, terrainHeight(botOpponent.x, botOpponent.z), botOpponent.z);
+          botActor.setFacing(botOpponent.heading);
+          botActor.play(botAction?.type === 'move' ? 'walk' : 'idle');
+          botActor.update(dt);
+
+          if (botAction?.type === 'attack') {
+            sound.playMeleeHit();
+            combatFx.addLine(botOpponent.x, botOpponent.z, botOpponent.heading, botOpponent.hero.attackRange, BASIC_WIDTH, TEAMS.malakas.light, 0.16);
+            hurtPlayer(getScaledAttack(botOpponent.hero.attack, botOpponent.level), botOpponent.hero.name);
+          } else if (botAction?.type === 'cast' && botAction.slot) {
+            const botAbility = abilityForSlot(botOpponent.hero, botAction.slot);
+            if (botAbility) {
+              sound.playSpellCast(botAbility.shape);
+              combatFx.addCone(botOpponent.x, botOpponent.z, botOpponent.heading, botAbility.range, botAbility.width, TEAMS.malakas.light, 0.2);
+              if (Math.hypot(px - botOpponent.x, pz - botOpponent.z) <= botAbility.range) {
+                hurtPlayer(botAbility.damage, `${botOpponent.hero.name}'s ${botAbility.name}`);
+              }
+            }
+          }
+        }
+      }
+
+      // ── Jungle Creeps Simulation ──────────────────────────────────────────
       const bodyRadius = heroRadius(want.build.scale);
       const creepTick = creepManager.update(dt, clock, {
         x: px,
@@ -770,7 +989,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       }
       creepRender.update(creepManager.creeps, clock);
 
-      // ── Major Epic Bosses (Bakunawa & Kapre) & Pushing Kapre Simulation ─────
+      // ── Epic Bosses (Bakunawa & Kapre) Simulation ─────────────────────────
       const bossTick = bossManager.update(
         dt,
         clock,
@@ -794,7 +1013,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       for (const tel of bossTick.telegraphs) {
         if (tel.type === 'circle') {
           combatFx.addCircle(tel.x, tel.z, tel.radius ?? 5.5, tel.colour, 0.6);
-          stage.addCameraShake(0.55); // Ground stomp / tail sweep rumble
+          stage.addCameraShake(0.55);
         } else if (tel.type === 'cone') {
           combatFx.addCone(
             tel.x,
@@ -810,7 +1029,6 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       }
       bossRender.update(bossManager.bakunawa, bossManager.kapre, bossManager.pushingKapre, clock);
 
-      // Closest boss distance for Epic Boss HUD bar
       const distBakunawa = Math.hypot(px - bossManager.bakunawa.x, pz - bossManager.bakunawa.z);
       const distKapre = Math.hypot(px - bossManager.kapre.x, pz - bossManager.kapre.z);
       if (bossManager.bakunawa.alive && (distBakunawa <= 32 || bossManager.bakunawa.inCombat)) {
@@ -843,22 +1061,21 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       const camp = campAt(px, pz);
       if (camp) {
         if (camp.id.startsWith('bulul-nw') || camp.id.startsWith('bulul-se')) {
-          // Elder Bulul: health regeneration tick
-          if (playerHealth < want.health && playerHealth > 0) {
-            playerHealth = Math.min(want.health, playerHealth + 36 * dt);
+          if (playerHealth < activeStats.maxHp && playerHealth > 0) {
+            playerHealth = Math.min(activeStats.maxHp, playerHealth + 36 * dt);
             setPlayerHp(playerHealth);
           }
         }
       }
 
-      // ⚠ ONLY WHILE THE PLAYER IS UP. A corpse waiting to respawn standing in
-      // a tower's range would be shot back down the instant it stood.
+      // Tower acquisition & fire
       if (playerHealth > 0) {
         const shot = towerFire.update(clock, px, pz, minionManager);
         if (shot.from) {
           const maskY = terrainHeight(shot.from.x, shot.from.z) + (shot.from.tier === 1 ? 7.6 : shot.from.tier === 2 ? 9.1 : 10.8);
           const targetY = combatGroundY(shot.targetX, shot.targetZ) + 1.2;
           const shotColour = TEAMS[shot.from.team as TeamId]?.light ?? TEAMS[ENEMY].light;
+          sound.playTowerShot();
           combatFx.addEnergyOrb(
             shot.from.x,
             maskY,
@@ -870,15 +1087,16 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
             0.26
           );
           if (shot.damage > 0) {
+            sound.playTowerImpact();
             hurtPlayer(shot.damage, 'A tower');
           } else if (shot.minionHit) {
+            sound.playTowerImpact();
             combatFx.addBurst(shot.targetX, shot.targetZ, shotColour);
           }
         }
       }
 
       if (player) {
-        // A bridge holds the ground level; everything else follows the terrain.
         player.setPosition(px, onCrossing(px, pz) ? DECK_HEIGHT : terrainHeight(px, pz), pz);
         player.setFacing(heading);
         player.play(moving ? 'run' : 'idle');
@@ -886,6 +1104,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       }
       terrain.userData.update?.(clock);
       clutter.update(clock);
+      groundCover.update(clock);
       nexus.update(clock);
       towers.update(clock);
       camps.update(clock);
@@ -898,6 +1117,36 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       stage.lookAtGround(px, pz);
       stage.render();
 
+      // Screen Projections & Floating Numbers
+      const cW = canvas.clientWidth || 1;
+      const cH = canvas.clientHeight || 1;
+      const activeFloatingTexts = damageNumbers.update(dt, stage.camera, cW, cH);
+      setFloatingTexts(activeFloatingTexts);
+
+      const tempV = new THREE.Vector3();
+      const hH = heroHeight(want.build.scale);
+      const py = onCrossing(px, pz) ? DECK_HEIGHT : terrainHeight(px, pz);
+      tempV.set(px, py + hH + 0.35, pz).project(stage.camera);
+      setPlayerScreenPos({
+        x: (tempV.x * 0.5 + 0.5) * cW,
+        y: (-tempV.y * 0.5 + 0.5) * cH,
+        visible: tempV.z < 1,
+      });
+      setPlayerPos({ x: px, z: pz, heading });
+
+      if (foe && brute.alive) {
+        const fy = onCrossing(brute.x, brute.z) ? DECK_HEIGHT : terrainHeight(brute.x, brute.z);
+        tempV.set(brute.x, fy + KAPRE.model.height * 0.9, brute.z).project(stage.camera);
+        setFoeScreenPos({
+          x: (tempV.x * 0.5 + 0.5) * cW,
+          y: (-tempV.y * 0.5 + 0.5) * cH,
+          visible: tempV.z < 1,
+        });
+        setFoePos({ x: brute.x, z: brute.z });
+      } else {
+        setFoeScreenPos(undefined);
+      }
+
       frames++;
       fpsClock += dt;
       if (fpsClock >= 0.5) {
@@ -908,6 +1157,32 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       combatUiClock += dt;
       if (combatUiClock >= 0.12) {
         syncCooldowns();
+        setMatchTime(clock);
+        currentGold += 1; // +1 gold/sec passive income
+        setPlayerGold(currentGold);
+        setMinionsData(
+          minionManager.minions.map((m) => ({
+            id: m.id,
+            x: m.x,
+            z: m.z,
+            team: m.team,
+            kind: m.kind,
+            health: m.health,
+            maxHealth: m.maxHealth,
+          }))
+        );
+        setTowersData(
+          objectives.all
+            .filter((s) => s.kind === 'tower')
+            .map((t) => ({
+              id: t.id,
+              x: t.x,
+              z: t.z,
+              team: t.team,
+              alive: objectives.alive(t),
+              tier: t.tier,
+            }))
+        );
         setActiveBuffs(
           liveBuffs.map((b) => ({
             id: b.type,
@@ -919,13 +1194,31 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         combatUiClock = 0;
       }
     };
+
+    pingFn.current = (type: string) => {
+      stage.addCameraShake(0.2);
+      if (type === 'gather') {
+        combatFx.addCircle(36, -14, 6.0, 0x00e5ff, 1.2);
+        setCombatLine('📍 Tactical Alert: Group up at Bakunawa River Basin!');
+      } else if (type === 'attack') {
+        combatFx.addCircle(0, 0, 5.0, 0xff3366, 1.2);
+        setCombatLine('⚔ Attack Alert: Focus Fire on Mid Objectives!');
+      } else {
+        combatFx.addCircle(px, pz, 4.0, 0xffd06f, 1.0);
+        setCombatLine('🛡 Defense Alert: Fall back to sanctuary!');
+      }
+    };
+
     loop();
 
     return () => {
       disposed = true;
       zoomFn.current = null;
       castFn.current = null;
+      pingFn.current = null;
+      buyFn.current = null;
       cancelAnimationFrame(raf);
+      window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
       window.removeEventListener('resize', onResize);
@@ -939,6 +1232,7 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
         }
       });
       clutter.dispose();
+      groundCover.dispose();
       nexus.dispose();
       towers.dispose();
       walls.dispose();
@@ -948,15 +1242,16 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
       backdrop.dispose();
       santelmo.dispose();
       combatFx.dispose();
+      reticles.dispose();
+      damageNumbers.clear();
       minionRender.dispose();
       creepRender.dispose();
       bossRender.dispose();
       player?.dispose();
       foe?.dispose();
+      botActor?.dispose();
       stage.dispose();
     };
-    // Built once. The hero is read through a ref so that changing it does not
-    // rebuild the arena.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -966,25 +1261,48 @@ export default function Arena3D({ heroId = 'tikbalang' }: { heroId?: string }) {
 
       <HeroHud
         hero={hero}
+        territory={territory}
         playable={playable}
         onPick={setHero}
         fps={fps}
         hidden={hidden}
         playerHp={playerHp}
+        playerMaxHp={playerMaxHp}
+        playerLevel={playerLevel}
+        playerGold={playerGold}
+        playerXpPercent={playerXpPercent}
+        playerPos={playerPos}
+        playerScreenPos={playerScreenPos}
         foeName={KAPRE.name}
         foeHp={kapreHp}
         foeMaxHp={KAPRE.health}
+        foePos={foePos}
+        foeScreenPos={foeScreenPos}
+        minions={minionsData}
+        towers={towersData}
+        matchTime={matchTime}
+        allyKills={allyKills}
+        enemyKills={enemyKills}
         combatLine={combatLine}
         objectiveLine={objectiveLine}
         won={won}
         cooldowns={cooldowns}
         onCast={cast}
+        onMoveVector={(dx, dz) => {
+          joyRef.current = { x: dx, z: dz };
+        }}
+        keyboardMovingVector={keyboardVector}
         compass={compass}
         zoomShown={zoomShown}
         onZoom={zoomBy}
         onTurn={(dir) => {
           turnRef.current = dir;
         }}
+        onPing={handlePing}
+        onBuyItem={handleBuyItem}
+        equippedItems={equippedItems}
+        effectiveStats={effectiveStats}
+        floatingTexts={floatingTexts}
         activeBuffs={activeBuffs}
         bossName={bossName}
         bossHp={bossHp}

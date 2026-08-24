@@ -53,8 +53,15 @@ function terrainNoise(x: number, z: number): number {
   return smoothNoise(x * 0.035, z * 0.035) * 0.7 + smoothNoise(x * 0.09, z * 0.09) * 0.3;
 }
 
-/** Proximity factor to the North-West Mayon volcanic biome. */
-function volcanicStrength(x: number, z: number): number {
+/**
+ * Proximity factor to the North-West Mayon volcanic biome.
+ *
+ * Exported because the floor has to agree with the ground it stands on:
+ * groundcover.ts uses this to keep grass and flowers out of the scorched zone.
+ * Duplicating the falloff there would let the two drift apart, and the failure
+ * would look like a texture bug rather than a disagreement between two files.
+ */
+export function volcanicStrength(x: number, z: number): number {
   const distNW = Math.hypot(x - (-95), z - (-95));
   const k = Math.max(0, 1 - distNW / 95);
   return k * k * (3 - 2 * k);
