@@ -20,6 +20,7 @@ import { HEROES, type Hero, heroHeight } from '@/game/heroes';
 import { TERRITORIES, type Territory, DEFAULT_TERRITORY } from '@/game/territories';
 import { createActor, type Actor } from '@/game/render3d/actor';
 import { sound } from '@/game/audio/synth';
+import { loadPlayerProfile, getRankForLevel, type PlayerProfile } from '@/game/progression/profile';
 
 export default function HeroSelectionLobby() {
   const [activeTab, setActiveTab] = useState<'heroes' | 'territories'>('heroes');
@@ -28,8 +29,38 @@ export default function HeroSelectionLobby() {
   const [selectedRole, setSelectedRole] = useState<string>('all');
   const [activeStoryChapter, setActiveStoryChapter] = useState<number>(1);
   const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(true);
+  const [playerProfile] = useState<PlayerProfile>(() => loadPlayerProfile());
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallGuide, setShowInstallGuide] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setDeferredPrompt(null);
+        }
+      } catch {
+        setShowInstallGuide(true);
+      }
+    } else {
+      setShowInstallGuide(true);
+    }
+  };
+
+
 
   const playableHeroes = HEROES.filter((h) => h.model);
   const filteredHeroes =
@@ -203,16 +234,81 @@ export default function HeroSelectionLobby() {
           </button>
         </div>
 
-        {/* Quick Launch Button with current Hero & Territory */}
-        <Link
-          href={`/play?hero=${selectedHero.id}&territory=${selectedTerritory.id}`}
-          style={quickPlayHeaderBtn}
-        >
-          <span>⚔️ ENTER ARENA</span>
-          <span style={{ fontSize: 10, opacity: 0.85, display: 'block', fontWeight: 600 }}>
-            {selectedHero.name} · {selectedTerritory.name}
-          </span>
-        </Link>
+        {/* Progressive Profile & Rank Badge */}
+        {playerProfile ? (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              background: 'rgba(15, 23, 42, 0.85)',
+              border: '1.5px solid rgba(255, 215, 0, 0.4)',
+              borderRadius: 24,
+              padding: '4px 14px 4px 6px',
+            }}
+          >
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #FFD700, #F59E0B)',
+                display: 'grid',
+                placeItems: 'center',
+                fontSize: 16,
+              }}
+            >
+              {getRankForLevel(playerProfile.accountLevel).badgeEmoji}
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <strong style={{ fontSize: 12, color: '#F1F5F9' }}>
+                  {playerProfile.name}
+                </strong>
+
+                <span style={{ fontSize: 9.5, background: '#0284C7', color: '#FFF', padding: '1px 5px', borderRadius: 6, fontWeight: 800 }}>
+                  LVL {playerProfile.accountLevel}
+                </span>
+              </div>
+              <span style={{ fontSize: 10, color: '#FFD700' }}>
+                {getRankForLevel(playerProfile.accountLevel).baybayin} · {getRankForLevel(playerProfile.accountLevel).title}
+              </span>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Progressive App Install & Quick Launch Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            style={{
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.3))',
+              border: '1.5px solid #10B981',
+              color: '#6EE7B7',
+              borderRadius: 999,
+              padding: '8px 16px',
+              fontSize: 11,
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+            onClick={handleInstallApp}
+          >
+            <span>📱</span>
+            <span>I-INSTALL ANG APP</span>
+          </button>
+
+          <Link
+            href={`/play?hero=${selectedHero.id}&territory=${selectedTerritory.id}`}
+            style={quickPlayHeaderBtn}
+          >
+            <span>⚔️ ENTER ARENA</span>
+            <span style={{ fontSize: 10, opacity: 0.85, display: 'block', fontWeight: 600 }}>
+              {selectedHero.name} · {selectedTerritory.name}
+            </span>
+          </Link>
+        </div>
       </header>
 
       {/* VIEW 1: HEROES ROSTER VIEW */}
@@ -220,7 +316,7 @@ export default function HeroSelectionLobby() {
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
           {/* Role Filters Subheader */}
           <div style={filterSubheader}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
               <span style={{ fontSize: 12, color: '#FFD700', fontWeight: 800 }}>ROLE FILTER:</span>
               {['all', 'vanguard', 'mystic', 'stalker', 'warden', 'ranger'].map((r) => (
                 <button
@@ -257,16 +353,17 @@ export default function HeroSelectionLobby() {
             </div>
           </div>
 
-          <main style={mainGrid}>
+          <main className="lobby-main-grid" style={mainGrid}>
             {/* 1. Left Hero List */}
             <section style={rosterSection}>
               <h2 style={sectionTitle}>CHOOSE CHAMPION</h2>
-              <div style={heroCardList}>
+              <div className="lobby-hero-list" style={heroCardList}>
                 {filteredHeroes.map((h) => {
                   const isSelected = h.id === selectedHero.id;
                   return (
                     <div
                       key={h.id}
+                      className="lobby-hero-card"
                       style={{
                         ...heroCard,
                         borderColor: isSelected ? '#FFD700' : 'rgba(255,255,255,0.12)',
@@ -299,7 +396,7 @@ export default function HeroSelectionLobby() {
             </section>
 
             {/* 2. Center 3D Interactive Turntable */}
-            <section style={previewSection}>
+            <section className="lobby-turntable" style={previewSection}>
               <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
               <div style={turntableOverlay}>
                 {selectedHero.baybayin && <span style={{ fontSize: 18, color: '#FFD700', letterSpacing: 6 }}>{selectedHero.baybayin}</span>}
@@ -405,7 +502,7 @@ export default function HeroSelectionLobby() {
       {activeTab === 'territories' && (
         <div style={territoriesViewContainer}>
           {/* Territory Selector Cards Bar */}
-          <div style={territoryCardsBar}>
+          <div className="lobby-territory-picker" style={territoryCardsBar}>
             {TERRITORIES.map((t) => {
               const isSelected = t.id === selectedTerritory.id;
               return (
@@ -445,7 +542,7 @@ export default function HeroSelectionLobby() {
           </div>
 
           {/* Territory Deep Dive Grid */}
-          <div style={territoryDetailGrid}>
+          <div className="lobby-territory-grid" style={territoryDetailGrid}>
             {/* Left: Cinematic Video Player & Media Preview */}
             <div style={videoPlayerContainer}>
               <div style={videoWrapper}>
@@ -618,6 +715,86 @@ export default function HeroSelectionLobby() {
               >
                 <span>⚔️ DEPLOY {selectedHero.name.toUpperCase()} TO {selectedTerritory.name.toUpperCase()}</span>
               </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* iOS Safari / Web PWA Installation Guide Modal */}
+      {showInstallGuide && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(2, 6, 23, 0.85)',
+            backdropFilter: 'blur(8px)',
+            display: 'grid',
+            placeItems: 'center',
+            zIndex: 100,
+            padding: 16,
+          }}
+          onClick={() => setShowInstallGuide(false)}
+        >
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #1E293B, #0F172A)',
+              border: '1.5px solid rgba(255, 215, 0, 0.4)',
+              borderRadius: 16,
+              padding: 24,
+              maxWidth: 480,
+              width: '100%',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.8)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <strong style={{ fontSize: 18, color: '#FFD700' }}>📱 I-install ang Alamat MOBA App</strong>
+              <button
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94A3B8',
+                  fontSize: 18,
+                  cursor: 'pointer',
+                }}
+                onClick={() => setShowInstallGuide(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gap: 14 }}>
+              <div style={{ background: 'rgba(15, 23, 42, 0.7)', borderRadius: 10, padding: 14, border: '1px solid rgba(0, 229, 255, 0.3)' }}>
+                <strong style={{ color: '#00E5FF', fontSize: 13.5 }}>Para sa iPhone / iPad (iOS Safari):</strong>
+                <ol style={{ fontSize: 12, color: '#CBD5E1', paddingLeft: 20, marginTop: 6, lineHeight: 1.6 }}>
+                  <li>Pindutin ang <strong>Share button (⎋ / 🔲⬆)</strong> sa ibaba ng Safari.</li>
+                  <li>Pumili ng <strong>&ldquo;Add to Home Screen&rdquo; (➕ Idagdag sa Home Screen)</strong>.</li>
+                  <li>Pindutin ang <strong>&ldquo;Add&rdquo;</strong> upang maging buong fullscreen mobile app!</li>
+                </ol>
+              </div>
+
+              <div style={{ background: 'rgba(15, 23, 42, 0.7)', borderRadius: 10, padding: 14, border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                <strong style={{ color: '#10B981', fontSize: 13.5 }}>Para sa Android (Chrome) / Desktop:</strong>
+                <p style={{ fontSize: 12, color: '#CBD5E1', marginTop: 4, lineHeight: 1.5 }}>
+                  Pindutin ang tatlong tuldok (⋮) sa Chrome menu at piliin ang <strong>Install Alamat MOBA</strong> para sa mabilis at offline progressive play!
+                </p>
+              </div>
+
+              <button
+                style={{
+                  background: 'linear-gradient(135deg, #D97706, #B45309)',
+                  border: '1.5px solid #FDE68A',
+                  color: '#FFF',
+                  padding: '10px',
+                  borderRadius: 10,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  marginTop: 6,
+                }}
+                onClick={() => setShowInstallGuide(false)}
+              >
+                Simulan ang Laban ⚔️
+              </button>
             </div>
           </div>
         </div>

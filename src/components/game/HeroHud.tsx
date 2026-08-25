@@ -22,16 +22,36 @@
 // 7. TOP-CENTER: Epic Boss HUD Bar (Bakunawa & Kapre) and Streamlined Combat Log.
 // 8. REAL INVENTORY & STAT MODALS: Live Agimat item shop & detailed RPG stat calculations.
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { TEAMS, type TeamId } from '@/game/arena/nexus';
 import type { CastSlot, CooldownState } from '@/game/combat';
-import type { Hero } from '@/game/heroes';
+import { abilityForSlot } from '@/game/combat/casting';
+import type { Hero, Ability } from '@/game/heroes';
 import { CAMPS } from '@/game/arena/camps';
 import { AGIMAT_ITEMS, type AgimatItem } from '@/game/items/catalogue';
 import type { EffectiveHeroStats } from '@/game/items/inventory';
 import type { FloatingTextHudData } from '@/game/render3d/damageNumbers';
 import { sound } from '@/game/audio/synth';
+import { haptics } from '@/game/audio/haptics';
+import {
+  loadPlayerProfile,
+  claimQuest,
+  updateSettings,
+  getRankForLevel,
+  type PlayerProfile,
+  type DailyQuest,
+  type MatchRewardResult,
+} from '@/game/progression/profile';
 import { type Territory, DEFAULT_TERRITORY } from '@/game/territories';
+
+export interface AimPreviewData {
+  slot: CastSlot;
+  active: boolean;
+  targetX?: number;
+  targetZ?: number;
+  heading?: number;
+  isCancelZone?: boolean;
+}
 
 export interface ActiveBuff {
   id: string;
@@ -57,6 +77,53 @@ export interface TowerHudData {
   team: TeamId;
   alive: boolean;
   tier: number;
+}
+
+export interface TeammateHudData {
+  id: string;
+  name: string;
+  heroId: string;
+  emoji: string;
+  hpPct: number;
+  manaPct: number;
+  ultReady: boolean;
+  level: number;
+  x: number;
+  z: number;
+  kills: number;
+  deaths: number;
+  assists: number;
+  gold: number;
+  damageDealt: number;
+  role: string;
+  title: string;
+}
+
+export interface EnemyBotHudData {
+  id: string;
+  name: string;
+  heroId: string;
+  emoji: string;
+  hpPct: number;
+  level: number;
+  x: number;
+  z: number;
+  kills: number;
+  deaths: number;
+  assists: number;
+  gold: number;
+  damageDealt: number;
+  role: string;
+  title: string;
+}
+
+export interface TacticalPingData {
+  id: string;
+  x: number;
+  z: number;
+  type: string;
+  label: string;
+  expiresAt: number;
 }
 
 export interface ScreenCoord {
@@ -92,8 +159,12 @@ export interface HeroHudProps {
   combatLine: string;
   objectiveLine: string;
   won: boolean;
+  defeated?: boolean;
+  matchReward?: MatchRewardResult;
   cooldowns: CooldownState;
   onCast: (slot: CastSlot) => void;
+  onCastTarget?: (slot: CastSlot, target?: { x?: number; z?: number; heading?: number; targetType?: 'hero' | 'minion' | 'tower' }) => void;
+  onAimPreview?: (data: AimPreviewData) => void;
   onMoveVector?: (dx: number, dz: number) => void;
   keyboardMovingVector?: { x: number; z: number };
   compass: number;
@@ -101,6 +172,10 @@ export interface HeroHudProps {
   onZoom: (factor: number) => void;
   onTurn: (dir: number) => void;
   onPing?: (type: string) => void;
+  onMapPing?: (worldX: number, worldZ: number, type: string) => void;
+  onScoutMap?: (target: { x: number; z: number } | null) => void;
+  onSkillUpgrade?: (slot: 'ability0' | 'ability1' | 'ability2' | 'ultimate', newLevel: number) => void;
+  onQualityChange?: (quality: 'performance' | 'balanced' | 'ultra') => void;
   onBuyItem?: (item: AgimatItem) => void;
   equippedItems?: AgimatItem[];
   effectiveStats?: EffectiveHeroStats;
@@ -109,6 +184,9 @@ export interface HeroHudProps {
   bossName?: string;
   bossHp?: number;
   bossMaxHp?: number;
+  teammatesData?: TeammateHudData[];
+  enemyBotsData?: EnemyBotHudData[];
+  activePings?: TacticalPingData[];
 }
 
 export default function HeroHud({
@@ -138,8 +216,12 @@ export default function HeroHud({
   combatLine,
   objectiveLine,
   won,
+  defeated = false,
+  matchReward,
   cooldowns,
   onCast,
+  onCastTarget,
+  onAimPreview,
   onMoveVector,
   keyboardMovingVector = { x: 0, z: 0 },
   compass,
@@ -147,6 +229,10 @@ export default function HeroHud({
   onZoom,
   onTurn,
   onPing,
+  onMapPing,
+  onScoutMap,
+  onSkillUpgrade,
+  onQualityChange,
   onBuyItem,
   equippedItems = [],
   effectiveStats,
@@ -155,6 +241,9 @@ export default function HeroHud({
   bossName,
   bossHp = 0,
   bossMaxHp = 1,
+  teammatesData,
+  enemyBotsData,
+  activePings = [],
 }: HeroHudProps) {
   // ── Modal Dialog States ──────────────────────────────────────────────────
   const [showStats, setShowStats] = useState(false);
@@ -166,14 +255,77 @@ export default function HeroHud({
   const [showMinionsCodex, setShowMinionsCodex] = useState(false);
   const [showScoreboard, setShowScoreboard] = useState(false);
   const [showBattlePings, setShowBattlePings] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [profileTab, setProfileTab] = useState<'dossier' | 'quests' | 'mastery'>('dossier');
   const [pingNotification, setPingNotification] = useState<string | null>(null);
+  const [quickBuyAlert, setQuickBuyAlert] = useState<string | null>(null);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
+  const [isHapticsOn, setIsHapticsOn] = useState(true);
+  const [joystickMode, setJoystickMode] = useState<'fixed' | 'dynamic'>('fixed');
+  const [graphicsQuality, setGraphicsQuality] = useState<'performance' | 'balanced' | 'ultra'>('balanced');
+  const [hudScale, setHudScale] = useState<'compact' | 'normal' | 'large'>('normal');
+  const [isPortrait, setIsPortrait] = useState(false);
+  const [playerProfile, setPlayerProfile] = useState<PlayerProfile>(() => loadPlayerProfile());
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showIosInstallGuide, setShowIosInstallGuide] = useState(false);
+  const [dynamicOrigin, setDynamicOrigin] = useState<{ x: number; y: number } | null>(null);
+
+  // Progressive Skill Levels State
+  const [skillLevels, setSkillLevels] = useState<{
+    ability0: number;
+    ability1: number;
+    ability2: number;
+    ultimate: number;
+  }>({
+    ability0: 1,
+    ability1: 1,
+    ability2: 1,
+    ultimate: 0,
+  });
+
+  // Calculate unspent skill upgrade points
+  const pointsSpent = (skillLevels.ability0 - 1) + (skillLevels.ability1 - 1) + (skillLevels.ability2 - 1) + skillLevels.ultimate;
+  const availableSkillPoints = Math.max(0, (playerLevel - 1) - pointsSpent);
+
+  // Capture PWA beforeinstallprompt event
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  // Detect orientation changes for mobile guide
+  useEffect(() => {
+    const checkOrientation = () => {
+      if (typeof window !== 'undefined') {
+        const portrait = window.innerHeight > window.innerWidth && window.innerWidth < 800;
+        setIsPortrait(portrait);
+      }
+    };
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, []);
 
   // ── Virtual Joystick State ───────────────────────────────────────────────
   const joystickContainerRef = useRef<HTMLDivElement | null>(null);
   const [thumbPos, setThumbPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const pointerIdRef = useRef<number | null>(null);
+
+  // ── Skill Drag-Aiming & Smart-Cast States ─────────────────────────────────
+  const [aimSlot, setAimSlot] = useState<CastSlot | null>(null);
+  const [aimDragOffset, setAimDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isInCancelZone, setIsInCancelZone] = useState<boolean>(false);
+  const aimPointerIdRef = useRef<number | null>(null);
+  const aimStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Derive active thumbpad position (dragging vs keyboard WASD tactile feedback)
   const isKeyboardMoving = keyboardMovingVector.x !== 0 || keyboardMovingVector.z !== 0;
@@ -189,11 +341,22 @@ export default function HeroHud({
     ? (keyboardMovingVector.z / keyboardLen) * 36
     : 0;
 
-  const updateJoystickPos = (clientX: number, clientY: number) => {
-    if (!joystickContainerRef.current) return;
-    const rect = joystickContainerRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
+  const updateJoystickPos = (clientX: number, clientY: number, originOverride?: { x: number; y: number } | null) => {
+    const origin = originOverride !== undefined ? originOverride : dynamicOrigin;
+    let centerX: number;
+    let centerY: number;
+
+    if (joystickMode === 'dynamic' && origin) {
+      centerX = origin.x;
+      centerY = origin.y;
+    } else if (joystickContainerRef.current) {
+      const rect = joystickContainerRef.current.getBoundingClientRect();
+      centerX = rect.left + rect.width / 2;
+      centerY = rect.top + rect.height / 2;
+    } else {
+      return;
+    }
+
     const rawDx = clientX - centerX;
     const rawDy = clientY - centerY;
     const dist = Math.hypot(rawDx, rawDy);
@@ -220,8 +383,26 @@ export default function HeroHud({
   const handleJoystickPointerDown = (e: React.PointerEvent) => {
     setIsDragging(true);
     pointerIdRef.current = e.pointerId;
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    haptics.tick();
     updateJoystickPos(e.clientX, e.clientY);
+  };
+
+  const handleDynamicZonePointerDown = (e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).tagName === 'BUTTON' || (e.target as HTMLElement).closest('button')) return;
+    setIsDragging(true);
+    pointerIdRef.current = e.pointerId;
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    haptics.tick();
+
+    if (joystickMode === 'dynamic') {
+      const origin = { x: e.clientX, y: e.clientY };
+      setDynamicOrigin(origin);
+      setThumbPos({ x: 0, y: 0 });
+      onMoveVector?.(0, 0);
+    } else {
+      updateJoystickPos(e.clientX, e.clientY);
+    }
   };
 
   const handleJoystickPointerMove = (e: React.PointerEvent) => {
@@ -234,9 +415,204 @@ export default function HeroHud({
       setIsDragging(false);
       pointerIdRef.current = null;
       setThumbPos({ x: 0, y: 0 });
+      setDynamicOrigin(null);
       onMoveVector?.(0, 0);
     }
   };
+
+  // ── Skill Upgrade Handler ─────────────────────────────────────────────────
+  const handleSkillUpgrade = (slot: 'ability0' | 'ability1' | 'ability2' | 'ultimate') => {
+    if (availableSkillPoints <= 0) return;
+    const currentRank = skillLevels[slot];
+    const maxRank = slot === 'ultimate' ? 3 : 5;
+    if (currentRank >= maxRank) return;
+    if (slot === 'ultimate' && playerLevel < 4) return;
+
+    const nextRank = currentRank + 1;
+    const nextSkillLevels = { ...skillLevels, [slot]: nextRank };
+    setSkillLevels(nextSkillLevels);
+    onSkillUpgrade?.(slot, nextRank);
+    sound.playPing('select');
+    haptics.levelUp();
+
+    const abilityName = slot === 'ultimate' ? hero.ultimate.name : hero.abilities[slot === 'ability0' ? 0 : slot === 'ability1' ? 1 : 2]?.name ?? 'Skill';
+    setPingNotification(`✨ I-tinakda: ${abilityName} Rank ${nextRank}! (+18% Dmg, -6% CD)`);
+    setTimeout(() => setPingNotification(null), 3200);
+  };
+
+  // ── Minimap Touch Scouting Handlers ───────────────────────────────────────
+  const isMapScoutingRef = useRef(false);
+  const mapScoutStartRef = useRef<{ x: number; y: number; time: number }>({ x: 0, y: 0, time: 0 });
+
+  const handleMinimapPointerDown = (e: React.PointerEvent) => {
+    isMapScoutingRef.current = true;
+    mapScoutStartRef.current = { x: e.clientX, y: e.clientY, time: performance.now() };
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    const worldX = (clickX / rect.width) * 200 - 100;
+    const worldZ = (clickY / rect.height) * 200 - 100;
+    onScoutMap?.({ x: worldX, z: worldZ });
+  };
+
+  const handleMinimapPointerMove = (e: React.PointerEvent) => {
+    if (!isMapScoutingRef.current) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    const worldX = (clickX / rect.width) * 200 - 100;
+    const worldZ = (clickY / rect.height) * 200 - 100;
+    onScoutMap?.({ x: worldX, z: worldZ });
+  };
+
+  const handleMinimapPointerUp = (e: React.PointerEvent) => {
+    if (!isMapScoutingRef.current) return;
+    isMapScoutingRef.current = false;
+    const duration = performance.now() - mapScoutStartRef.current.time;
+    const dist = Math.hypot(e.clientX - mapScoutStartRef.current.x, e.clientY - mapScoutStartRef.current.y);
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    const worldX = (clickX / rect.width) * 200 - 100;
+    const worldZ = (clickY / rect.height) * 200 - 100;
+
+    if (duration < 300 && dist < 12) {
+      // Quick tap without significant drag: Trigger tactical map attack ping
+      onMapPing?.(worldX, worldZ, 'attack');
+      sound.playPing('attack');
+      haptics.tick();
+    }
+
+    // Snap camera smoothly back to hero
+    onScoutMap?.(null);
+  };
+
+  // ── PWA Native Install Trigger ────────────────────────────────────────────
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setDeferredPrompt(null);
+        }
+      } catch {
+        setShowIosInstallGuide(true);
+      }
+    } else {
+      setShowIosInstallGuide(true);
+    }
+  };
+
+  // ── Skill Drag-Aiming Pointer Handlers ────────────────────────────────────
+  const handleAbilityPointerDown = (e: React.PointerEvent, slot: CastSlot) => {
+    e.stopPropagation();
+    const cooldown = cooldowns[slot];
+    if (cooldown > 0.05) return;
+    setAimSlot(slot);
+    setAimDragOffset({ x: 0, y: 0 });
+    setIsInCancelZone(false);
+    aimPointerIdRef.current = e.pointerId;
+    aimStartPosRef.current = { x: e.clientX, y: e.clientY };
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    haptics.tick();
+  };
+
+  const handleAbilityPointerMove = (e: React.PointerEvent) => {
+    if (!aimSlot || e.pointerId !== aimPointerIdRef.current) return;
+    const dx = e.clientX - aimStartPosRef.current.x;
+    const dy = e.clientY - aimStartPosRef.current.y;
+    const dist = Math.hypot(dx, dy);
+
+    // Cancel zone check (top 20% of screen height)
+    const inCancel = e.clientY < Math.max(120, window.innerHeight * 0.22);
+    if (inCancel !== isInCancelZone) {
+      setIsInCancelZone(inCancel);
+      haptics.tick();
+    }
+
+    const maxDragRadius = 45;
+    const clampedOffset = dist > maxDragRadius
+      ? { x: (dx / dist) * maxDragRadius, y: (dy / dist) * maxDragRadius }
+      : { x: dx, y: dy };
+    setAimDragOffset(clampedOffset);
+
+    const currentHero = hero;
+    const ability = abilityForSlot(currentHero, aimSlot);
+    if (!ability) return;
+
+    if (dist > 12) {
+      // Calculate world aiming angle
+      const dragScreenAngle = Math.atan2(dx, dy);
+      const worldHeading = dragScreenAngle + compass;
+      const targetDist = Math.min(ability.range, ability.range * Math.min(1.0, dist / 38));
+      const targetX = playerPos.x + Math.sin(worldHeading) * targetDist;
+      const targetZ = playerPos.z + Math.cos(worldHeading) * targetDist;
+
+      onAimPreview?.({
+        slot: aimSlot,
+        active: true,
+        targetX,
+        targetZ,
+        heading: worldHeading,
+        isCancelZone: inCancel,
+      });
+    } else {
+      onAimPreview?.({
+        slot: aimSlot,
+        active: false,
+      });
+    }
+  };
+
+  const handleAbilityPointerUp = (e: React.PointerEvent) => {
+    if (e.pointerId !== aimPointerIdRef.current || !aimSlot) return;
+    const slotToCast = aimSlot;
+    const currentHero = hero;
+    const ability = abilityForSlot(currentHero, slotToCast);
+    const dx = e.clientX - aimStartPosRef.current.x;
+    const dy = e.clientY - aimStartPosRef.current.y;
+    const dist = Math.hypot(dx, dy);
+    const inCancel = isInCancelZone;
+
+    setAimSlot(null);
+    setAimDragOffset({ x: 0, y: 0 });
+    setIsInCancelZone(false);
+    aimPointerIdRef.current = null;
+    onAimPreview?.({ slot: slotToCast, active: false });
+
+    if (inCancel) {
+      haptics.tick();
+      return;
+    }
+
+    if (dist > 12 && ability) {
+      const dragScreenAngle = Math.atan2(dx, dy);
+      const worldHeading = dragScreenAngle + compass;
+      const targetDist = Math.min(ability.range, ability.range * Math.min(1.0, dist / 38));
+      const targetX = playerPos.x + Math.sin(worldHeading) * targetDist;
+      const targetZ = playerPos.z + Math.cos(worldHeading) * targetDist;
+
+      haptics.cast();
+      if (onCastTarget) {
+        onCastTarget(slotToCast, { x: targetX, z: targetZ, heading: worldHeading });
+      } else {
+        onCast(slotToCast);
+      }
+    } else {
+      // Quick-tap
+      haptics.cast();
+      onCast(slotToCast);
+    }
+  };
+
+  // ── 1-Tap Mobile Quick-Buy Item Calculator ────────────────────────────────
+  const recommendedItem = AGIMAT_ITEMS.find(
+    (item) => !equippedItems.some((eq) => eq.id === item.id) && playerGold >= item.cost
+  );
 
   // ── Quick Ping & Ancestral Warcall Trigger ────────────────────────────────
   const triggerPing = (type: string, message: string) => {
@@ -272,6 +648,7 @@ export default function HeroHud({
     setTimeout(() => setPingNotification(null), 3500);
   };
 
+
   // ── Ability Configurations ───────────────────────────────────────────────
   const ability0 = hero.abilities[0] || {
     id: 'ab0',
@@ -295,13 +672,12 @@ export default function HeroHud({
     cooldown: 7,
   };
 
-  // Teammates list for status indicators
-  const teammates = [
-    { name: 'Apolaki', emoji: '☀️', hpPct: 92, manaPct: 100, ultReady: true, level: playerLevel },
-    { name: 'Mayari', emoji: '🌙', hpPct: 78, manaPct: 85, ultReady: true, level: Math.max(1, playerLevel - 1) },
-    { name: 'Bernardo', emoji: '⛰', hpPct: 100, manaPct: 70, ultReady: false, ultCd: 12, level: playerLevel },
-    { name: 'Diwata', emoji: '🌿', hpPct: 84, manaPct: 60, ultReady: true, level: Math.max(1, playerLevel - 1) },
+  // Teammates list for status indicators (supports live 3v3 bot data)
+  const defaultTeammates: TeammateHudData[] = [
+    { id: 'tm-1', name: 'Bernardo', heroId: 'bernardo', emoji: '⛰', hpPct: 100, manaPct: 100, ultReady: true, level: playerLevel, x: -70, z: 20, kills: 0, deaths: 0, assists: 0, gold: 500, damageDealt: 0, role: 'vanguard', title: 'Ang Higante ng Montalban' },
+    { id: 'tm-2', name: 'Diwata', heroId: 'diwata', emoji: '🌿', hpPct: 90, manaPct: 90, ultReady: true, level: playerLevel, x: -20, z: 70, kills: 0, deaths: 0, assists: 0, gold: 500, damageDealt: 0, role: 'warden', title: 'Ang Diwata ng Kagubatan' },
   ];
+  const teammates = teammatesData && teammatesData.length > 0 ? teammatesData : defaultTeammates;
 
   // Minion divisions breakdown
   const anitoMandirigma = minions.filter((m) => m.team === 'anito' && m.kind === 'mandirigma' && m.health > 0).length;
@@ -326,7 +702,14 @@ export default function HeroHud({
           1. MINI-MAP (TOP-LEFT ANCHOR: 15px, 15px, 180x180, #2C3E50 BORDER)
           ══════════════════════════════════════════════════════════════════════ */}
       <div style={minimapContainer}>
-        <svg style={minimapSvg} viewBox="0 0 180 180">
+        <svg
+          style={{ ...minimapSvg, cursor: 'crosshair', touchAction: 'none' }}
+          viewBox="0 0 180 180"
+          onPointerDown={handleMinimapPointerDown}
+          onPointerMove={handleMinimapPointerMove}
+          onPointerUp={handleMinimapPointerUp}
+          onPointerCancel={handleMinimapPointerUp}
+        >
           {/* Radar Background Grids */}
           <rect width="180" height="180" fill="#0B1320" rx="8" />
           <circle cx="90" cy="90" r="80" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
@@ -435,6 +818,53 @@ export default function HeroHud({
             );
           })}
 
+          {/* Active Tactical Pings (Pulsing Rings) */}
+          {activePings.map((p) => {
+            const px = ((p.x + 100) / 200) * 180;
+            const py = ((p.z + 100) / 200) * 180;
+            return (
+              <g key={p.id}>
+                <circle cx={px} cy={py} r="9" fill="rgba(255, 215, 0, 0.25)" stroke="#FFD700" strokeWidth="1.5" />
+                <circle cx={px} cy={py} r="3" fill="#FFD700" />
+                <text x={px} y={py - 6} fill="#FFD700" fontSize="7" fontWeight="bold" textAnchor="middle">
+                  {p.label}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Allied Bot Heroes (Cyan Rings + Name Letter) */}
+          {teammates.map((tm) => {
+            if (tm.hpPct <= 0) return null;
+            const mx = ((tm.x + 100) / 200) * 180;
+            const my = ((tm.z + 100) / 200) * 180;
+            return (
+              <g key={tm.id || tm.name}>
+                <circle cx={mx} cy={my} r="5.5" fill="rgba(0, 229, 255, 0.35)" />
+                <circle cx={mx} cy={my} r="3.6" fill="#0284C7" stroke="#38BDF8" strokeWidth="1.2" />
+                <text x={mx} y={my + 2.5} fill="#FFF" fontSize="6.5" fontWeight="bold" textAnchor="middle">
+                  {tm.name.charAt(0)}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Enemy Bot Heroes (Red Rings + Name Letter) */}
+          {enemyBotsData?.map((eb) => {
+            if (eb.hpPct <= 0) return null;
+            const mx = ((eb.x + 100) / 200) * 180;
+            const my = ((eb.z + 100) / 200) * 180;
+            return (
+              <g key={eb.id || eb.name}>
+                <circle cx={mx} cy={my} r="5.5" fill="rgba(239, 68, 68, 0.35)" />
+                <circle cx={mx} cy={my} r="3.6" fill="#DC2626" stroke="#FCA5A5" strokeWidth="1.2" />
+                <text x={mx} y={my + 2.5} fill="#FFF" fontSize="6.5" fontWeight="bold" textAnchor="middle">
+                  {eb.name.charAt(0)}
+                </text>
+              </g>
+            );
+          })}
+
           {/* Foe / Kapre Indicator */}
           {foeHp > 0 ? (
             <circle
@@ -483,6 +913,14 @@ export default function HeroHud({
           2. QUICK UTILITY MENU (BELOW MINI-MAP: top: 205px; left: 15px;)
           ══════════════════════════════════════════════════════════════════════ */}
       <div style={utilityMenuStack}>
+        <button
+          style={{ ...utilityBtn, borderColor: '#FFD700', background: 'rgba(255, 215, 0, 0.15)' }}
+          title="Account Profile, Rank Dossier & Daily Quests [📜]"
+          onClick={() => setShowProfile(!showProfile)}
+          aria-label="Profile and Quests"
+        >
+          <span style={utilityIcon}>📜</span>
+        </button>
         <button
           style={{ ...utilityBtn, borderColor: territory.atmosphere.primaryColor }}
           title={`Teritoryo ng Kapuluan (${territory.name}) [🗺️]`}
@@ -539,7 +977,120 @@ export default function HeroHud({
         >
           <span style={utilityIcon}>⚙</span>
         </button>
+        <button
+          style={{ ...utilityBtn, borderColor: 'rgba(56, 189, 248, 0.6)' }}
+          title="Toggle Fullscreen Mode [⛶]"
+          onClick={() => {
+            try {
+              if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen?.().catch(() => {});
+              } else {
+                document.exitFullscreen?.().catch(() => {});
+              }
+            } catch {}
+          }}
+          aria-label="Fullscreen"
+        >
+          <span style={utilityIcon}>⛶</span>
+        </button>
       </div>
+
+      {/* ── 1-Tap Floating Quick-Buy Pill (Under/Next to Utility Menu) ────── */}
+      {recommendedItem ? (
+        <div
+          style={{
+            position: 'absolute',
+            top: 205,
+            left: 60,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9))',
+            border: '1.5px solid #FFD700',
+            boxShadow: '0 0 16px rgba(255, 215, 0, 0.45)',
+            borderRadius: 24,
+            padding: '6px 14px 6px 8px',
+            cursor: 'pointer',
+            pointerEvents: 'auto',
+            zIndex: 15,
+            animation: 'pulseGold 2.5s infinite',
+          }}
+          onClick={() => {
+            onBuyItem?.(recommendedItem);
+            sound.playPing('select');
+            haptics.tick();
+            setQuickBuyAlert(`Binili: ${recommendedItem.name} (${recommendedItem.cost}g)`);
+            setTimeout(() => setQuickBuyAlert(null), 2500);
+          }}
+          title={`Quick-Buy: ${recommendedItem.name} (${recommendedItem.cost}g)`}
+
+        >
+          <span style={{ fontSize: 22 }}>{recommendedItem.emoji}</span>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#FFD700' }}>
+              🪙 {recommendedItem.cost}
+            </div>
+            <div style={{ fontSize: 9.5, color: '#F1F5F9', fontWeight: 600, maxWidth: 85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {recommendedItem.name}
+            </div>
+          </div>
+          <span style={{ fontSize: 9.5, background: '#FFD700', color: '#0F172A', fontWeight: 900, padding: '2px 6px', borderRadius: 8 }}>
+            BUY
+          </span>
+        </div>
+      ) : null}
+
+      {/* Quick Buy Notification Toast */}
+      {quickBuyAlert ? (
+        <div
+          style={{
+            position: 'absolute',
+            top: 255,
+            left: 60,
+            padding: '6px 14px',
+            borderRadius: 8,
+            background: 'rgba(16, 185, 129, 0.92)',
+            color: '#FFF',
+            fontWeight: 700,
+            fontSize: 12,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+            zIndex: 20,
+            pointerEvents: 'none',
+          }}
+        >
+          ✅ {quickBuyAlert}
+        </div>
+      ) : null}
+
+      {/* ── Top-Center Drag-Aiming Red Cancel Zone Banner ──────────────────── */}
+      {aimSlot ? (
+        <div
+          style={{
+            position: 'absolute',
+            top: 18,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            padding: '10px 28px',
+            borderRadius: 30,
+            background: isInCancelZone ? 'rgba(239, 68, 68, 0.95)' : 'rgba(15, 23, 42, 0.85)',
+            border: isInCancelZone ? '2px solid #FCA5A5' : '1.5px dashed rgba(239, 68, 68, 0.7)',
+            boxShadow: isInCancelZone ? '0 0 30px rgba(239, 68, 68, 0.9)' : '0 4px 20px rgba(0,0,0,0.5)',
+            color: '#FFF',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            pointerEvents: 'none',
+            zIndex: 100,
+            animation: isInCancelZone ? 'pulseCancel 0.8s infinite' : 'none',
+            transition: 'all 150ms ease',
+          }}
+        >
+          <span style={{ fontSize: 20 }}>✕</span>
+          <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: 1 }}>
+            {isInCancelZone ? 'BITAWAN PARA I-KANSELA' : 'DRAG DITO PARA I-KANSELA'}
+          </span>
+        </div>
+      ) : null}
 
       {/* TOP-CENTER TERRITORY REALM BADGE */}
       <div
@@ -627,11 +1178,48 @@ export default function HeroHud({
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          4. BOTTOM-LEFT VIRTUAL TOUCH JOYSTICK (160x160)
+          4. BOTTOM-LEFT VIRTUAL TOUCH JOYSTICK (DYNAMIC FLOATING OR FIXED)
           ══════════════════════════════════════════════════════════════════════ */}
+      {/* Dynamic Touch Area (Lower Left Screen Half for Mobile Dragging) */}
+      {joystickMode === 'dynamic' && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            width: '48vw',
+            height: '80vh',
+            zIndex: 9,
+            pointerEvents: 'auto',
+            touchAction: 'none',
+          }}
+          onPointerDown={handleDynamicZonePointerDown}
+          onPointerMove={handleJoystickPointerMove}
+          onPointerUp={handleJoystickPointerUp}
+          onPointerCancel={handleJoystickPointerUp}
+        />
+      )}
+
+      {/* Render Virtual Joystick Ring */}
       <div
         ref={joystickContainerRef}
-        style={joystickOuterRing}
+        style={{
+          ...joystickOuterRing,
+          ...(joystickMode === 'dynamic'
+            ? dynamicOrigin
+              ? {
+                  position: 'fixed',
+                  left: dynamicOrigin.x - 75,
+                  top: dynamicOrigin.y - 75,
+                  bottom: 'auto',
+                  opacity: 1,
+                  transform: 'none',
+                }
+              : {
+                  opacity: 0.35,
+                }
+            : {}),
+        }}
         onPointerDown={handleJoystickPointerDown}
         onPointerMove={handleJoystickPointerMove}
         onPointerUp={handleJoystickPointerUp}
@@ -655,9 +1243,38 @@ export default function HeroHud({
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          5. BOTTOM-RIGHT CIRCULAR SKILL CLUSTER
+          5. BOTTOM-RIGHT CIRCULAR SKILL CLUSTER & MOBILE TARGET PRIORITY
           ══════════════════════════════════════════════════════════════════════ */}
-      <div style={skillClusterContainer}>
+      <div
+        style={{
+          ...skillClusterContainer,
+          transform: hudScale === 'compact' ? 'scale(0.9)' : hudScale === 'large' ? 'scale(1.1)' : 'none',
+          transformOrigin: 'bottom right',
+        }}
+      >
+        {/* Available Skill Points Indicator Toast */}
+        {availableSkillPoints > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              top: -35,
+              right: 40,
+              background: 'linear-gradient(135deg, #FFD700, #F59E0B)',
+              color: '#0F172A',
+              padding: '3px 12px',
+              borderRadius: 999,
+              fontSize: 10.5,
+              fontWeight: 900,
+              boxShadow: '0 0 16px rgba(255, 215, 0, 0.7)',
+              zIndex: 30,
+              animation: 'pulseGold 1.5s infinite',
+              pointerEvents: 'none',
+            }}
+          >
+            ⚡ {availableSkillPoints} PUNTO NG KASANAYAN!
+          </div>
+        )}
+
         {/* Health Potion, Battle Spells & Innate Passive (Row to the left of arc) */}
         <div style={quickSpellsRow}>
           {/* Innate Mythic Passive Badge */}
@@ -676,13 +1293,18 @@ export default function HeroHud({
             </div>
           )}
 
-          {/* Battle Spell / Flicker */}
+          {/* Battle Spell / Flicker (F) */}
           <button
             style={{
               ...smallSpellBtn,
               opacity: cooldowns.spell > 0 ? 0.55 : 1,
+              transform: aimSlot === 'spell' ? `translate(${aimDragOffset.x * 0.4}px, ${aimDragOffset.y * 0.4}px) scale(1.15)` : 'none',
+              boxShadow: aimSlot === 'spell' ? '0 0 20px #00E5FF' : 'none',
             }}
-            onClick={() => onCast('spell')}
+            onPointerDown={(e) => handleAbilityPointerDown(e, 'spell')}
+            onPointerMove={handleAbilityPointerMove}
+            onPointerUp={handleAbilityPointerUp}
+            onPointerCancel={handleAbilityPointerUp}
             title="Battle Spell: Flicker (Instant 6.5u Dash) [F]"
           >
             <span style={spellKeyBadge}>F</span>
@@ -692,7 +1314,7 @@ export default function HeroHud({
             ) : null}
           </button>
 
-          {/* Health Potion / Regen */}
+          {/* Health Potion / Regen (D) */}
           <button
             style={{
               ...smallSpellBtn,
@@ -711,98 +1333,297 @@ export default function HeroHud({
         </div>
 
         {/* Skill 1 (Q / Strike) at bottom: 40px; right: 140px; */}
-        <button
-          style={{
-            ...abilityCircleBtn,
-            bottom: 40,
-            right: 140,
-            opacity: cooldowns.ability0 > 0.05 ? 0.55 : 1,
-          }}
-          onClick={() => onCast('ability0')}
-          title={`[Q / 1] ${ability0.name}: ${ability0.blurb}`}
-        >
-          <span style={hotkeyBadge}>Q</span>
-          <span style={abilityEmoji}>{ability0.emoji}</span>
-          <span style={abilitySubName}>{ability0.name}</span>
-          {cooldowns.ability0 > 0.05 ? (
-            <div style={cooldownOverlay}>
-              <span style={cooldownNumber}>
-                {cooldowns.ability0 >= 10 ? Math.ceil(cooldowns.ability0) : cooldowns.ability0.toFixed(1)}
-              </span>
-            </div>
-          ) : null}
-        </button>
+        <div style={{ position: 'absolute', bottom: 40, right: 140, width: 58, height: 58, pointerEvents: 'auto' }}>
+          {/* Level-Up Plus Upgrade Button */}
+          {availableSkillPoints > 0 && skillLevels.ability0 < 5 && (
+            <button
+              style={skillUpgradePlusBtn}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSkillUpgrade('ability0');
+              }}
+              title="Upgrade Skill 1 (+18% Damage, -6% CD)"
+            >
+              +
+            </button>
+          )}
+          <button
+            style={{
+              ...abilityCircleBtn,
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              opacity: cooldowns.ability0 > 0.05 ? 0.55 : 1,
+              transform: aimSlot === 'ability0' ? `translate(${aimDragOffset.x * 0.4}px, ${aimDragOffset.y * 0.4}px) scale(1.15)` : 'none',
+              boxShadow: aimSlot === 'ability0' ? '0 0 24px #00E5FF' : undefined,
+            }}
+            onPointerDown={(e) => handleAbilityPointerDown(e, 'ability0')}
+            onPointerMove={handleAbilityPointerMove}
+            onPointerUp={handleAbilityPointerUp}
+            onPointerCancel={handleAbilityPointerUp}
+            title={`[Q / 1] ${ability0.name}: ${ability0.blurb} (Rank ${skillLevels.ability0}/5)`}
+          >
+            <span style={hotkeyBadge}>Q</span>
+            <span style={abilityEmoji}>{ability0.emoji}</span>
+            <span style={abilitySubName}>{ability0.name}</span>
+            {cooldowns.ability0 > 0.05 ? (
+              <div style={cooldownOverlay}>
+                <span style={cooldownNumber}>
+                  {cooldowns.ability0 >= 10 ? Math.ceil(cooldowns.ability0) : cooldowns.ability0.toFixed(1)}
+                </span>
+              </div>
+            ) : null}
+          </button>
+          {/* Rank Indicator Pips */}
+          <div style={rankPipsRow}>
+            {[1, 2, 3, 4, 5].map((lvl) => (
+              <div
+                key={lvl}
+                style={{
+                  ...rankPip,
+                  background: lvl <= skillLevels.ability0 ? '#FFD700' : 'rgba(255,255,255,0.25)',
+                }}
+              />
+            ))}
+          </div>
+        </div>
 
         {/* Skill 2 (W / Shield) at bottom: 110px; right: 120px; */}
-        <button
-          style={{
-            ...abilityCircleBtn,
-            bottom: 110,
-            right: 120,
-            opacity: cooldowns.ability1 > 0.05 ? 0.55 : 1,
-          }}
-          onClick={() => onCast('ability1')}
-          title={`[W / 2] ${ability1.name}: ${ability1.blurb}`}
-        >
-          <span style={hotkeyBadge}>W</span>
-          <span style={abilityEmoji}>{ability1.emoji}</span>
-          <span style={abilitySubName}>{ability1.name}</span>
-          {cooldowns.ability1 > 0.05 ? (
-            <div style={cooldownOverlay}>
-              <span style={cooldownNumber}>
-                {cooldowns.ability1 >= 10 ? Math.ceil(cooldowns.ability1) : cooldowns.ability1.toFixed(1)}
-              </span>
-            </div>
-          ) : null}
-        </button>
+        <div style={{ position: 'absolute', bottom: 110, right: 120, width: 58, height: 58, pointerEvents: 'auto' }}>
+          {/* Level-Up Plus Upgrade Button */}
+          {availableSkillPoints > 0 && skillLevels.ability1 < 5 && (
+            <button
+              style={skillUpgradePlusBtn}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSkillUpgrade('ability1');
+              }}
+              title="Upgrade Skill 2 (+18% Damage, -6% CD)"
+            >
+              +
+            </button>
+          )}
+          <button
+            style={{
+              ...abilityCircleBtn,
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              opacity: cooldowns.ability1 > 0.05 ? 0.55 : 1,
+              transform: aimSlot === 'ability1' ? `translate(${aimDragOffset.x * 0.4}px, ${aimDragOffset.y * 0.4}px) scale(1.15)` : 'none',
+              boxShadow: aimSlot === 'ability1' ? '0 0 24px #00E5FF' : undefined,
+            }}
+            onPointerDown={(e) => handleAbilityPointerDown(e, 'ability1')}
+            onPointerMove={handleAbilityPointerMove}
+            onPointerUp={handleAbilityPointerUp}
+            onPointerCancel={handleAbilityPointerUp}
+            title={`[W / 2] ${ability1.name}: ${ability1.blurb} (Rank ${skillLevels.ability1}/5)`}
+          >
+            <span style={hotkeyBadge}>W</span>
+            <span style={abilityEmoji}>{ability1.emoji}</span>
+            <span style={abilitySubName}>{ability1.name}</span>
+            {cooldowns.ability1 > 0.05 ? (
+              <div style={cooldownOverlay}>
+                <span style={cooldownNumber}>
+                  {cooldowns.ability1 >= 10 ? Math.ceil(cooldowns.ability1) : cooldowns.ability1.toFixed(1)}
+                </span>
+              </div>
+            ) : null}
+          </button>
+          {/* Rank Indicator Pips */}
+          <div style={rankPipsRow}>
+            {[1, 2, 3, 4, 5].map((lvl) => (
+              <div
+                key={lvl}
+                style={{
+                  ...rankPip,
+                  background: lvl <= skillLevels.ability1 ? '#FFD700' : 'rgba(255,255,255,0.25)',
+                }}
+              />
+            ))}
+          </div>
+        </div>
 
         {/* Skill 3 (E / Burst) at bottom: 150px; right: 50px; */}
+        <div style={{ position: 'absolute', bottom: 150, right: 50, width: 58, height: 58, pointerEvents: 'auto' }}>
+          {/* Level-Up Plus Upgrade Button */}
+          {availableSkillPoints > 0 && skillLevels.ability2 < 5 && (
+            <button
+              style={skillUpgradePlusBtn}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSkillUpgrade('ability2');
+              }}
+              title="Upgrade Skill 3 (+18% Damage, -6% CD)"
+            >
+              +
+            </button>
+          )}
+          <button
+            style={{
+              ...abilityCircleBtn,
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              opacity: cooldowns.ability2 > 0.05 ? 0.55 : 1,
+              transform: aimSlot === 'ability2' ? `translate(${aimDragOffset.x * 0.4}px, ${aimDragOffset.y * 0.4}px) scale(1.15)` : 'none',
+              boxShadow: aimSlot === 'ability2' ? '0 0 24px #00E5FF' : undefined,
+            }}
+            onPointerDown={(e) => handleAbilityPointerDown(e, 'ability2')}
+            onPointerMove={handleAbilityPointerMove}
+            onPointerUp={handleAbilityPointerUp}
+            onPointerCancel={handleAbilityPointerUp}
+            title={`[E / 3] ${ability2.name}: ${ability2.blurb} (Rank ${skillLevels.ability2}/5)`}
+          >
+            <span style={hotkeyBadge}>E</span>
+            <span style={abilityEmoji}>{ability2.emoji}</span>
+            <span style={abilitySubName}>{ability2.name}</span>
+            {cooldowns.ability2 > 0.05 ? (
+              <div style={cooldownOverlay}>
+                <span style={cooldownNumber}>
+                  {cooldowns.ability2 >= 10 ? Math.ceil(cooldowns.ability2) : cooldowns.ability2.toFixed(1)}
+                </span>
+              </div>
+            ) : null}
+          </button>
+          {/* Rank Indicator Pips */}
+          <div style={rankPipsRow}>
+            {[1, 2, 3, 4, 5].map((lvl) => (
+              <div
+                key={lvl}
+                style={{
+                  ...rankPip,
+                  background: lvl <= skillLevels.ability2 ? '#FFD700' : 'rgba(255,255,255,0.25)',
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Ultimate (R / Solar Burst) at bottom: 120px; right: 190px; (68px, Gold Glow) */}
+        <div style={{ position: 'absolute', bottom: 120, right: 190, width: 68, height: 68, pointerEvents: 'auto' }}>
+          {/* Level-Up Plus Upgrade Button for Ultimate (Unlocked at lvl 4, 8, 12) */}
+          {availableSkillPoints > 0 && playerLevel >= 4 && skillLevels.ultimate < 3 && (
+            <button
+              style={{ ...skillUpgradePlusBtn, top: -14, right: 20, background: '#FFD700', color: '#000' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSkillUpgrade('ultimate');
+              }}
+              title="Upgrade Ultimate (+25% Damage, -10% CD)"
+            >
+              +
+            </button>
+          )}
+          <button
+            style={{
+              ...ultimateCircleBtn,
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              opacity: cooldowns.ultimate > 0.05 ? 0.55 : 1,
+              transform: aimSlot === 'ultimate' ? `translate(${aimDragOffset.x * 0.4}px, ${aimDragOffset.y * 0.4}px) scale(1.18)` : 'none',
+              boxShadow: aimSlot === 'ultimate' ? '0 0 30px #FFD700' : undefined,
+            }}
+            onPointerDown={(e) => handleAbilityPointerDown(e, 'ultimate')}
+            onPointerMove={handleAbilityPointerMove}
+            onPointerUp={handleAbilityPointerUp}
+            onPointerCancel={handleAbilityPointerUp}
+            title={`[R / 4] ${hero.ultimate.name}: ${hero.ultimate.blurb} (Rank ${skillLevels.ultimate}/3)`}
+          >
+            <span style={hotkeyBadgeUlt}>R</span>
+            <span style={ultimateEmoji}>{hero.ultimate.emoji}</span>
+            <span style={ultimateSubName}>{hero.ultimate.name}</span>
+            {cooldowns.ultimate > 0.05 ? (
+              <div style={cooldownOverlay}>
+                <span style={cooldownNumber}>
+                  {cooldowns.ultimate >= 10 ? Math.ceil(cooldowns.ultimate) : cooldowns.ultimate.toFixed(1)}
+                </span>
+              </div>
+            ) : null}
+          </button>
+          {/* Ult Rank Indicator Pips (3 pips) */}
+          <div style={rankPipsRow}>
+            {[1, 2, 3].map((lvl) => (
+              <div
+                key={lvl}
+                style={{
+                  ...rankPip,
+                  width: 8,
+                  height: 3.5,
+                  background: lvl <= skillLevels.ultimate ? '#FFD700' : 'rgba(255,255,255,0.25)',
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* ── Mobile Target Priority Attack Buttons ────────────────────────── */}
+        {/* Tower Siege Priority Attack Button (Top-Left of Main Attack) */}
         <button
           style={{
-            ...abilityCircleBtn,
-            bottom: 150,
-            right: 50,
-            opacity: cooldowns.ability2 > 0.05 ? 0.55 : 1,
+            position: 'absolute',
+            bottom: 115,
+            right: 28,
+            width: 44,
+            height: 44,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #1E293B, #0F172A)',
+            border: '2px solid #38BDF8',
+            color: '#38BDF8',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+            zIndex: 10,
+            opacity: cooldowns.basic > 0.05 ? 0.6 : 1,
+            pointerEvents: 'auto',
           }}
-          onClick={() => onCast('ability2')}
-          title={`[E / 3] ${ability2.name}: ${ability2.blurb}`}
+          onClick={() => {
+            if (onCastTarget) onCastTarget('basic_tower', { targetType: 'tower' });
+            else onCast('basic');
+          }}
+          title="Tower Siege Attack (Target Enemy Turrets / Core) [T]"
         >
-          <span style={hotkeyBadge}>E</span>
-          <span style={abilityEmoji}>{ability2.emoji}</span>
-          <span style={abilitySubName}>{ability2.name}</span>
-          {cooldowns.ability2 > 0.05 ? (
-            <div style={cooldownOverlay}>
-              <span style={cooldownNumber}>
-                {cooldowns.ability2 >= 10 ? Math.ceil(cooldowns.ability2) : cooldowns.ability2.toFixed(1)}
-              </span>
-            </div>
-          ) : null}
+          <span style={{ fontSize: 16 }}>🏰</span>
+          <span style={{ fontSize: 8, fontWeight: 900 }}>TOWER</span>
         </button>
 
-        {/* Ultimate (R / Solar Burst) at bottom: 120px; right: 190px; (65px, Gold Glow) */}
+        {/* Minion / Monster Priority Attack Button (Bottom-Left of Main Attack) */}
         <button
           style={{
-            ...ultimateCircleBtn,
-            bottom: 120,
-            right: 190,
-            opacity: cooldowns.ultimate > 0.05 ? 0.55 : 1,
+            position: 'absolute',
+            bottom: 25,
+            right: 118,
+            width: 44,
+            height: 44,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #1E293B, #0F172A)',
+            border: '2px solid #10B981',
+            color: '#10B981',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+            zIndex: 10,
+            opacity: cooldowns.basic > 0.05 ? 0.6 : 1,
+            pointerEvents: 'auto',
           }}
-          onClick={() => onCast('ultimate')}
-          title={`[R / 4] ${hero.ultimate.name}: ${hero.ultimate.blurb}`}
+          onClick={() => {
+            if (onCastTarget) onCastTarget('basic_minion', { targetType: 'minion' });
+            else onCast('basic');
+          }}
+          title="Minion / Monster Farm Attack (Target Creeps) [M]"
         >
-          <span style={hotkeyBadgeUlt}>R</span>
-          <span style={ultimateEmoji}>{hero.ultimate.emoji}</span>
-          <span style={ultimateSubName}>{hero.ultimate.name}</span>
-          {cooldowns.ultimate > 0.05 ? (
-            <div style={cooldownOverlay}>
-              <span style={cooldownNumber}>
-                {cooldowns.ultimate >= 10 ? Math.ceil(cooldowns.ultimate) : cooldowns.ultimate.toFixed(1)}
-              </span>
-            </div>
-          ) : null}
+          <span style={{ fontSize: 16 }}>🌾</span>
+          <span style={{ fontSize: 8, fontWeight: 900 }}>CREEP</span>
         </button>
 
-        {/* Main Attack Button (85px, Gold Frame #E5B25D) at bottom: 40px; right: 40px; */}
+        {/* Main Hero / Foe Attack Button (85px, Gold Frame #E5B25D) at bottom: 40px; right: 40px; */}
         <button
           style={{
             ...mainAttackBtn,
@@ -810,14 +1631,68 @@ export default function HeroHud({
             right: 40,
             opacity: cooldowns.basic > 0.05 ? 0.7 : 1,
           }}
-          onClick={() => onCast('basic')}
+          onClick={() => {
+            if (onCastTarget) onCastTarget('basic', { targetType: 'hero' });
+            else onCast('basic');
+          }}
           title={`[J / Space] Aimed Basic Attack (${effectiveStats?.attack ?? hero.attack} dmg)`}
         >
           <span style={mainAttackKey}>J</span>
           <span style={{ fontSize: 34 }}>⚔</span>
-          <span style={mainAttackText}>ATTACK</span>
+          <span style={mainAttackText}>SUGOD</span>
         </button>
       </div>
+
+      {/* ── Mobile Landscape Guide Prompt (When Held in Portrait) ────────── */}
+      {isPortrait ? (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(2, 6, 23, 0.96)',
+            backdropFilter: 'blur(16px)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24,
+            textAlign: 'center',
+            zIndex: 9999,
+            color: '#F8FAFC',
+            pointerEvents: 'auto',
+          }}
+        >
+          <div style={{ fontSize: 64, marginBottom: 16 }}>📱 ↻</div>
+          <strong style={{ fontSize: 22, color: '#FFD700', letterSpacing: 1.5, marginBottom: 8 }}>
+            I-IKOT ANG TELEPONO SA LANDSCAPE
+          </strong>
+          <p style={{ fontSize: 14, color: '#94A3B8', maxWidth: 360, lineHeight: 1.6 }}>
+            Ang Alamat MOBA ay idinisenyo para sa <strong style={{ color: '#00E5FF' }}>Pahiga (Landscape)</strong> na kontrol ng dalawang kamay. I-rotate ang iyong device para magpatuloy sa labanan!
+          </p>
+          <button
+            style={{
+              marginTop: 24,
+              background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+              border: '1px solid #38bdf8',
+              color: '#FFF',
+              padding: '10px 20px',
+              borderRadius: 20,
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+            onClick={() => {
+              try {
+                if (document.documentElement.requestFullscreen) {
+                  document.documentElement.requestFullscreen().catch(() => {});
+                }
+              } catch {}
+            }}
+          >
+            ⛶ I-fullscreen ang Laro
+          </button>
+        </div>
+      ) : null}
+
 
       {/* ══════════════════════════════════════════════════════════════════════
           6. FLOATING OVERHEAD HEALTHBAR & XP (ANCHORED ABOVE HERO MESH)
@@ -1354,14 +2229,14 @@ export default function HeroHud({
       {/* Match Scoreboard Modal (Talaan ng Digmaan) */}
       {showScoreboard ? (
         <div style={modalOverlay} onClick={() => setShowScoreboard(false)}>
-          <div style={{ ...modalCard, maxWidth: 660 }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ ...modalCard, maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
             <div style={modalHeader}>
               <div>
                 <strong style={{ fontSize: 18, color: '#FFD700' }}>
                   📊 Talaan ng Digmaan (Match Performance Scoreboard)
                 </strong>
                 <span style={{ display: 'block', fontSize: 11.5, color: '#94A3B8' }}>
-                  Duration: {formatTime(matchTime)} · {fps} FPS · Total Kills: {allyKills} - {enemyKills}
+                  Realm: {territory.name.toUpperCase()} · Duration: {formatTime(matchTime)} · Total Kills: {allyKills} - {enemyKills}
                 </span>
               </div>
               <button style={closeBtn} onClick={() => setShowScoreboard(false)}>
@@ -1378,9 +2253,9 @@ export default function HeroHud({
                     <th style={{ padding: '6px 8px' }}>TEAM</th>
                     <th style={{ padding: '6px 8px' }}>LVL</th>
                     <th style={{ padding: '6px 8px' }}>K / D / A</th>
-                    <th style={{ padding: '6px 8px' }}>CS (FARMS)</th>
+                    <th style={{ padding: '6px 8px' }}>DAMAGE</th>
                     <th style={{ padding: '6px 8px' }}>GOLD</th>
-                    <th style={{ padding: '6px 8px' }}>AGIMAT ITEMS</th>
+                    <th style={{ padding: '6px 8px' }}>ITEMS</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1396,7 +2271,7 @@ export default function HeroHud({
                     <td style={{ padding: '8px', color: '#FFD700', fontWeight: 700 }}>ANITO</td>
                     <td style={{ padding: '8px', color: '#F1F5F9' }}>{playerLevel}</td>
                     <td style={{ padding: '8px', color: '#34D399', fontWeight: 800 }}>{allyKills} / 0 / 2</td>
-                    <td style={{ padding: '8px', color: '#FDE68A' }}>{Math.floor(matchTime / 8)} CS</td>
+                    <td style={{ padding: '8px', color: '#F87171', fontWeight: 700 }}>{allyKills * 850 + 1200}</td>
                     <td style={{ padding: '8px', color: '#FFD700', fontWeight: 800 }}>🪙 {playerGold}</td>
                     <td style={{ padding: '8px' }}>
                       <div style={{ display: 'flex', gap: 4 }}>
@@ -1407,24 +2282,67 @@ export default function HeroHud({
                     </td>
                   </tr>
 
-                  {/* Enemy Bot */}
-                  <tr style={{ background: 'rgba(239, 68, 68, 0.1)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                    <td style={{ padding: '8px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 20 }}>🌲</span>
-                      <div>
-                        <strong style={{ color: '#F87171' }}>{foeName} (AI)</strong>
-                        <span style={{ display: 'block', fontSize: 10, color: '#CBD5E1' }}>Jungle Behemoth</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: '8px', color: '#F87171', fontWeight: 700 }}>MALAKAS</td>
-                    <td style={{ padding: '8px', color: '#F1F5F9' }}>{Math.max(1, playerLevel - 1)}</td>
-                    <td style={{ padding: '8px', color: '#F87171', fontWeight: 800 }}>{enemyKills} / {allyKills} / 0</td>
-                    <td style={{ padding: '8px', color: '#FDE68A' }}>{Math.floor(matchTime / 12)} CS</td>
-                    <td style={{ padding: '8px', color: '#FFD700', fontWeight: 800 }}>🪙 {400 + enemyKills * 300}</td>
-                    <td style={{ padding: '8px' }}>
-                      <span title="Tabako ng Kapre">🚬 🪓</span>
-                    </td>
-                  </tr>
+                  {/* Allied Bots */}
+                  {teammates.map((tm) => (
+                    <tr key={tm.id || tm.name} style={{ background: 'rgba(2, 132, 199, 0.08)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <td style={{ padding: '8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 20 }}>{tm.emoji}</span>
+                        <div>
+                          <strong style={{ color: '#38BDF8' }}>{tm.name} (AI Ally)</strong>
+                          <span style={{ display: 'block', fontSize: 10, color: '#94A3B8' }}>{tm.title || tm.role}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '8px', color: '#38BDF8', fontWeight: 700 }}>ANITO</td>
+                      <td style={{ padding: '8px', color: '#F1F5F9' }}>{tm.level}</td>
+                      <td style={{ padding: '8px', color: '#38BDF8', fontWeight: 700 }}>{tm.kills} / {tm.deaths} / {tm.assists}</td>
+                      <td style={{ padding: '8px', color: '#F87171' }}>{tm.damageDealt || (tm.kills * 700 + 800)}</td>
+                      <td style={{ padding: '8px', color: '#FFD700', fontWeight: 700 }}>🪙 {tm.gold || 600}</td>
+                      <td style={{ padding: '8px' }}>
+                        <span title="Agimat Shield">🛡️ 🌾</span>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {/* Enemy Bots */}
+                  {enemyBotsData && enemyBotsData.length > 0 ? (
+                    enemyBotsData.map((eb) => (
+                      <tr key={eb.id || eb.name} style={{ background: 'rgba(239, 68, 68, 0.08)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                        <td style={{ padding: '8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontSize: 20 }}>{eb.emoji}</span>
+                          <div>
+                            <strong style={{ color: '#F87171' }}>{eb.name} (AI Foe)</strong>
+                            <span style={{ display: 'block', fontSize: 10, color: '#94A3B8' }}>{eb.title || eb.role}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '8px', color: '#F87171', fontWeight: 700 }}>MALAKAS</td>
+                        <td style={{ padding: '8px', color: '#F1F5F9' }}>{eb.level}</td>
+                        <td style={{ padding: '8px', color: '#F87171', fontWeight: 700 }}>{eb.kills} / {eb.deaths} / {eb.assists}</td>
+                        <td style={{ padding: '8px', color: '#F87171' }}>{eb.damageDealt || (eb.kills * 650 + 750)}</td>
+                        <td style={{ padding: '8px', color: '#FFD700', fontWeight: 700 }}>🪙 {eb.gold || 550}</td>
+                        <td style={{ padding: '8px' }}>
+                          <span title="Agimat Charm">🩸 🪓</span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr style={{ background: 'rgba(239, 68, 68, 0.1)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                      <td style={{ padding: '8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 20 }}>🌲</span>
+                        <div>
+                          <strong style={{ color: '#F87171' }}>{foeName} (AI)</strong>
+                          <span style={{ display: 'block', fontSize: 10, color: '#CBD5E1' }}>Jungle Behemoth</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '8px', color: '#F87171', fontWeight: 700 }}>MALAKAS</td>
+                      <td style={{ padding: '8px', color: '#F1F5F9' }}>{Math.max(1, playerLevel - 1)}</td>
+                      <td style={{ padding: '8px', color: '#F87171', fontWeight: 800 }}>{enemyKills} / {allyKills} / 0</td>
+                      <td style={{ padding: '8px', color: '#F87171' }}>{enemyKills * 800 + 500}</td>
+                      <td style={{ padding: '8px', color: '#FFD700', fontWeight: 800 }}>🪙 {400 + enemyKills * 300}</td>
+                      <td style={{ padding: '8px' }}>
+                        <span title="Tabako ng Kapre">🚬 🪓</span>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1499,12 +2417,327 @@ export default function HeroHud({
         </div>
       ) : null}
 
+      {/* ── Progressive Player Profile & Daily Quests Modal (📜) ──────────── */}
+      {showProfile ? (
+        <div style={modalOverlay} onClick={() => setShowProfile(false)}>
+          <div
+            style={{
+              ...modalCard,
+              maxWidth: 720,
+              border: '1.5px solid #FFD700',
+              boxShadow: '0 0 32px rgba(255, 215, 0, 0.4)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Profile Header */}
+            <div style={modalHeader}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #FFD700, #F59E0B)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    fontSize: 24,
+                    boxShadow: '0 0 16px rgba(255, 215, 0, 0.5)',
+                  }}
+                >
+                  {getRankForLevel(playerProfile.accountLevel).badgeEmoji}
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <strong style={{ fontSize: 18, color: '#FFD700' }}>
+                      {playerProfile.name}
+                    </strong>
+                    <span style={{ fontSize: 11, background: '#1E293B', color: '#38BDF8', padding: '2px 8px', borderRadius: 12, border: '1px solid #0284C7', fontWeight: 800 }}>
+                      LVL {playerProfile.accountLevel}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 11.5, color: '#94A3B8' }}>
+                    {getRankForLevel(playerProfile.accountLevel).baybayin} · {getRankForLevel(playerProfile.accountLevel).title}
+                  </span>
+                </div>
+              </div>
+              <button style={closeBtn} onClick={() => setShowProfile(false)}>
+                ✕
+              </button>
+            </div>
+
+            {/* Account XP Bar */}
+            <div style={{ margin: '12px 0 16px', background: 'rgba(15, 23, 42, 0.8)', padding: 12, borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#94A3B8', marginBottom: 4 }}>
+                <span>Account Rank Progression</span>
+                <strong style={{ color: '#FFD700' }}>{playerProfile.accountXp} / {playerProfile.accountLevel * 250} XP</strong>
+              </div>
+              <div style={{ width: '100%', height: 8, background: '#1E293B', borderRadius: 4, overflow: 'hidden' }}>
+                <div
+                  style={{
+                    width: `${Math.min(100, (playerProfile.accountXp / (playerProfile.accountLevel * 250)) * 100)}%`,
+                    height: '100%',
+                    background: 'linear-gradient(90deg, #FFD700, #F59E0B)',
+                    borderRadius: 4,
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: 8, borderBottom: '1.5px solid rgba(255,255,255,0.1)', paddingBottom: 8, marginBottom: 12 }}>
+              <button
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 8,
+                  border: profileTab === 'dossier' ? '1px solid #FFD700' : '1px solid transparent',
+                  background: profileTab === 'dossier' ? 'rgba(255, 215, 0, 0.15)' : 'transparent',
+                  color: profileTab === 'dossier' ? '#FFD700' : '#94A3B8',
+                  fontWeight: 700,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                }}
+                onClick={() => setProfileTab('dossier')}
+              >
+                📜 Talaan / Dossier
+              </button>
+              <button
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 8,
+                  border: profileTab === 'quests' ? '1px solid #FFD700' : '1px solid transparent',
+                  background: profileTab === 'quests' ? 'rgba(255, 215, 0, 0.15)' : 'transparent',
+                  color: profileTab === 'quests' ? '#FFD700' : '#94A3B8',
+                  fontWeight: 700,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+                onClick={() => setProfileTab('quests')}
+              >
+                🎯 Mga Misyon / Quests
+                {playerProfile.dailyQuests.filter((q) => q.progress >= q.target && !q.claimed).length > 0 ? (
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#EF4444' }} />
+                ) : null}
+              </button>
+              <button
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 8,
+                  border: profileTab === 'mastery' ? '1px solid #FFD700' : '1px solid transparent',
+                  background: profileTab === 'mastery' ? 'rgba(255, 215, 0, 0.15)' : 'transparent',
+                  color: profileTab === 'mastery' ? '#FFD700' : '#94A3B8',
+                  fontWeight: 700,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                }}
+                onClick={() => setProfileTab('mastery')}
+              >
+                ⚡ Kasanayan / Mastery
+              </button>
+            </div>
+
+            {/* Tab 1: Dossier */}
+            {profileTab === 'dossier' ? (
+              <div style={{ display: 'grid', gap: 12, maxHeight: '52vh', overflowY: 'auto' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                  <div style={{ background: 'rgba(30, 41, 59, 0.6)', padding: 10, borderRadius: 8, textAlign: 'center' }}>
+                    <div style={{ fontSize: 10, color: '#94A3B8' }}>TOTAL MATCHES</div>
+                    <strong style={{ fontSize: 16, color: '#F1F5F9' }}>{playerProfile.totalMatches}</strong>
+                  </div>
+                  <div style={{ background: 'rgba(30, 41, 59, 0.6)', padding: 10, borderRadius: 8, textAlign: 'center' }}>
+                    <div style={{ fontSize: 10, color: '#94A3B8' }}>WIN RATE</div>
+                    <strong style={{ fontSize: 16, color: '#34D399' }}>
+                      {playerProfile.totalMatches > 0 ? Math.round((playerProfile.totalWins / playerProfile.totalMatches) * 100) : 0}%
+                    </strong>
+                  </div>
+                  <div style={{ background: 'rgba(30, 41, 59, 0.6)', padding: 10, borderRadius: 8, textAlign: 'center' }}>
+                    <div style={{ fontSize: 10, color: '#94A3B8' }}>TOTAL KILLS</div>
+                    <strong style={{ fontSize: 16, color: '#F87171' }}>{playerProfile.totalKills}</strong>
+                  </div>
+                  <div style={{ background: 'rgba(30, 41, 59, 0.6)', padding: 10, borderRadius: 8, textAlign: 'center' }}>
+                    <div style={{ fontSize: 10, color: '#94A3B8' }}>MVP MEDALS</div>
+                    <strong style={{ fontSize: 16, color: '#FFD700' }}>
+                      {Object.values(playerProfile.heroMasteries).reduce((acc, m) => acc + (m.mvpCount || 0), 0)}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* Match History */}
+                <div style={{ background: 'rgba(15, 23, 42, 0.8)', padding: 12, borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <strong style={{ fontSize: 12, color: '#00E5FF', letterSpacing: 1 }}>
+                    ⚔ RECENT MATCH HISTORY (KASAYSAYAN NG DIGMAAN)
+                  </strong>
+                  {playerProfile.matchHistory.length === 0 ? (
+                    <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 8, textAlign: 'center', padding: '16px 0' }}>
+                      Wala pang naitalang laban. Tapusin ang iyong unang laban upang maitala ang kasaysayan!
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>
+                      {playerProfile.matchHistory.slice(0, 5).map((m) => (
+                        <div
+                          key={m.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '6px 10px',
+                            borderRadius: 6,
+                            background: m.outcome === 'victory' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                            borderLeft: m.outcome === 'victory' ? '3px solid #10B981' : '3px solid #EF4444',
+                            fontSize: 11.5,
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <strong style={{ color: m.outcome === 'victory' ? '#34D399' : '#F87171' }}>
+                              {m.outcome === 'victory' ? 'VICTORY' : 'DEFEAT'}
+                            </strong>
+                            <span style={{ color: '#CBD5E1' }}>{m.heroId.toUpperCase()}</span>
+                          </div>
+                          <div style={{ color: '#94A3B8' }}>
+                            {m.kills}/{m.deaths}/{m.assists} · {Math.round(m.durationSeconds)}s
+                          </div>
+                          <div style={{ color: '#FFD700', fontWeight: 700 }}>
+                            +{m.goldEarned}g · +{m.accountXpEarned}xp
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Tab 2: Quests */}
+            {profileTab === 'quests' ? (
+              <div style={{ display: 'grid', gap: 8, maxHeight: '52vh', overflowY: 'auto' }}>
+                {playerProfile.dailyQuests.map((quest) => {
+                  const isReady = quest.progress >= quest.target && !quest.claimed;
+                  return (
+                    <div
+                      key={quest.id}
+                      style={{
+                        background: 'rgba(30, 41, 59, 0.65)',
+                        border: isReady ? '1.5px solid #FFD700' : '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: 10,
+                        padding: 12,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 12,
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 16 }}>{quest.icon || '🎯'}</span>
+                          <strong style={{ fontSize: 13, color: '#F8FAFC' }}>{quest.title}</strong>
+                        </div>
+                        <p style={{ fontSize: 11, color: '#94A3B8', margin: '2px 0 6px' }}>{quest.description}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ flex: 1, height: 6, background: '#1E293B', borderRadius: 3, overflow: 'hidden' }}>
+                            <div
+                              style={{
+                                width: `${Math.min(100, (quest.progress / quest.target) * 100)}%`,
+                                height: '100%',
+                                background: isReady ? '#10B981' : '#00E5FF',
+                              }}
+                            />
+                          </div>
+                          <span style={{ fontSize: 10.5, color: '#CBD5E1', fontWeight: 700 }}>
+                            {quest.progress}/{quest.target}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div>
+                        {quest.claimed ? (
+                          <span style={{ fontSize: 11, color: '#64748B', fontWeight: 700 }}>✓ NATANGGAP</span>
+                        ) : (
+                          <button
+                            style={{
+                              padding: '6px 14px',
+                              borderRadius: 8,
+                              background: isReady ? 'linear-gradient(135deg, #FFD700, #F59E0B)' : '#334155',
+                              color: isReady ? '#0F172A' : '#94A3B8',
+                              fontWeight: 800,
+                              fontSize: 11,
+                              border: 'none',
+                              cursor: isReady ? 'pointer' : 'default',
+                              boxShadow: isReady ? '0 0 12px rgba(255, 215, 0, 0.4)' : 'none',
+                            }}
+                            disabled={!isReady}
+                            onClick={() => {
+                              if (isReady) {
+                                const res = claimQuest(quest.id);
+                                if (res.success) {
+                                  setPlayerProfile({ ...res.profile });
+                                  sound.playPing('select');
+                                  haptics.tick();
+                                }
+                              }
+                            }}
+                          >
+                            🪙 +{quest.rewardGold} | XP +{quest.rewardXp}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            {/* Tab 3: Mastery */}
+            {profileTab === 'mastery' ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8, maxHeight: '52vh', overflowY: 'auto' }}>
+                {Object.values(playerProfile.heroMasteries).map((mastery) => (
+                  <div
+                    key={mastery.heroId}
+                    style={{
+                      background: 'rgba(30, 41, 59, 0.65)',
+                      border: mastery.masteryLevel >= 5 ? '1.5px solid #FFD700' : '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: 10,
+                      padding: 10,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <strong style={{ fontSize: 13, color: '#F1F5F9' }}>{mastery.heroId.toUpperCase()}</strong>
+                      <span style={{ fontSize: 10, background: '#0284C7', color: '#FFF', padding: '1px 6px', borderRadius: 8, fontWeight: 800 }}>
+                        Lvl {mastery.masteryLevel}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 10, color: '#FFD700', margin: '2px 0 6px' }}>
+                      {mastery.masteryLevel >= 7 ? 'Bayani ng Kapuluan' : mastery.masteryLevel >= 4 ? 'Batikan' : 'Baguhan'}
+                    </div>
+                    <div style={{ width: '100%', height: 5, background: '#1E293B', borderRadius: 3, overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          width: `${Math.min(100, (mastery.masteryXp / (mastery.masteryLevel * 500)) * 100)}%`,
+                          height: '100%',
+                          background: '#FFD700',
+                        }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9.5, color: '#94A3B8', marginTop: 4 }}>
+                      <span>{mastery.matchesPlayed} matches · {mastery.wins} wins</span>
+                      <span>{mastery.masteryXp}/{mastery.masteryLevel * 500} XP</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+
       {/* Settings Modal */}
       {showSettings ? (
         <div style={modalOverlay} onClick={() => setShowSettings(false)}>
           <div style={modalCard} onClick={(e) => e.stopPropagation()}>
             <div style={modalHeader}>
-              <strong style={{ fontSize: 18, color: '#F1F5F9' }}>⚙ Match Settings & Controls</strong>
+              <strong style={{ fontSize: 18, color: '#F1F5F9' }}>⚙ Mobile & Match Settings</strong>
               <button style={closeBtn} onClick={() => setShowSettings(false)}>
                 ✕
               </button>
@@ -1527,6 +2760,117 @@ export default function HeroHud({
                   }}
                 >
                   {isAudioMuted ? '🔇 Muted' : '🔊 Sound ON'}
+                </button>
+              </div>
+              <div style={settingRow}>
+                <span>Haptic Feedback (Vibration)</span>
+                <button
+                  style={{
+                    ...zoomBtn,
+                    width: 'auto',
+                    padding: '4px 12px',
+                    background: isHapticsOn ? '#10B981' : '#991B1B',
+                  }}
+                  onClick={() => {
+                    const next = !isHapticsOn;
+                    setIsHapticsOn(next);
+                    haptics.setEnabled(next);
+                    if (next) haptics.tick();
+                    updateSettings({ hapticsEnabled: next });
+                  }}
+                >
+                  {isHapticsOn ? '📳 Haptics ON' : '📴 Haptics OFF'}
+                </button>
+              </div>
+              <div style={settingRow}>
+                <span>Graphics & Battery Quality</span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {(['performance', 'balanced', 'ultra'] as const).map((q) => (
+                    <button
+                      key={q}
+                      style={{
+                        ...zoomBtn,
+                        width: 'auto',
+                        padding: '4px 10px',
+                        background: graphicsQuality === q ? '#0284C7' : 'rgba(255,255,255,0.1)',
+                        borderColor: graphicsQuality === q ? '#38BDF8' : 'rgba(255,255,255,0.2)',
+                        color: graphicsQuality === q ? '#FFF' : '#94A3B8',
+                        fontWeight: 700,
+                        fontSize: 11,
+                      }}
+                      onClick={() => {
+                        setGraphicsQuality(q);
+                        onQualityChange?.(q);
+                        updateSettings({ graphicsQuality: q });
+                        sound.playPing('select');
+                      }}
+                    >
+                      {q === 'performance' ? '⚡ 60fps' : q === 'balanced' ? '⚖ Balanced' : '✨ Ultra'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={settingRow}>
+                <span>Mobile HUD Scale</span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {(['compact', 'normal', 'large'] as const).map((s) => (
+                    <button
+                      key={s}
+                      style={{
+                        ...zoomBtn,
+                        width: 'auto',
+                        padding: '4px 10px',
+                        background: hudScale === s ? '#D97706' : 'rgba(255,255,255,0.1)',
+                        borderColor: hudScale === s ? '#FDE68A' : 'rgba(255,255,255,0.2)',
+                        color: hudScale === s ? '#FFF' : '#94A3B8',
+                        fontWeight: 700,
+                        fontSize: 11,
+                      }}
+                      onClick={() => {
+                        setHudScale(s);
+                        updateSettings({ hudScale: s });
+                        sound.playPing('select');
+                      }}
+                    >
+                      {s.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={settingRow}>
+                <span>Virtual Joystick Mode</span>
+                <button
+                  style={{
+                    ...zoomBtn,
+                    width: 'auto',
+                    padding: '4px 12px',
+                    background: joystickMode === 'dynamic' ? '#0284C7' : '#334155',
+                  }}
+                  onClick={() => {
+                    const next = joystickMode === 'fixed' ? 'dynamic' : 'fixed';
+                    setJoystickMode(next);
+                    updateSettings({ joystickMode: next });
+                    sound.playPing('select');
+                  }}
+                >
+                  {joystickMode === 'fixed' ? '🕹 Fixed Anchor' : '🕹 Dynamic Touch'}
+                </button>
+              </div>
+              <div style={settingRow}>
+                <span>Progressive Web App (PWA)</span>
+                <button
+                  style={{
+                    ...zoomBtn,
+                    width: 'auto',
+                    padding: '6px 14px',
+                    background: 'linear-gradient(135deg, #10B981, #059669)',
+                    border: '1.5px solid #6EE7B7',
+                    color: '#FFF',
+                    fontWeight: 800,
+                  }}
+                  onClick={handleInstallApp}
+                >
+                  📱 I-install ang App
                 </button>
               </div>
               <div style={settingRow}>
@@ -1553,10 +2897,53 @@ export default function HeroHud({
               </div>
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 10 }}>
                 <span style={{ fontSize: 12, color: '#94A3B8' }}>
-                  Controls: WASD to move · Mouse Pointer to Aim · J / Space for Basic Attack · Q/W/E/R for
-                  Abilities · D/F for Potion/Flicker.
+                  Kontrol: Dynamic Touch Joystick sa kaliwa · Drag Skills para sa skillshot · [+] Level-Up buttons · Mini-map drag para mag-scout.
                 </span>
               </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* iOS Safari / Web Install Guide Modal */}
+      {showIosInstallGuide ? (
+        <div style={modalOverlay} onClick={() => setShowIosInstallGuide(false)}>
+          <div style={modalCard} onClick={(e) => e.stopPropagation()}>
+            <div style={modalHeader}>
+              <strong style={{ fontSize: 18, color: '#FFD700' }}>📱 I-install ang Alamat MOBA</strong>
+              <button style={closeBtn} onClick={() => setShowIosInstallGuide(false)}>
+                ✕
+              </button>
+            </div>
+            <div style={{ display: 'grid', gap: 14, marginTop: 14 }}>
+              <div style={{ background: 'rgba(30, 41, 59, 0.7)', borderRadius: 10, padding: 14, border: '1px solid rgba(255, 215, 0, 0.3)' }}>
+                <strong style={{ color: '#00E5FF', fontSize: 14 }}>Para sa iOS (Safari):</strong>
+                <ol style={{ fontSize: 12.5, color: '#CBD5E1', paddingLeft: 20, marginTop: 6, lineHeight: 1.6 }}>
+                  <li>Pindutin ang <strong>Share button (⎋ / 🔲⬆)</strong> sa ibaba ng browser.</li>
+                  <li>Mag-scroll pababa at piliin ang <strong>&ldquo;Add to Home Screen&rdquo; (➕ Idagdag sa Home Screen)</strong>.</li>
+                  <li>Pindutin ang <strong>&ldquo;Add&rdquo;</strong> para magkaroon ng standalone fullscreen App icon!</li>
+                </ol>
+              </div>
+              <div style={{ background: 'rgba(30, 41, 59, 0.7)', borderRadius: 10, padding: 14, border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                <strong style={{ color: '#10B981', fontSize: 14 }}>Para sa Android (Chrome) / PC:</strong>
+                <p style={{ fontSize: 12.5, color: '#CBD5E1', marginTop: 4, lineHeight: 1.5 }}>
+                  Pindutin ang <strong>&ldquo;Install App&rdquo;</strong> banner o ang tatlong tuldok (⋮) sa browser menu at piliin ang <strong>Install Alamat MOBA</strong> para sa offline 60fps gaming!
+                </p>
+              </div>
+              <button
+                style={{
+                  background: 'linear-gradient(135deg, #D97706, #B45309)',
+                  border: '1.5px solid #FDE68A',
+                  color: '#FFF',
+                  padding: '10px',
+                  borderRadius: 10,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+                onClick={() => setShowIosInstallGuide(false)}
+              >
+                Naiintindihan ko! Maglaro na ⚔️
+              </button>
             </div>
           </div>
         </div>
@@ -1596,21 +2983,142 @@ export default function HeroHud({
         </div>
       ) : null}
 
-      {/* Victory Screen */}
-      {won ? (
+      {/* ── Enhanced Progressive Victory & Defeat End-of-Match Screen ─────── */}
+      {won || defeated ? (
         <div style={victoryVeil}>
-          <strong style={victoryTitle}>THE DIWATA WAKES — VICTORY!</strong>
-          <span style={victoryBlurb}>
-            The {TEAMS.malakas.name} core has been shattered and daylight returns to the ancient Pasig Agimat.
-          </span>
-          <button style={victoryBtn} onClick={() => window.location.reload()}>
-            Play Again
-          </button>
+          <div
+            style={{
+              background: 'rgba(15, 23, 42, 0.95)',
+              border: won ? '2px solid #FFD700' : '2px solid #EF4444',
+              boxShadow: won ? '0 0 50px rgba(255, 215, 0, 0.5)' : '0 0 50px rgba(239, 68, 68, 0.5)',
+              borderRadius: 16,
+              padding: '24px 32px',
+              maxWidth: 620,
+              width: '92%',
+              textAlign: 'center',
+              backdropFilter: 'blur(16px)',
+              pointerEvents: 'auto',
+            }}
+          >
+            <div style={{ fontSize: 48, marginBottom: 4 }}>
+              {won ? '🏆' : '💀'}
+            </div>
+            <strong
+              style={{
+                display: 'block',
+                fontSize: 26,
+                fontWeight: 900,
+                letterSpacing: 2,
+                color: won ? '#FFD700' : '#EF4444',
+                textShadow: won ? '0 0 20px rgba(255, 215, 0, 0.6)' : '0 0 20px rgba(239, 68, 68, 0.6)',
+              }}
+            >
+              {won ? 'TAGUMPAY — VICTORY!' : 'KASAWIAN — DEFEAT'}
+            </strong>
+            <span
+              style={{
+                display: 'block',
+                fontSize: 13,
+                color: '#CBD5E1',
+                marginTop: 6,
+                lineHeight: 1.5,
+              }}
+            >
+              {won
+                ? `The ${TEAMS.malakas.name} core has been shattered in ${territory.name}. Light returns to the archipelago!`
+                : `The ${TEAMS.anito.name} sanctuary has fallen. Reorganize your forces and rise again!`}
+            </span>
+
+            {/* MVP Champion Badge */}
+            <div
+              style={{
+                margin: '14px 0',
+                padding: '10px 16px',
+                background: won ? 'rgba(255, 215, 0, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                borderRadius: 10,
+                border: won ? '1px solid #FFD700' : '1px solid #EF4444',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+              }}
+            >
+              <span style={{ fontSize: 24 }}>🎖️</span>
+              <div style={{ textAlign: 'left' }}>
+                <strong style={{ fontSize: 13, color: won ? '#FFD700' : '#FCA5A5' }}>
+                  MVP: {hero.name.toUpperCase()} (Pinakamahusay na Mandirigma)
+                </strong>
+                <span style={{ display: 'block', fontSize: 11, color: '#CBD5E1' }}>
+                  Score: {allyKills} Kills · Level {playerLevel} · {formatTime(matchTime)} Match Duration
+                </span>
+              </div>
+            </div>
+
+            {/* Progressive Rewards Breakdown */}
+            {matchReward ? (
+              <div
+                style={{
+                  background: 'rgba(30, 41, 59, 0.7)',
+                  borderRadius: 10,
+                  padding: 12,
+                  marginBottom: 16,
+                  border: '1px solid rgba(255, 215, 0, 0.3)',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: 8,
+                  textAlign: 'center',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 10, color: '#94A3B8' }}>ACCOUNT XP</div>
+                  <strong style={{ fontSize: 15, color: '#38BDF8' }}>+{matchReward.accountXpEarned} XP</strong>
+                  {matchReward.leveledUpAccount ? (
+                    <div style={{ fontSize: 9.5, color: '#FFD700', fontWeight: 800 }}>⚡ LEVEL UP! (Lvl {matchReward.newAccountLevel})</div>
+                  ) : null}
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, color: '#94A3B8' }}>HERO MASTERY</div>
+                  <strong style={{ fontSize: 15, color: '#A855F7' }}>+{matchReward.masteryXpEarned} XP</strong>
+                  {matchReward.leveledUpHero ? (
+                    <div style={{ fontSize: 9.5, color: '#FFD700', fontWeight: 800 }}>⚡ MASTERY UP! (Lvl {matchReward.newHeroMasteryLevel})</div>
+                  ) : null}
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 10, color: '#94A3B8' }}>GOLD EARNED</div>
+                  <strong style={{ fontSize: 15, color: '#FFD700' }}>+{matchReward.goldEarned} 🪙</strong>
+                </div>
+              </div>
+            ) : null}
+
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 14 }}>
+              <button
+                style={victoryBtn}
+                onClick={() => window.location.reload()}
+              >
+                ⚔️ LUMABAN MULI / PLAY AGAIN
+              </button>
+              <button
+                style={{
+                  ...victoryBtn,
+                  background: 'rgba(30, 41, 59, 0.9)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  color: '#F1F5F9',
+                }}
+                onClick={() => {
+                  window.location.href = '/';
+                }}
+              >
+                🏛️ LOBBY / HERO SELECTION
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>
   );
 }
+
 
 // ══════════════════════════════════════════════════════════════════════════════
 // CSS IN JS STYLING (GLASSMORPHISM & P08 MOBILE/PC MOBA CONTROLS)
@@ -2082,6 +3590,44 @@ const cooldownNumber: React.CSSProperties = {
   color: '#FFD700',
   fontSize: 15,
   fontWeight: 900,
+};
+
+const skillUpgradePlusBtn: React.CSSProperties = {
+  position: 'absolute',
+  top: -12,
+  right: 14,
+  width: 26,
+  height: 26,
+  borderRadius: '50%',
+  background: 'linear-gradient(135deg, #FFD700, #F59E0B)',
+  border: '2px solid #FFF',
+  color: '#0F172A',
+  fontSize: 18,
+  fontWeight: 900,
+  display: 'grid',
+  placeItems: 'center',
+  cursor: 'pointer',
+  boxShadow: '0 0 16px rgba(255, 215, 0, 0.9)',
+  zIndex: 35,
+  animation: 'pulseGold 1.2s infinite',
+  lineHeight: 1,
+};
+
+const rankPipsRow: React.CSSProperties = {
+  position: 'absolute',
+  bottom: -6,
+  left: '50%',
+  transform: 'translateX(-50%)',
+  display: 'flex',
+  gap: 3,
+  zIndex: 25,
+};
+
+const rankPip: React.CSSProperties = {
+  width: 6,
+  height: 3,
+  borderRadius: 2,
+  boxShadow: '0 1px 3px rgba(0,0,0,0.6)',
 };
 
 // ── 5. Overhead Floating Health Bars ─────────────────────────────────────────

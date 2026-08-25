@@ -15,7 +15,12 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { HEROES, SELECTION_RING, heroHeight, heroRadius, type Ability, type Hero } from '@/game/heroes';
 import { territoryById, DEFAULT_TERRITORY, type Territory } from '@/game/territories';
-import HeroHud, { type ScreenCoord, type MinionHudData, type TowerHudData } from './HeroHud';
+import HeroHud, {
+  type ScreenCoord,
+  type MinionHudData,
+  type TowerHudData,
+  type AimPreviewData,
+} from './HeroHud';
 
 import { createStage } from '@/game/render3d/stage';
 import { createCameraControls } from '@/game/render3d/controls';
@@ -42,6 +47,8 @@ import { createBossRender } from '@/game/render3d/bosses';
 import { createReticleController } from '@/game/render3d/reticles';
 import { createDamageNumberManager, type FloatingTextHudData } from '@/game/render3d/damageNumbers';
 import { sound } from '@/game/audio/synth';
+import { haptics } from '@/game/audio/haptics';
+import { recordMatchOutcome, type MatchRewardResult } from '@/game/progression/profile';
 import {
   BOUNTIES,
   getProgressionState,
@@ -50,7 +57,8 @@ import {
 } from '@/game/combat/progression';
 import { createInventoryManager, type EffectiveHeroStats } from '@/game/items/inventory';
 import { type AgimatItem } from '@/game/items/catalogue';
-import { createBotHero } from '@/game/ai/botHero';
+import { createBotTeamManager, type BotHero } from '@/game/ai/botHero';
+import type { TeammateHudData, EnemyBotHudData, TacticalPingData } from '@/components/game/HeroHud';
 import {
   BASIC_WIDTH,
   createBossManager,
@@ -122,23 +130,53 @@ export default function Arena3D({
   const [bossName, setBossName] = useState<string | undefined>(undefined);
   const [bossHp, setBossHp] = useState<number>(0);
   const [bossMaxHp, setBossMaxHp] = useState<number>(1);
-  const [combatLine, setCombatLine] = useState('WASD to move · Mouse Pointer to Aim · J basic attack · Q/W/E/R abilities');
+  const [combatLine, setCombatLine] = useState('WASD to move · Mouse/Touch Aim · J/Space attack · Q/W/E/R abilities');
   const [objectiveLine, setObjectiveLine] = useState('');
   const [won, setWon] = useState(false);
+  const [defeated, setDefeated] = useState(false);
+  const [matchReward, setMatchReward] = useState<MatchRewardResult | undefined>(undefined);
   const [equippedItems, setEquippedItems] = useState<AgimatItem[]>([]);
   const [effectiveStats, setEffectiveStats] = useState<EffectiveHeroStats | undefined>(undefined);
   const [floatingTexts, setFloatingTexts] = useState<FloatingTextHudData[]>([]);
+  const [teammatesData, setTeammatesData] = useState<TeammateHudData[]>([]);
+  const [enemyBotsData, setEnemyBotsData] = useState<EnemyBotHudData[]>([]);
+  const [activePings, setActivePings] = useState<TacticalPingData[]>([]);
 
   const turnRef = useRef(0);
   const joyRef = useRef({ x: 0, z: 0 });
   const pingFn = useRef<((type: string) => void) | null>(null);
+  const mapPingFn = useRef<((worldX: number, worldZ: number, type: string) => void) | null>(null);
+  const scoutMapFn = useRef<((target: { x: number; z: number } | null) => void) | null>(null);
+  const qualityFn = useRef<((q: 'performance' | 'balanced' | 'ultra') => void) | null>(null);
+  const skillLevelsRef = useRef<{ ability0: number; ability1: number; ability2: number; ultimate: number }>({
+    ability0: 1,
+    ability1: 1,
+    ability2: 1,
+    ultimate: 0,
+  });
+  const scoutMapTargetRef = useRef<{ x: number; z: number } | null>(null);
   const zoomFn = useRef<((factor: number) => void) | null>(null);
   const castFn = useRef<((slot: CastSlot) => void) | null>(null);
+  const castTargetFn = useRef<((slot: CastSlot, target?: { x?: number; z?: number; heading?: number; targetType?: 'hero' | 'minion' | 'tower' }) => void) | null>(null);
+  const aimPreviewFn = useRef<((data: AimPreviewData) => void) | null>(null);
   const buyFn = useRef<((item: AgimatItem) => void) | null>(null);
+  const activePingRef = useRef<{ x: number; z: number; type: string; expiresAt: number } | undefined>(undefined);
+  const aimPreviewRef = useRef<AimPreviewData | undefined>(undefined);
 
   const zoomBy = (factor: number) => zoomFn.current?.(factor);
   const cast = (slot: CastSlot) => castFn.current?.(slot);
+  const handleCastTarget = (slot: CastSlot, target?: { x?: number; z?: number; heading?: number; targetType?: 'hero' | 'minion' | 'tower' }) =>
+    castTargetFn.current?.(slot, target);
+  const handleAimPreview = (data: AimPreviewData) => aimPreviewFn.current?.(data);
   const handlePing = (type: string) => pingFn.current?.(type);
+  const handleMapPing = (worldX: number, worldZ: number, type: string) => mapPingFn.current?.(worldX, worldZ, type);
+  const handleScoutMap = (target: { x: number; z: number } | null) => {
+    scoutMapTargetRef.current = target;
+  };
+  const handleSkillUpgrade = (slot: 'ability0' | 'ability1' | 'ability2' | 'ultimate', newLevel: number) => {
+    skillLevelsRef.current[slot] = newLevel;
+  };
+  const handleQualityChange = (q: 'performance' | 'balanced' | 'ultra') => qualityFn.current?.(q);
   const handleBuyItem = (item: AgimatItem) => buyFn.current?.(item);
 
   const heroRef = useRef(hero);
@@ -154,7 +192,7 @@ export default function Arena3D({
       for (const problem of checkContent([KAPRE])) console.warn('[alamat content]', problem);
     }
 
-    const stage = createStage(canvas);
+    const stage = createStage(canvas, territory.atmosphere.skyTheme || territory.id);
     const zoomParam = Number(new URLSearchParams(window.location.search).get('zoom'));
     const startZoom = Number.isFinite(zoomParam) && zoomParam > 0 ? zoomParam : VIEW_HEIGHT;
     const terrain = buildTerrain();
@@ -297,23 +335,54 @@ export default function Arena3D({
       stage.scene.add(a.object);
     });
 
-    // ── Mid Lane AI Bot Opponent (Aswang / Manananggal) ──────────────────────
-    const botOpponent = createBotHero('aswang', 'malakas', 1);
-    let botActor: Actor | null = null;
-    createActor({
-      rigged: '/models/heroes/aswang-rigged.glb',
-      walk: '/models/heroes/aswang-walk.glb',
-      height: heroHeight(0.98),
-      ring: { radius: SELECTION_RING, colour: TEAMS.malakas.light },
-    }).then((a) => {
-      if (disposed) {
-        a.dispose();
-        return;
-      }
-      botActor = a;
-      a.setPosition(botOpponent.x, terrainHeight(botOpponent.x, botOpponent.z), botOpponent.z);
-      stage.scene.add(a.object);
-    });
+    // ── 3v3 MOBA AI Champion Team System ────────────────────────────────────
+    const botTeamManager = createBotTeamManager(hero.id, 'anito');
+    const botActors = new Map<string, Actor>();
+
+    for (const bot of botTeamManager.all) {
+      const modelConfig = bot.hero.model ?? {
+        rigged: '/models/heroes/tikbalang-rigged.glb',
+        walk: '/models/heroes/tikbalang-walk.glb',
+      };
+      createActor({
+        ...modelConfig,
+        height: heroHeight(bot.hero.build.scale),
+        ring: { radius: SELECTION_RING, colour: TEAMS[bot.team].light },
+      }).then((a) => {
+        if (disposed) {
+          a.dispose();
+          return;
+        }
+        botActors.set(bot.id, a);
+        a.setPosition(bot.x, terrainHeight(bot.x, bot.z), bot.z);
+        stage.scene.add(a.object);
+      });
+    }
+
+    // ── Map Tactical Ping Dispatcher ────────────────────────────────────────
+    mapPingFn.current = (worldX: number, worldZ: number, type: string) => {
+      const pingLabels: Record<string, string> = {
+        attack: '⚔️ ATTACK',
+        defend: '🛡️ DEFEND',
+        danger: '⚠️ DANGER',
+        omw: '🏃 ON MY WAY',
+      };
+      const label = pingLabels[type] ?? '📍 PING';
+      const newPing: TacticalPingData = {
+        id: `ping-${Date.now()}-${Math.random()}`,
+        x: worldX,
+        z: worldZ,
+        type,
+        label,
+        expiresAt: clock + 5.0,
+      };
+      setActivePings((prev) => [...prev.filter((p) => p.expiresAt > clock), newPing]);
+      activePingRef.current = { x: worldX, z: worldZ, type, expiresAt: clock + 5.0 };
+
+      combatFx.addBlessingBurst(worldX, worldZ, type === 'danger' ? 0xef4444 : type === 'defend' ? 0x3b82f6 : 0xf59e0b);
+      sound.playPing(type);
+      setCombatLine(`📢 Ancestral Warcall: ${label} at [${Math.round(worldX)}, ${Math.round(worldZ)}]`);
+    };
 
     // ── Camera & Mouse Pointer Raycasting ───────────────────────────────────
     const camera = createCameraControls(
@@ -345,8 +414,23 @@ export default function Arena3D({
     window.addEventListener('pointermove', onPointerMove);
 
     const keys = new Set<string>();
-    const castQueue: CastSlot[] = [];
-    castFn.current = (slot: CastSlot) => castQueue.push(slot);
+    const castQueue: { slot: CastSlot; target?: { x?: number; z?: number; heading?: number; targetType?: 'hero' | 'minion' | 'tower' } }[] = [];
+    castFn.current = (slot: CastSlot) => castQueue.push({ slot });
+    castTargetFn.current = (slot: CastSlot, target?: { x?: number; z?: number; heading?: number; targetType?: 'hero' | 'minion' | 'tower' }) =>
+      castQueue.push({ slot, target });
+    aimPreviewFn.current = (data: AimPreviewData) => {
+      aimPreviewRef.current = data;
+      if (!data.active) {
+        reticles.hide();
+      } else {
+        const currentHero = heroRef.current;
+        const ability = abilityForSlot(currentHero, data.slot);
+        if (ability) {
+          const color = data.isCancelZone ? 0xef4444 : TEAMS.anito.light;
+          reticles.show(ability, px, pz, data.targetX ?? mouseGroundX, data.targetZ ?? mouseGroundZ, color);
+        }
+      }
+    };
 
     const onDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
@@ -354,11 +438,38 @@ export default function Arena3D({
       const slot = CAST_KEYS[key];
       if (!slot || e.repeat) return;
       e.preventDefault();
-      castQueue.push(slot);
+      castQueue.push({ slot });
     };
     const onUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
-    window.addEventListener('keydown', onDown);
-    window.addEventListener('keyup', onUp);
+    qualityFn.current = (q) => stage.setQuality(q);
+
+    // Multi-touch pinch-to-zoom for mobile devices
+    let initialPinchDist: number | null = null;
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        initialPinchDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+      }
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && initialPinchDist) {
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        const currentDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        const ratio = currentDist / initialPinchDist;
+        if (Math.abs(ratio - 1) > 0.04) {
+          camera.zoomBy(ratio > 1 ? 0.96 : 1.04);
+          initialPinchDist = currentDist;
+        }
+      }
+    };
+    const onTouchEnd = () => {
+      initialPinchDist = null;
+    };
+    canvas.addEventListener('touchstart', onTouchStart, { passive: true });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: true });
+    canvas.addEventListener('touchend', onTouchEnd, { passive: true });
 
     const onResize = () => stage.resize();
     window.addEventListener('resize', onResize);
@@ -383,6 +494,8 @@ export default function Arena3D({
     const syncCooldowns = () => {
       setCooldowns({
         basic: Math.max(0, ready.basic - clock),
+        basic_minion: Math.max(0, ready.basic_minion - clock),
+        basic_tower: Math.max(0, ready.basic_tower - clock),
         ability0: Math.max(0, ready.ability0 - clock),
         ability1: Math.max(0, ready.ability1 - clock),
         ability2: Math.max(0, ready.ability2 - clock),
@@ -394,6 +507,8 @@ export default function Arena3D({
 
     const resetReady = () => {
       ready.basic = 0;
+      ready.basic_minion = 0;
+      ready.basic_tower = 0;
       ready.ability0 = 0;
       ready.ability1 = 0;
       ready.ability2 = 0;
@@ -402,6 +517,7 @@ export default function Arena3D({
       ready.spell = 0;
       syncCooldowns();
     };
+
 
     const resolveBody = (x: number, z: number, radius: number) => {
       const stepped = resolveJungle(x, z, radius);
@@ -412,9 +528,15 @@ export default function Arena3D({
       };
     };
 
+    let lastKillTime = -999;
+    let killStreakCount = 0;
+    let jadeShieldCooldown = 0;
+
     const awardXpAndGold = (xp: number, gold: number, entityName: string) => {
-      currentXp += xp;
-      currentGold += gold;
+      const goldMult = territory.id === 'kapatagan' && entityName.toLowerCase().includes('minion') ? 1.25 : 1.0;
+      const xpMult = territory.id === 'kapatagan' && entityName.toLowerCase().includes('minion') ? 1.25 : 1.0;
+      currentXp += Math.round(xp * xpMult);
+      currentGold += Math.round(gold * goldMult);
       setPlayerGold(currentGold);
 
       const oldLevel = currentLevel;
@@ -423,7 +545,7 @@ export default function Arena3D({
       setPlayerLevel(currentLevel);
       setPlayerXpPercent(prog.xpProgressPercent);
 
-      damageNumbers.spawn(px, terrainHeight(px, pz) + 1.2, pz, gold, 'gold');
+      damageNumbers.spawn(px, terrainHeight(px, pz) + 1.2, pz, Math.round(gold * goldMult), 'gold');
 
       if (currentLevel > oldLevel) {
         sound.playLevelUp();
@@ -517,21 +639,43 @@ export default function Arena3D({
         damageDealtToFoes += appliedDamage;
       }
 
-      // ── Bot Opponent Strike ───────────────────────────────────────────────
-      if (botOpponent.state !== 'dead' && covers(botOpponent.x, botOpponent.z, 1.0)) {
-        const killed = botOpponent.takeDamage(appliedDamage);
-        combatFx.addBurst(botOpponent.x, botOpponent.z, TEAMS.anito.light);
+      // ── 3v3 MOBA AI Team Strike ───────────────────────────────────────────
+      const botReport = botTeamManager.strike('anito', (x, z, r) => covers(x, z, r), appliedDamage);
+      for (const hit of botReport.hits) {
+        combatFx.addBurst(hit.x, hit.z, TEAMS.anito.light);
         sound.playMeleeHit();
-        damageNumbers.spawn(botOpponent.x, terrainHeight(botOpponent.x, botOpponent.z) + 1.2, botOpponent.z, appliedDamage, isCrit ? 'crit' : 'physical');
-
-        if (killed) {
-          sound.playKillAnnouncement();
-          stage.addCameraShake(0.6);
-          setAllyKills((k) => k + 1);
-          awardXpAndGold(BOUNTIES.hero.xp, BOUNTIES.hero.gold, botOpponent.hero.name);
-          setCombatLine(`Defeated enemy champion ${botOpponent.hero.name}!`);
-        }
+        damageNumbers.spawn(hit.x, terrainHeight(hit.x, hit.z) + 1.2, hit.z, appliedDamage, isCrit ? 'crit' : 'physical');
         damageDealtToFoes += appliedDamage;
+      }
+      for (const felled of botReport.felled) {
+        stage.addCameraShake(0.65);
+        setAllyKills((k) => k + 1);
+        awardXpAndGold(BOUNTIES.hero.xp, BOUNTIES.hero.gold, felled.bot.hero.name);
+
+        const now = clock;
+        if (now - lastKillTime > 12.0) {
+          killStreakCount = 0;
+        }
+        killStreakCount++;
+        lastKillTime = now;
+
+        if (killStreakCount === 1) {
+          sound.playFirstBlood();
+          damageNumbers.spawn(felled.bot.x, terrainHeight(felled.bot.x, felled.bot.z) + 2.0, felled.bot.z, 'ENEMY SLAIN!', 'status');
+          setCombatLine(`⚔️ Defeated enemy champion ${felled.bot.hero.name}! (Unang Dugo!)`);
+        } else if (killStreakCount === 2) {
+          sound.playDoubleKill();
+          damageNumbers.spawn(felled.bot.x, terrainHeight(felled.bot.x, felled.bot.z) + 2.0, felled.bot.z, 'DOUBLE KILL!', 'status');
+          setCombatLine(`🔥 DOUBLE KILL! (Dalawahang Pagpaslang) — Defeated ${felled.bot.hero.name}!`);
+        } else if (killStreakCount === 3) {
+          sound.playTripleKill();
+          damageNumbers.spawn(felled.bot.x, terrainHeight(felled.bot.x, felled.bot.z) + 2.0, felled.bot.z, 'TRIPLE KILL!', 'status');
+          setCombatLine(`⚡ TRIPLE KILL! (Tatlong Pagpaslang) — Defeated ${felled.bot.hero.name}!`);
+        } else {
+          sound.playMegaKill();
+          damageNumbers.spawn(felled.bot.x, terrainHeight(felled.bot.x, felled.bot.z) + 2.0, felled.bot.z, 'MEGA KILL / RAMPAGE!', 'status');
+          setCombatLine(`👑 MEGA KILL! WALANG KAPANTAY! — Defeated ${felled.bot.hero.name}!`);
+        }
       }
 
       // ── Neutral Jungle Creeps Strike ──────────────────────────────────────
@@ -614,33 +758,51 @@ export default function Arena3D({
       return !!(line || creepReport.hits.length > 0 || bossReport.hits.length > 0);
     };
 
-    const startWindup = (slot: CastSlot, ability: Ability) => {
+    const startWindup = (
+      slot: CastSlot,
+      ability: Ability,
+      targetOverride?: { x?: number; z?: number; heading?: number }
+    ) => {
       const startX = px;
       const startZ = pz;
-      // Aim dynamically towards mouse cursor
-      const aimHeading = Math.atan2(mouseGroundX - startX, mouseGroundZ - startZ);
-      const castHeading = Number.isFinite(aimHeading) ? aimHeading : heading;
-      heading = castHeading;
+      let castHeading = heading;
+      let targetX = mouseGroundX;
+      let targetZ = mouseGroundZ;
 
+      if (targetOverride?.heading !== undefined) {
+        castHeading = targetOverride.heading;
+        const dir = direction(castHeading);
+        targetX = startX + dir.x * ability.range;
+        targetZ = startZ + dir.z * ability.range;
+      } else if (targetOverride?.x !== undefined && targetOverride?.z !== undefined) {
+        targetX = targetOverride.x;
+        targetZ = targetOverride.z;
+        castHeading = Math.atan2(targetX - startX, targetZ - startZ);
+      } else {
+        const aimHeading = Math.atan2(mouseGroundX - startX, mouseGroundZ - startZ);
+        castHeading = Number.isFinite(aimHeading) ? aimHeading : heading;
+      }
+
+      heading = castHeading;
       const dir = direction(castHeading);
       const life = Math.max(0.12, ability.windup);
 
       sound.playSpellCast(ability.shape);
-      // Spawn ancient Baybayin/Sunburst cast rune at caster feet
+      haptics.cast();
       combatFx.addCastRune(startX, startZ, 2.4, TEAMS.anito.light, life + 0.1);
 
       if (ability.shape === 'ground') {
-        const targetDist = Math.min(ability.range, Math.hypot(mouseGroundX - startX, mouseGroundZ - startZ));
+        const targetDist = Math.min(ability.range, Math.hypot(targetX - startX, targetZ - startZ));
         const tx = startX + dir.x * targetDist;
         const tz = startZ + dir.z * targetDist;
         combatFx.addCircle(tx, tz, ability.width, TEAMS.anito.light, life);
         reticles.show(ability, startX, startZ, tx, tz, TEAMS.anito.light);
       } else if (ability.shape === 'cone') {
         combatFx.addCone(startX, startZ, castHeading, ability.range, ability.width, TEAMS.anito.light, life);
-        reticles.show(ability, startX, startZ, mouseGroundX, mouseGroundZ, TEAMS.anito.light);
+        reticles.show(ability, startX, startZ, targetX, targetZ, TEAMS.anito.light);
       } else {
         combatFx.addLine(startX, startZ, castHeading, ability.range, ability.width, TEAMS.anito.light, life);
-        reticles.show(ability, startX, startZ, mouseGroundX, mouseGroundZ, TEAMS.anito.light);
+        reticles.show(ability, startX, startZ, targetX, targetZ, TEAMS.anito.light);
       }
 
       windups.push({
@@ -651,12 +813,17 @@ export default function Arena3D({
         heading: castHeading,
         triggerAt: clock + ability.windup,
       });
-      ready[slot] = clock + ability.cooldown * (1 - activeStats.cooldownHaste);
+      const skillRank = skillLevelsRef.current[slot as keyof typeof skillLevelsRef.current] ?? 1;
+      const rankCdMult = Math.pow(0.94, Math.max(0, skillRank - 1));
+      ready[slot] = clock + ability.cooldown * rankCdMult * (1 - activeStats.cooldownHaste);
       castLockUntil = Math.max(castLockUntil, clock + ability.lock);
-      setCombatLine(`${ability.name} aimed.`);
+      setCombatLine(`${ability.name} (Rank ${skillRank}) aimed.`);
     };
 
-    const tryCast = (slot: CastSlot) => {
+    const tryCast = (
+      slot: CastSlot,
+      targetOverride?: { x?: number; z?: number; heading?: number; targetType?: 'hero' | 'minion' | 'tower' }
+    ) => {
       if (clock < castLockUntil || dash) return;
       const currentHero = heroRef.current;
       const cooldown = ready[slot] - clock;
@@ -670,6 +837,7 @@ export default function Arena3D({
       if (slot === 'potion') {
         ready.potion = clock + 35;
         sound.playPotion();
+        haptics.tick();
         grantBuff('bulul_blessing', 'Agimat Potion Regen', 5.0);
         playerHealth = Math.min(activeStats.maxHp, playerHealth + 250);
         setPlayerHp(playerHealth);
@@ -683,8 +851,16 @@ export default function Arena3D({
       if (slot === 'spell') {
         ready.spell = clock + 45;
         sound.playDash();
-        const aimHeading = Math.atan2(mouseGroundX - px, mouseGroundZ - pz);
-        const castHeading = Number.isFinite(aimHeading) ? aimHeading : heading;
+        haptics.cast();
+        let castHeading = heading;
+        if (targetOverride?.heading !== undefined) {
+          castHeading = targetOverride.heading;
+        } else if (targetOverride?.x !== undefined && targetOverride?.z !== undefined) {
+          castHeading = Math.atan2(targetOverride.x - px, targetOverride.z - pz);
+        } else {
+          const aimHeading = Math.atan2(mouseGroundX - px, mouseGroundZ - pz);
+          castHeading = Number.isFinite(aimHeading) ? aimHeading : heading;
+        }
         const dir = direction(castHeading);
         const blinkDist = 6.5;
         const next = resolveBody(px + dir.x * blinkDist, pz + dir.z * blinkDist, heroRadius(currentHero.build.scale));
@@ -699,25 +875,126 @@ export default function Arena3D({
         return;
       }
 
-      if (slot === 'basic') {
+      if (slot === 'basic' || slot === 'basic_minion' || slot === 'basic_tower') {
         ready.basic = clock + currentHero.attackCooldown / activeStats.attackSpeedMultiplier;
+        ready.basic_minion = ready.basic;
+        ready.basic_tower = ready.basic;
         castLockUntil = Math.max(castLockUntil, clock + Math.min(0.18, currentHero.attackCooldown * 0.3));
 
-        const aimHeading = Math.atan2(mouseGroundX - px, mouseGroundZ - pz);
-        const castHeading = Number.isFinite(aimHeading) ? aimHeading : heading;
-        heading = castHeading;
+        let castHeading = heading;
+        const searchRange = currentHero.attackRange * 2.2;
 
+        if (slot === 'basic_minion') {
+          // Prioritize nearest enemy minion or jungle creep
+          let nearestDist = Infinity;
+          let targetX = px;
+          let targetZ = pz;
+          let found = false;
+
+          for (const m of minionManager.minions) {
+            if (m.team === ENEMY && m.alive) {
+              const d = Math.hypot(m.x - px, m.z - pz);
+              if (d < searchRange && d < nearestDist) {
+                nearestDist = d;
+                targetX = m.x;
+                targetZ = m.z;
+                found = true;
+              }
+            }
+          }
+          if (!found) {
+            for (const c of creepManager.creeps) {
+              if (c.alive) {
+                const d = Math.hypot(c.x - px, c.z - pz);
+                if (d < searchRange && d < nearestDist) {
+                  nearestDist = d;
+                  targetX = c.x;
+                  targetZ = c.z;
+                  found = true;
+                }
+              }
+            }
+          }
+          if (found) {
+            castHeading = Math.atan2(targetX - px, targetZ - pz);
+          }
+        } else if (slot === 'basic_tower') {
+          // Prioritize nearest enemy tower or core
+          let nearestDist = Infinity;
+          let targetX = px;
+          let targetZ = pz;
+          let found = false;
+          for (const s of objectives.all) {
+            if (s.team === ENEMY && objectives.alive(s)) {
+              const d = Math.hypot(s.x - px, s.z - pz);
+              if (d < searchRange + 2.0 && d < nearestDist) {
+                nearestDist = d;
+                targetX = s.x;
+                targetZ = s.z;
+                found = true;
+              }
+            }
+          }
+          if (found) {
+            castHeading = Math.atan2(targetX - px, targetZ - pz);
+          }
+        } else {
+          // Hero / Boss / General Priority
+          if (targetOverride?.heading !== undefined) {
+            castHeading = targetOverride.heading;
+          } else if (targetOverride?.x !== undefined && targetOverride?.z !== undefined) {
+            castHeading = Math.atan2(targetOverride.x - px, targetOverride.z - pz);
+          } else {
+            // Auto-lock onto nearest enemy bot hero or Kapre if in range
+            let nearestDist = Infinity;
+            let targetX = px;
+            let targetZ = pz;
+            let found = false;
+
+            for (const bot of botTeamManager.enemies) {
+              if (bot.health > 0) {
+                const d = Math.hypot(bot.x - px, bot.z - pz);
+
+                if (d < searchRange && d < nearestDist) {
+                  nearestDist = d;
+                  targetX = bot.x;
+                  targetZ = bot.z;
+                  found = true;
+                }
+              }
+            }
+
+            if (!found && brute.alive) {
+              const d = Math.hypot(brute.x - px, brute.z - pz);
+              if (d < searchRange) {
+                targetX = brute.x;
+                targetZ = brute.z;
+                found = true;
+              }
+            }
+            if (found) {
+              castHeading = Math.atan2(targetX - px, targetZ - pz);
+            } else {
+              const aimHeading = Math.atan2(mouseGroundX - px, mouseGroundZ - pz);
+              castHeading = Number.isFinite(aimHeading) ? aimHeading : heading;
+            }
+          }
+        }
+
+        heading = castHeading;
         sound.playMeleeHit();
+        haptics.tick();
         combatFx.addLine(px, pz, castHeading, currentHero.attackRange, BASIC_WIDTH, TEAMS.anito.light, 0.16);
         combatFx.addSlashArc(px, pz, castHeading, Math.max(1.8, currentHero.attackRange * 0.85), TEAMS.anito.light, 0.22);
         const landed = resolveHit('Strike', activeStats.attack, (tx, tz, r) =>
           lineHitsPoint(px, pz, castHeading, currentHero.attackRange, BASIC_WIDTH, tx, tz, r)
         );
+        if (landed) haptics.hit();
         if (!landed) setCombatLine('Strike cuts empty air.');
         return;
       }
 
-      if (ability) startWindup(slot, ability);
+      if (ability) startWindup(slot, ability, targetOverride);
     };
 
     const resolveWindup = (cast: WindupCast) => {
@@ -740,23 +1017,29 @@ export default function Arena3D({
         return;
       }
 
+      const skillRank = skillLevelsRef.current[cast.slot as keyof typeof skillLevelsRef.current] ?? 1;
+      const rankDmgMult = 1.0 + (skillRank - 1) * 0.18;
+      const effectiveDmg = Math.round(cast.ability.damage * rankDmgMult);
+
       if (cast.ability.shape === 'ground') {
         if (cast.ability.damage <= 0) {
           setCombatLine(`${cast.ability.name} takes hold.`);
           return;
         }
-        const landed = resolveHit(cast.ability.name, cast.ability.damage, (tx, tz, r) =>
+        const landed = resolveHit(cast.ability.name, effectiveDmg, (tx, tz, r) =>
           Math.hypot(tx - targetX, tz - targetZ) <= cast.ability.width + r
         );
+        if (landed) haptics.hit();
         if (!landed) setCombatLine(`${cast.ability.name} lands empty.`);
         return;
       }
 
       if (cast.ability.shape === 'cone') {
         combatFx.addCone(cast.x, cast.z, cast.heading, cast.ability.range, cast.ability.width, TEAMS.anito.light, 0.18);
-        const landed = resolveHit(cast.ability.name, cast.ability.damage, (tx, tz, r) =>
+        const landed = resolveHit(cast.ability.name, effectiveDmg, (tx, tz, r) =>
           coneHitsPoint(cast.x, cast.z, cast.heading, cast.ability.range, cast.ability.width, tx, tz, r)
         );
+        if (landed) haptics.hit();
         if (!landed) setCombatLine(`${cast.ability.name} finds no body.`);
         return;
       }
@@ -770,6 +1053,10 @@ export default function Arena3D({
       };
       if (cast.ability.damage <= 0) setCombatLine(`${cast.ability.name} carries you forward.`);
     };
+
+    let cameraTargetX = px;
+    let cameraTargetZ = pz;
+    let matchOutcomeProcessed = false;
 
     const loop = () => {
       raf = requestAnimationFrame(loop);
@@ -796,9 +1083,10 @@ export default function Arena3D({
       const queuedCast = castQueue.shift();
       castQueue.length = 0;
       if (queuedCast) {
-        tryCast(queuedCast);
+        tryCast(queuedCast.slot, queuedCast.target);
         syncCooldowns();
       }
+
 
       // ── Movement & Controls ───────────────────────────────────────────────
       const turnKey = (keys.has('q') ? 1 : 0) - (keys.has('e') ? 1 : 0);
@@ -853,7 +1141,17 @@ export default function Arena3D({
         const dz = -ix * sin + iz * cos;
         const len = Math.hypot(dx, dz) || 1;
         const hasWindStride = liveBuffs.some((b) => b.type === 'wind_stride' && clock < b.expiresAt);
-        const speedMult = (hasWindStride ? 1.35 : 1.0) * riverSpeed(px, pz);
+        const inRiver = onCrossing(px, pz);
+        const isDaylight = clock % 600 < 420;
+        let territorySpeedMult = 1.0;
+        if (territory.id === 'kaluwalhatian' && isDaylight && !hiddenSeen) {
+          territorySpeedMult *= 1.10;
+        } else if (territory.id === 'van_long_uyen' && inRiver) {
+          territorySpeedMult *= 1.15;
+        } else if (territory.id === 'gubat_anito' && hiddenSeen) {
+          territorySpeedMult *= 1.20;
+        }
+        const speedMult = (hasWindStride ? 1.35 : 1.0) * riverSpeed(px, pz) * territorySpeedMult;
         const step = activeStats.speed * speedMult * dt;
         const bodyR = heroRadius(want.build.scale);
         const next = resolveBody(px + (dx / len) * step, pz + (dz / len) * step, bodyR);
@@ -868,10 +1166,23 @@ export default function Arena3D({
         setHidden(inBrush);
       }
 
-      // Passive health regeneration
+      // Passive health regeneration & Territory blessings
+      let extraRegen = 0;
+      if (territory.id === 'gubat_anito' && inBrush) {
+        extraRegen += 2.5;
+      }
       if (playerHealth > 0 && playerHealth < activeStats.maxHp) {
-        playerHealth = Math.min(activeStats.maxHp, playerHealth + activeStats.hpRegen * dt);
+        playerHealth = Math.min(activeStats.maxHp, playerHealth + (activeStats.hpRegen + extraRegen) * dt);
         setPlayerHp(playerHealth);
+      }
+
+      // Van Long Uyen: Jade Dragon Ward (+200 HP shield when entering combat)
+      if (territory.id === 'van_long_uyen' && clock >= jadeShieldCooldown && playerHealth > 0) {
+        jadeShieldCooldown = clock + 40;
+        grantBuff('bulul_blessing', 'Jade Dragon Ward (+200 HP)', 8.0);
+        playerHealth = Math.min(activeStats.maxHp + 200, playerHealth + 200);
+        combatFx.addBlessingBurst(px, pz, 0x10b981);
+        damageNumbers.spawn(px, terrainHeight(px, pz) + 1.4, pz, 200, 'heal');
       }
 
       // Expired buffs cleanup & Bulul Blessing health regeneration
@@ -941,29 +1252,63 @@ export default function Arena3D({
         foe.update(dt);
       }
 
-      // ── Mid Lane AI Bot Hero Simulation ───────────────────────────────────
-      const botAction = botOpponent.update(dt, px, pz, playerHealth);
-      if (botActor) {
-        if (botOpponent.state === 'dead') {
-          botActor.object.visible = false;
-        } else {
-          botActor.object.visible = true;
-          botActor.setPosition(botOpponent.x, terrainHeight(botOpponent.x, botOpponent.z), botOpponent.z);
-          botActor.setFacing(botOpponent.heading);
-          botActor.play(botAction?.type === 'move' ? 'walk' : 'idle');
-          botActor.update(dt);
+      // ── 3v3 MOBA AI Champion Team Simulation ──────────────────────────────
+      const botActions = botTeamManager.update(
+        dt,
+        clock,
+        px,
+        pz,
+        playerHealth,
+        activeStats.maxHp,
+        heroRef.current,
+        'anito',
+        minionManager.minions,
+        objectives,
+        activePingRef.current
+      );
 
-          if (botAction?.type === 'attack') {
-            sound.playMeleeHit();
-            combatFx.addLine(botOpponent.x, botOpponent.z, botOpponent.heading, botOpponent.hero.attackRange, BASIC_WIDTH, TEAMS.malakas.light, 0.16);
-            hurtPlayer(getScaledAttack(botOpponent.hero.attack, botOpponent.level), botOpponent.hero.name);
-          } else if (botAction?.type === 'cast' && botAction.slot) {
-            const botAbility = abilityForSlot(botOpponent.hero, botAction.slot);
+      for (const bot of botTeamManager.all) {
+        const actor = botActors.get(bot.id);
+        const action = botActions.get(bot.id);
+        if (!actor) continue;
+
+        if (bot.state === 'dead') {
+          actor.object.visible = false;
+        } else {
+          actor.object.visible = true;
+          actor.setPosition(bot.x, terrainHeight(bot.x, bot.z), bot.z);
+          actor.setFacing(bot.heading);
+          actor.play(action?.type === 'move' ? 'walk' : 'idle');
+          actor.update(dt);
+
+          if (action?.type === 'attack') {
+            const teamColor = TEAMS[bot.team].light;
+            combatFx.addLine(bot.x, bot.z, bot.heading, bot.hero.attackRange, BASIC_WIDTH, teamColor, 0.16);
+            if (bot.team === 'malakas') {
+              if (Math.hypot(px - bot.x, pz - bot.z) <= bot.hero.attackRange + 1.1) {
+                hurtPlayer(bot.attack, bot.hero.name);
+                sound.playMeleeHit();
+              }
+            }
+          } else if (action?.type === 'cast' && action.slot) {
+            const botAbility = abilityForSlot(bot.hero, action.slot);
             if (botAbility) {
-              sound.playSpellCast(botAbility.shape);
-              combatFx.addCone(botOpponent.x, botOpponent.z, botOpponent.heading, botAbility.range, botAbility.width, TEAMS.malakas.light, 0.2);
-              if (Math.hypot(px - botOpponent.x, pz - botOpponent.z) <= botAbility.range) {
-                hurtPlayer(botAbility.damage, `${botOpponent.hero.name}'s ${botAbility.name}`);
+              const teamColor = TEAMS[bot.team].light;
+              combatFx.addCastRune(bot.x, bot.z, 2.0, teamColor, 0.35);
+              if (botAbility.shape === 'cone') {
+                combatFx.addCone(bot.x, bot.z, bot.heading, botAbility.range, botAbility.width, teamColor, 0.25);
+              } else if (botAbility.shape === 'ground') {
+                const tX = bot.x + Math.sin(bot.heading) * Math.min(botAbility.range, 6);
+                const tZ = bot.z + Math.cos(bot.heading) * Math.min(botAbility.range, 6);
+                combatFx.addCircle(tX, tZ, botAbility.width, teamColor, 0.35);
+              } else {
+                combatFx.addLine(bot.x, bot.z, bot.heading, botAbility.range, botAbility.width, teamColor, 0.22);
+              }
+              if (bot.team === 'malakas') {
+                if (Math.hypot(px - bot.x, pz - bot.z) <= botAbility.range) {
+                  hurtPlayer(botAbility.damage, `${bot.hero.name}'s ${botAbility.name}`);
+                  sound.playSpellImpact();
+                }
               }
             }
           }
@@ -1114,7 +1459,30 @@ export default function Arena3D({
       santelmo.update(clock);
       combatFx.update(dt);
       stage.update(dt, clock, bossManager.bakunawa.inCombat);
-      stage.lookAtGround(px, pz);
+      
+      // Smooth dynamic camera aim lead and minimap drag scouting for mobile
+      const scoutTarget = scoutMapTargetRef.current;
+      if (scoutTarget) {
+        cameraTargetX += (scoutTarget.x - cameraTargetX) * 0.25;
+        cameraTargetZ += (scoutTarget.z - cameraTargetZ) * 0.25;
+      } else {
+        const aimPreview = aimPreviewRef.current;
+        if (aimPreview && aimPreview.active && !aimPreview.isCancelZone && aimPreview.targetX !== undefined && aimPreview.targetZ !== undefined) {
+          const dx = aimPreview.targetX - px;
+          const dz = aimPreview.targetZ - pz;
+          const dist = Math.hypot(dx, dz);
+          const maxLead = 4.2;
+          const leadDist = Math.min(dist * 0.35, maxLead);
+          const leadX = px + (dist > 0.1 ? (dx / dist) * leadDist : 0);
+          const leadZ = pz + (dist > 0.1 ? (dz / dist) * leadDist : 0);
+          cameraTargetX += (leadX - cameraTargetX) * 0.15;
+          cameraTargetZ += (leadZ - cameraTargetZ) * 0.15;
+        } else {
+          cameraTargetX += (px - cameraTargetX) * 0.2;
+          cameraTargetZ += (pz - cameraTargetZ) * 0.2;
+        }
+      }
+      stage.lookAtGround(cameraTargetX, cameraTargetZ);
       stage.render();
 
       // Screen Projections & Floating Numbers
@@ -1145,6 +1513,56 @@ export default function Arena3D({
         setFoePos({ x: brute.x, z: brute.z });
       } else {
         setFoeScreenPos(undefined);
+      }
+
+      // Check Victory & Defeat Conditions
+      const anitoCore = objectives.core('anito');
+      if (anitoCore && anitoCore.health <= 0 && !won && !defeated) {
+        setDefeated(true);
+        sound.playDefeat();
+        haptics.damage();
+        stage.addCameraShake(1.2);
+        setCombatLine('💀 The Anito Sanctuary Core has fallen! Defeat.');
+        if (!matchOutcomeProcessed) {
+          matchOutcomeProcessed = true;
+          const reward = recordMatchOutcome({
+            heroId: activeHeroId,
+            territoryId: territory.id,
+            won: false,
+            matchDuration: clock,
+            playerKills: allyKills,
+            playerDeaths: 1,
+            playerAssists: 0,
+            heroLevel: currentLevel,
+            towersDestroyed: 0,
+            bossesSlain: 0,
+          });
+          setMatchReward(reward);
+        }
+      }
+      const malakasCore = objectives.core('malakas');
+      if (malakasCore && malakasCore.health <= 0 && !won && !defeated) {
+        setWon(true);
+        sound.playVictory();
+        haptics.victory();
+        stage.addCameraShake(1.5);
+        setCombatLine('🏆 The Malakas Realm Core has been shattered! VICTORY!');
+        if (!matchOutcomeProcessed) {
+          matchOutcomeProcessed = true;
+          const reward = recordMatchOutcome({
+            heroId: activeHeroId,
+            territoryId: territory.id,
+            won: true,
+            matchDuration: clock,
+            playerKills: allyKills,
+            playerDeaths: 0,
+            playerAssists: 2,
+            heroLevel: currentLevel,
+            towersDestroyed: 3,
+            bossesSlain: 1,
+          });
+          setMatchReward(reward);
+        }
       }
 
       frames++;
@@ -1191,6 +1609,46 @@ export default function Arena3D({
             remaining: Math.max(0, b.expiresAt - clock),
           }))
         );
+        setTeammatesData(
+          botTeamManager.allies.map((b) => ({
+            id: b.id,
+            name: b.hero.name,
+            heroId: b.hero.id,
+            emoji: b.hero.emoji,
+            hpPct: Math.max(0, Math.min(100, (b.health / b.maxHealth) * 100)),
+            manaPct: 100,
+            ultReady: (b.cooldowns.ultimate ?? 0) <= 0,
+            level: b.level,
+            x: b.x,
+            z: b.z,
+            kills: b.kills,
+            deaths: b.deaths,
+            assists: b.assists,
+            gold: b.gold,
+            damageDealt: b.damageDealt,
+            role: b.hero.role,
+            title: b.hero.title || b.hero.role,
+          }))
+        );
+        setEnemyBotsData(
+          botTeamManager.enemies.map((b) => ({
+            id: b.id,
+            name: b.hero.name,
+            heroId: b.hero.id,
+            emoji: b.hero.emoji,
+            hpPct: Math.max(0, Math.min(100, (b.health / b.maxHealth) * 100)),
+            level: b.level,
+            x: b.x,
+            z: b.z,
+            kills: b.kills,
+            deaths: b.deaths,
+            assists: b.assists,
+            gold: b.gold,
+            damageDealt: b.damageDealt,
+            role: b.hero.role,
+            title: b.hero.title || b.hero.role,
+          }))
+        );
         combatUiClock = 0;
       }
     };
@@ -1198,14 +1656,11 @@ export default function Arena3D({
     pingFn.current = (type: string) => {
       stage.addCameraShake(0.2);
       if (type === 'gather') {
-        combatFx.addCircle(36, -14, 6.0, 0x00e5ff, 1.2);
-        setCombatLine('📍 Tactical Alert: Group up at Bakunawa River Basin!');
+        mapPingFn.current?.(36, -14, 'omw');
       } else if (type === 'attack') {
-        combatFx.addCircle(0, 0, 5.0, 0xff3366, 1.2);
-        setCombatLine('⚔ Attack Alert: Focus Fire on Mid Objectives!');
+        mapPingFn.current?.(0, 0, 'attack');
       } else {
-        combatFx.addCircle(px, pz, 4.0, 0xffd06f, 1.0);
-        setCombatLine('🛡 Defense Alert: Fall back to sanctuary!');
+        mapPingFn.current?.(px, pz, 'defend');
       }
     };
 
@@ -1216,11 +1671,15 @@ export default function Arena3D({
       zoomFn.current = null;
       castFn.current = null;
       pingFn.current = null;
+      mapPingFn.current = null;
       buyFn.current = null;
       cancelAnimationFrame(raf);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
+      canvas.removeEventListener('touchstart', onTouchStart);
+      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('touchend', onTouchEnd);
       window.removeEventListener('resize', onResize);
       camera.dispose();
       terrain.traverse((n) => {
@@ -1249,7 +1708,11 @@ export default function Arena3D({
       bossRender.dispose();
       player?.dispose();
       foe?.dispose();
-      botActor?.dispose();
+      botActors.forEach((a) => {
+        stage.scene.remove(a.object);
+        a.dispose();
+      });
+      botActors.clear();
       stage.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1286,8 +1749,12 @@ export default function Arena3D({
         combatLine={combatLine}
         objectiveLine={objectiveLine}
         won={won}
+        defeated={defeated}
+        matchReward={matchReward}
         cooldowns={cooldowns}
         onCast={cast}
+        onCastTarget={handleCastTarget}
+        onAimPreview={handleAimPreview}
         onMoveVector={(dx, dz) => {
           joyRef.current = { x: dx, z: dz };
         }}
@@ -1299,6 +1766,10 @@ export default function Arena3D({
           turnRef.current = dir;
         }}
         onPing={handlePing}
+        onMapPing={handleMapPing}
+        onScoutMap={handleScoutMap}
+        onSkillUpgrade={handleSkillUpgrade}
+        onQualityChange={handleQualityChange}
         onBuyItem={handleBuyItem}
         equippedItems={equippedItems}
         effectiveStats={effectiveStats}
@@ -1307,6 +1778,9 @@ export default function Arena3D({
         bossName={bossName}
         bossHp={bossHp}
         bossMaxHp={bossMaxHp}
+        teammatesData={teammatesData}
+        enemyBotsData={enemyBotsData}
+        activePings={activePings}
       />
     </div>
   );

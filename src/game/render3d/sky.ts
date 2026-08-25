@@ -42,9 +42,9 @@ export interface SkyResult {
 }
 
 /**
- * 10-Minute Time-of-Day keyframe definitions.
+ * 10-Minute Time-of-Day keyframe definitions with Regional Territory Atmospheric Theming.
  */
-export function getTodLighting(clock: number, isEclipse: boolean): SkyColors {
+export function getTodLighting(clock: number, isEclipse: boolean, territoryTheme?: string): SkyColors {
   const PERIOD = 600.0; // 10 minutes
   const t = (clock % PERIOD + PERIOD) % PERIOD;
 
@@ -104,7 +104,6 @@ export function getTodLighting(clock: number, isEclipse: boolean): SkyColors {
   if (t < 120) {
     // ── DAWN (0:00 - 2:00) ──────────────────────────────────────────────────
     const p = t / 120;
-    // Golden-rose morning sky
     colors.zenith.set('#1E1630').lerp(new THREE.Color('#2C3E60'), p);
     colors.mid.set('#7D4A68').lerp(new THREE.Color('#E56B6F'), p);
     colors.horizon.set('#F39C80').lerp(new THREE.Color('#FFC38B'), p);
@@ -128,7 +127,6 @@ export function getTodLighting(clock: number, isEclipse: boolean): SkyColors {
   } else if (t < 300) {
     // ── MIDDAY (2:00 - 5:00) ────────────────────────────────────────────────
     const p = (t - 120) / 180;
-    // High-intensity tropical sunlight (#FFF4E0), daylight sky blue ambient (#87CEEB), soft readable shadows
     colors.zenith.set('#15528A').lerp(new THREE.Color('#1B74BA'), p);
     colors.mid.set('#4FA3CE').lerp(new THREE.Color('#5DB7CD'), p);
     colors.horizon.set('#FFF2D6').lerp(new THREE.Color('#FFF4E0'), p);
@@ -152,7 +150,6 @@ export function getTodLighting(clock: number, isEclipse: boolean): SkyColors {
   } else if (t < 420) {
     // ── DUSK (5:00 - 7:00) ──────────────────────────────────────────────────
     const p = (t - 300) / 120;
-    // Deep amber/crimson sunset lighting up Mayon Volcano's plume
     colors.zenith.set('#1D102A').lerp(new THREE.Color('#120B20'), p);
     colors.mid.set('#C0392B').lerp(new THREE.Color('#E67E22'), 1 - p);
     colors.horizon.set('#D35400').lerp(new THREE.Color('#A93226'), p);
@@ -176,7 +173,6 @@ export function getTodLighting(clock: number, isEclipse: boolean): SkyColors {
   } else {
     // ── NIGHT (7:00 - 10:00) ────────────────────────────────────────────────
     const p = (t - 420) / 180;
-    // Cool moonlight with luminous sky fill and rich bioluminescent plant emission
     colors.zenith.set('#081224');
     colors.mid.set('#12243D').lerp(new THREE.Color('#162D4A'), p);
     colors.horizon.set('#20395E').lerp(new THREE.Color('#15424D'), p);
@@ -199,10 +195,34 @@ export function getTodLighting(clock: number, isEclipse: boolean): SkyColors {
     colors.vignette = 0.35;
   }
 
+  // ── REGIONAL TERRITORY ATMOSPHERIC BLEND ──────────────────────────────────
+  if (territoryTheme === 'solar_golden' || territoryTheme === 'kaluwalhatian') {
+    colors.sunColor.lerp(new THREE.Color('#FFE17D'), 0.35);
+    colors.rimColor.lerp(new THREE.Color('#FFD700'), 0.45);
+    colors.fogColor.lerp(new THREE.Color('#FDE68A'), 0.25);
+    colors.exposure = Math.min(1.65, colors.exposure * 1.06);
+  } else if (territoryTheme === 'jade_karst_mist' || territoryTheme === 'van_long_uyen') {
+    colors.ambientColor.lerp(new THREE.Color('#6EE7B7'), 0.35);
+    colors.rimColor.lerp(new THREE.Color('#10B981'), 0.4);
+    colors.fogColor.lerp(new THREE.Color('#A7F3D0'), 0.3);
+  } else if (territoryTheme === 'volcanic_caldera' || territoryTheme === 'kasakitan') {
+    colors.sunColor.lerp(new THREE.Color('#FF6B6B'), 0.3);
+    colors.rimColor.lerp(new THREE.Color('#EF4444'), 0.4);
+    colors.fogColor.lerp(new THREE.Color('#7F1D1D'), 0.25);
+  } else if (territoryTheme === 'golden_harvest' || territoryTheme === 'kapatagan') {
+    colors.sunColor.lerp(new THREE.Color('#FBBF24'), 0.3);
+    colors.ambientColor.lerp(new THREE.Color('#FEF08A'), 0.25);
+    colors.rimColor.lerp(new THREE.Color('#F59E0B'), 0.35);
+  } else if (territoryTheme === 'ancient_rainforest' || territoryTheme === 'gubat_anito') {
+    colors.ambientColor.lerp(new THREE.Color('#34D399'), 0.35);
+    colors.rimColor.lerp(new THREE.Color('#00E5FF'), 0.4);
+    colors.fogColor.lerp(new THREE.Color('#6EE7B7'), 0.25);
+  }
+
   return colors;
 }
 
-export function createSky(renderer: THREE.WebGLRenderer): SkyResult {
+export function createSky(renderer: THREE.WebGLRenderer, territoryTheme?: string): SkyResult {
   const geo = new THREE.SphereGeometry(520, 32, 20);
 
   const uniforms = {
@@ -363,12 +383,12 @@ export function createSky(renderer: THREE.WebGLRenderer): SkyResult {
     dome,
     eclipseGroup,
     environment,
-    getLighting: (clock, isEclipse) => getTodLighting(clock, isEclipse),
+    getLighting: (clock, isEclipse) => getTodLighting(clock, isEclipse, territoryTheme),
     update: (clock, isEclipse) => {
       const targetEclipse = isEclipse ? 1.0 : 0.0;
       curEclipseLerp += (targetEclipse - curEclipseLerp) * 0.08;
 
-      const lighting = getTodLighting(clock, curEclipseLerp > 0.5);
+      const lighting = getTodLighting(clock, curEclipseLerp > 0.5, territoryTheme);
 
       uniforms.uZenith.value.lerp(lighting.zenith, 0.1);
       uniforms.uMid.value.lerp(lighting.mid, 0.1);

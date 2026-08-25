@@ -14,6 +14,20 @@ class SoundEngine {
   private muted: boolean = false;
   private volume: number = 0.65;
 
+  constructor() {
+    if (typeof window !== 'undefined') {
+      const unlock = () => {
+        this.init();
+        window.removeEventListener('pointerdown', unlock);
+        window.removeEventListener('touchstart', unlock);
+        window.removeEventListener('keydown', unlock);
+      };
+      window.addEventListener('pointerdown', unlock, { passive: true, once: true });
+      window.addEventListener('touchstart', unlock, { passive: true, once: true });
+      window.addEventListener('keydown', unlock, { passive: true, once: true });
+    }
+  }
+
   private init(): boolean {
     if (typeof window === 'undefined') return false;
     if (!this.ctx) {
@@ -614,6 +628,224 @@ class SoundEngine {
 
     osc.start(now);
     osc.stop(now + 1.85);
+  }
+
+  /** First Blood (Unang Dugo) Announcement Fanfare */
+  public playFirstBlood() {
+    if (!this.init() || !this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    // War drum punch
+    const drum = this.ctx.createOscillator();
+    const drumGain = this.ctx.createGain();
+    drum.type = 'sine';
+    drum.frequency.setValueAtTime(180, now);
+    drum.frequency.exponentialRampToValueAtTime(40, now + 0.35);
+    drumGain.gain.setValueAtTime(0.8, now);
+    drumGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    drum.connect(drumGain);
+    drumGain.connect(this.masterGain);
+    drum.start(now);
+    drum.stop(now + 0.42);
+
+    // Rising brass fanfare (G4 -> C5 -> E5 -> G5)
+    [392.0, 523.25, 659.25, 783.99].forEach((freq, idx) => {
+      if (!this.ctx || !this.masterGain) return;
+      const t = now + 0.08 + idx * 0.09;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, t);
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1800, t);
+
+      gain.gain.setValueAtTime(0.35, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(t);
+      osc.stop(t + 0.32);
+    });
+  }
+
+  /** Double Kill (Dalawang Pagpaslang) */
+  public playDoubleKill() {
+    if (!this.init() || !this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    [587.33, 880.0, 1174.66].forEach((freq, idx) => {
+      if (!this.ctx || !this.masterGain) return;
+      const t = now + idx * 0.08;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.4, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(t);
+      osc.stop(t + 0.38);
+    });
+  }
+
+  /** Triple Kill (Tatlong Pagpaslang) */
+  public playTripleKill() {
+    if (!this.init() || !this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    [523.25, 659.25, 783.99, 1046.5, 1318.51].forEach((freq, idx) => {
+      if (!this.ctx || !this.masterGain) return;
+      const t = now + idx * 0.06;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, t);
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2400, t);
+
+      gain.gain.setValueAtTime(0.38, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(t);
+      osc.stop(t + 0.42);
+    });
+  }
+
+  /** Mega Kill / Rampage (Walang Kapantay!) */
+  public playMegaKill() {
+    if (!this.init() || !this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    // Sub-bass rumble
+    const sub = this.ctx.createOscillator();
+    const subGain = this.ctx.createGain();
+    sub.type = 'sawtooth';
+    sub.frequency.setValueAtTime(80, now);
+    sub.frequency.exponentialRampToValueAtTime(35, now + 0.8);
+    subGain.gain.setValueAtTime(0.7, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+    sub.connect(subGain);
+    subGain.connect(this.masterGain);
+    sub.start(now);
+    sub.stop(now + 0.95);
+
+    // Shimmering choral arpeggios
+    [440, 554.37, 659.25, 880, 1108.73, 1318.51, 1760].forEach((freq, idx) => {
+      if (!this.ctx || !this.masterGain) return;
+      const t = now + 0.05 + idx * 0.05;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.32, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(t);
+      osc.stop(t + 0.52);
+    });
+  }
+
+  /** Structure/Tower Collapse Rumble */
+  public playTowerDestroyed(isAlly = false) {
+    if (!this.init() || !this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    // Deep earthquake crash
+    const noise = this.ctx.createBufferSource();
+    const buffer = this.createNoiseBuffer();
+    if (buffer) {
+      noise.buffer = buffer;
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(450, now);
+      filter.frequency.exponentialRampToValueAtTime(60, now + 0.8);
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.65, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+      noise.start(now);
+      noise.stop(now + 0.9);
+    }
+
+    // Horn tone
+    const horn = this.ctx.createOscillator();
+    const hornGain = this.ctx.createGain();
+    horn.type = 'sawtooth';
+    horn.frequency.setValueAtTime(isAlly ? 160 : 320, now + 0.1);
+    horn.frequency.exponentialRampToValueAtTime(isAlly ? 90 : 440, now + 0.7);
+
+    const hFilter = this.ctx.createBiquadFilter();
+    hFilter.type = 'lowpass';
+    hFilter.frequency.setValueAtTime(1000, now + 0.1);
+
+    hornGain.gain.setValueAtTime(0.4, now + 0.1);
+    hornGain.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+
+    horn.connect(hFilter);
+    hFilter.connect(hornGain);
+    hornGain.connect(this.masterGain);
+    horn.start(now + 0.1);
+    horn.stop(now + 0.8);
+  }
+
+  /** Epic Bakunawa Slain Triumphant Mythic Chime */
+  public playBakunawaSlain() {
+    if (!this.init() || !this.ctx || !this.masterGain) return;
+    this.playEclipseGong();
+    this.playLevelUp();
+    this.playKulintangChime();
+  }
+
+  /** Defeat (Kasawian) Solemn Minor Progression */
+  public playDefeat() {
+    if (!this.init() || !this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    const chords = [
+      [440.0, 523.25, 659.25], // A minor
+      [392.0, 466.16, 587.33], // G minor
+      [349.23, 415.3, 523.25], // F minor
+      [220.0, 261.63, 329.63], // Low A minor
+    ];
+
+    chords.forEach((chord, step) => {
+      const stepTime = now + step * 0.45;
+      chord.forEach((freq) => {
+        if (!this.ctx || !this.masterGain) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, stepTime);
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(700, stepTime);
+
+        gain.gain.setValueAtTime(0.28, stepTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, stepTime + 0.6);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.start(stepTime);
+        osc.stop(stepTime + 0.65);
+      });
+    });
   }
 }
 

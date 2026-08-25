@@ -9,13 +9,15 @@
 import type { Ability, Hero } from '@/game/heroes';
 import type * as THREE from 'three';
 
-export type CastSlot = 'basic' | 'ability0' | 'ability1' | 'ability2' | 'ultimate' | 'potion' | 'spell';
+export type CastSlot = 'basic' | 'basic_minion' | 'basic_tower' | 'ability0' | 'ability1' | 'ability2' | 'ultimate' | 'potion' | 'spell';
 
 /** Seconds remaining on each slot. Zero means ready. */
 export type CooldownState = Record<CastSlot, number>;
 
 export const EMPTY_COOLDOWNS: CooldownState = {
   basic: 0,
+  basic_minion: 0,
+  basic_tower: 0,
   ability0: 0,
   ability1: 0,
   ability2: 0,
@@ -28,6 +30,9 @@ export const EMPTY_COOLDOWNS: CooldownState = {
 export const CAST_KEYS: Record<string, CastSlot> = {
   j: 'basic',
   ' ': 'basic',
+  t: 'basic_tower',
+  m: 'basic_minion',
+  k: 'basic_minion',
   q: 'ability0',
   '1': 'ability0',
   w: 'ability1',
@@ -39,6 +44,7 @@ export const CAST_KEYS: Record<string, CastSlot> = {
   d: 'potion',
   f: 'spell',
 };
+
 
 /** Half-width of a basic attack, which has no ability record to carry one. */
 export const BASIC_WIDTH = 0.55;

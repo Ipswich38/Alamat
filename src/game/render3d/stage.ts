@@ -18,7 +18,7 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { createSky, getTodLighting } from './sky';
 import { createGradePass } from './grade';
 
-export type Quality = 'high' | 'low';
+export type Quality = 'performance' | 'balanced' | 'ultra' | 'high' | 'low';
 
 /** The dials that decide the look. Live, so they can be tuned by eye. */
 export interface Mood {
@@ -75,7 +75,7 @@ const DEFAULT_YAW = Math.PI / 4;
 export const ZOOM_MIN = 16;
 export const ZOOM_MAX = 90;
 
-export function createStage(canvas: HTMLCanvasElement): Stage {
+export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string): Stage {
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
@@ -90,7 +90,7 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
 
   const scene = new THREE.Scene();
 
-  const sky = createSky(renderer);
+  const sky = createSky(renderer, territoryTheme);
   scene.add(sky.dome);
   scene.add(sky.eclipseGroup);
   scene.environment = sky.environment;
@@ -222,10 +222,17 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
 
   function setQuality(q: Quality): void {
     quality = q;
-    renderer.shadowMap.enabled = q === 'high';
-    bloom.enabled = q === 'high';
-    grade.enabled = q === 'high';
-    renderer.setPixelRatio(q === 'high' ? Math.min(2, window.devicePixelRatio || 1) : 1);
+    const isUltra = q === 'ultra' || q === 'high';
+    const isBalanced = q === 'balanced';
+    const isPerf = q === 'performance' || q === 'low';
+
+    renderer.shadowMap.enabled = !isPerf;
+    bloom.enabled = isUltra;
+    grade.enabled = isUltra || isBalanced;
+
+    const maxDpr = isUltra ? 2.0 : isBalanced ? 1.5 : 1.0;
+    renderer.setPixelRatio(Math.min(maxDpr, window.devicePixelRatio || 1));
+
     scene.traverse((n) => {
       const m = n as THREE.Mesh;
       if (m.isMesh && m.material) {
@@ -294,7 +301,7 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
     addCameraShake,
     update,
     resize,
-    render: () => (quality === 'high' ? composer.render() : renderer.render(scene, camera)),
+    render: () => (quality === 'performance' || quality === 'low' ? renderer.render(scene, camera) : composer.render()),
     dispose: () => {
       composer.dispose();
       sky.dispose();
