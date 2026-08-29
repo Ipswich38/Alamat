@@ -626,23 +626,23 @@ export default function HeroHud({
     setShowBattlePings(false);
     if (warCallType === 'sulong') {
       sound.playPing('danger');
-      setPingNotification('⚔ SULONG! Sugurin ang hanay ng kalaban! [ᜐᜓᜎᜓᜅ᜔]');
+      setPingNotification('⚔ ATTACK! Push the enemy line');
       onPing?.('attack');
     } else if (warCallType === 'iwas') {
       sound.playPing('danger');
-      setPingNotification('⚠️ MAG-INGAT! Mag-ingat sa gubat at tambang! [ᜋᜄ᜔-ᜁᜅᜆ᜔]');
+      setPingNotification('⚠️ DANGER! Watch the jungle');
       onPing?.('retreat');
     } else if (warCallType === 'tabi') {
       sound.playKubingTwang();
-      setPingNotification('🌿 TABI-TABI PO! Magtago sa damuhan at maghanda! [ᜆᜊᜒ-ᜆᜊᜒ]');
+      setPingNotification('🌿 FALL BACK! Hide and regroup');
       onPing?.('stealth');
     } else if (warCallType === 'tulong') {
       sound.playPing('gather');
-      setPingNotification('🛡 TULUNGAN! Protektahan ang Moog ng Anito! [ᜆᜓᜎᜓᜅᜈ᜔]');
+      setPingNotification('🛡 HELP! Defend the tower');
       onPing?.('assist');
     } else if (warCallType === 'kulintang') {
       sound.playKulintangChime();
-      setPingNotification('🎶 KULINTANG NG DIGMAAN: Pinagpala ng mga Diwata ang laban!');
+      setPingNotification('🎶 KULINTANG: the Diwata bless this fight');
       onPing?.('blessing');
     }
     setTimeout(() => setPingNotification(null), 3500);
@@ -947,9 +947,9 @@ export default function HeroHud({
         </button>
         <button
           style={{ ...utilityBtn, borderColor: 'rgba(0, 229, 255, 0.6)' }}
-          title="Aklat ng mga Pangkat (Minions Division Codex & Images)"
+          title="Creep Codex"
           onClick={() => setShowMinionsCodex(!showMinionsCodex)}
-          aria-label="Pangkat Minions"
+          aria-label="Creep codex"
         >
           <span style={utilityIcon}>🛡</span>
         </button>
@@ -1271,7 +1271,7 @@ export default function HeroHud({
               pointerEvents: 'none',
             }}
           >
-            ⚡ {availableSkillPoints} PUNTO NG KASANAYAN!
+            ⚡ {availableSkillPoints} SKILL POINTS
           </div>
         )}
 
@@ -1332,8 +1332,46 @@ export default function HeroHud({
           </button>
         </div>
 
+        {/*
+          Your own health, pinned above the action cluster.
+
+          Until now this existed ONLY as a bar floating over the character in the
+          world. In a fight the player's eyes are on the enemy and their thumb is
+          in this corner, so checking their own health meant looking away from
+          what is about to kill them. Every mobile MOBA carries the overhead bar
+          AND a readout here; Alamat had only the first.
+
+          Numbers as well as a bar: "how much health" is a decision input, and a
+          bar alone cannot answer "can I survive one more hit".
+        */}
+        <div style={thumbVitals}>
+          <div style={thumbVitalsHead}>
+            <span style={thumbLevelBadge}>{playerLevel}</span>
+            <span style={thumbHeroName}>{hero.name.toUpperCase()}</span>
+            <span style={thumbHpNumbers}>
+              {Math.ceil(playerHp)} / {effectiveStats?.maxHp ?? playerMaxHp}
+            </span>
+          </div>
+          <div style={thumbHpTrack}>
+            <div
+              style={{
+                ...thumbHpFill,
+                width: `${playerPct}%`,
+                /* Colour is a second channel for the same fact, so it reads in
+                   peripheral vision without being looked at directly. */
+                background:
+                  playerPct > 50
+                    ? 'linear-gradient(90deg, #22C55E, #4ADE80)'
+                    : playerPct > 25
+                      ? 'linear-gradient(90deg, #F59E0B, #FBBF24)'
+                      : 'linear-gradient(90deg, #DC2626, #F87171)',
+              }}
+            />
+          </div>
+        </div>
+
         {/* Skill 1 (Q / Strike) at bottom: 40px; right: 140px; */}
-        <div style={{ position: 'absolute', bottom: 40, right: 140, width: 58, height: 58, pointerEvents: 'auto' }}>
+        <div style={{ position: 'absolute', bottom: 73, right: 197, width: 58, height: 58, pointerEvents: 'auto' }}>
           {/* Level-Up Plus Upgrade Button */}
           {availableSkillPoints > 0 && skillLevels.ability0 < 5 && (
             <button
@@ -1389,7 +1427,7 @@ export default function HeroHud({
         </div>
 
         {/* Skill 2 (W / Shield) at bottom: 110px; right: 120px; */}
-        <div style={{ position: 'absolute', bottom: 110, right: 120, width: 58, height: 58, pointerEvents: 'auto' }}>
+        <div style={{ position: 'absolute', bottom: 142, right: 167, width: 58, height: 58, pointerEvents: 'auto' }}>
           {/* Level-Up Plus Upgrade Button */}
           {availableSkillPoints > 0 && skillLevels.ability1 < 5 && (
             <button
@@ -1445,7 +1483,7 @@ export default function HeroHud({
         </div>
 
         {/* Skill 3 (E / Burst) at bottom: 150px; right: 50px; */}
-        <div style={{ position: 'absolute', bottom: 150, right: 50, width: 58, height: 58, pointerEvents: 'auto' }}>
+        <div style={{ position: 'absolute', bottom: 187, right: 107, width: 58, height: 58, pointerEvents: 'auto' }}>
           {/* Level-Up Plus Upgrade Button */}
           {availableSkillPoints > 0 && skillLevels.ability2 < 5 && (
             <button
@@ -1501,7 +1539,7 @@ export default function HeroHud({
         </div>
 
         {/* Ultimate (R / Solar Burst) at bottom: 120px; right: 190px; (68px, Gold Glow) */}
-        <div style={{ position: 'absolute', bottom: 120, right: 190, width: 68, height: 68, pointerEvents: 'auto' }}>
+        <div style={{ position: 'absolute', bottom: 190, right: 26, width: 72, height: 72, pointerEvents: 'auto' }}>
           {/* Level-Up Plus Upgrade Button for Ultimate (Unlocked at lvl 4, 8, 12) */}
           {availableSkillPoints > 0 && playerLevel >= 4 && skillLevels.ultimate < 3 && (
             <button
@@ -1563,8 +1601,8 @@ export default function HeroHud({
         <button
           style={{
             position: 'absolute',
-            bottom: 115,
-            right: 28,
+            bottom: 88,
+            right: 350,
             width: 44,
             height: 44,
             borderRadius: '50%',
@@ -1595,8 +1633,8 @@ export default function HeroHud({
         <button
           style={{
             position: 'absolute',
-            bottom: 25,
-            right: 118,
+            bottom: 34,
+            right: 350,
             width: 44,
             height: 44,
             borderRadius: '50%',
@@ -1627,8 +1665,8 @@ export default function HeroHud({
         <button
           style={{
             ...mainAttackBtn,
-            bottom: 40,
-            right: 40,
+            bottom: 34,
+            right: 34,
             opacity: cooldowns.basic > 0.05 ? 0.7 : 1,
           }}
           onClick={() => {
@@ -1639,7 +1677,7 @@ export default function HeroHud({
         >
           <span style={mainAttackKey}>J</span>
           <span style={{ fontSize: 34 }}>⚔</span>
-          <span style={mainAttackText}>SUGOD</span>
+          <span style={mainAttackText}>ATTACK</span>
         </button>
       </div>
 
@@ -1812,17 +1850,17 @@ export default function HeroHud({
       {/* Minion Wave Divisions Live Ribbon */}
       <div style={minionWaveRibbon}>
         <div style={minionTeamBadgeAnito}>
-          <span style={{ color: '#FFD700', fontWeight: 800, fontSize: 10 }}>ANITO PANGKAT:</span>
-          <span style={minionCountChip} title="Mandirigma (Frontline Kalasag & Kampilan)">⚔️ {anitoMandirigma}</span>
-          <span style={minionCountChip} title="Mapanahong (Ranged Salakot Archer)">🏹 {anitoMapanahong}</span>
-          <span style={minionCountChip} title="Bagani (Carabao Horned Siege Ram)">🐂 {anitoBagani}</span>
+          <span style={{ color: '#FFD700', fontWeight: 800, fontSize: 10 }}>ANITO:</span>
+          <span style={minionCountChip} title="Mandirigma, frontline">⚔️ {anitoMandirigma}</span>
+          <span style={minionCountChip} title="Mapanahong, ranged">🏹 {anitoMapanahong}</span>
+          <span style={minionCountChip} title="Bagani, siege">🐂 {anitoBagani}</span>
         </div>
         <div style={minionWaveDivider}>VS</div>
         <div style={minionTeamBadgeMalakas}>
-          <span style={{ color: '#F87171', fontWeight: 800, fontSize: 10 }}>MALAKAS PANGKAT:</span>
-          <span style={minionCountChip} title="Mandirigma (Frontline Kalasag & Kampilan)">⚔️ {malakasMandirigma}</span>
-          <span style={minionCountChip} title="Mapanahong (Ranged Salakot Archer)">🏹 {malakasMapanahong}</span>
-          <span style={minionCountChip} title="Bagani (Carabao Horned Siege Ram)">🐂 {malakasBagani}</span>
+          <span style={{ color: '#F87171', fontWeight: 800, fontSize: 10 }}>MALAKAS:</span>
+          <span style={minionCountChip} title="Mandirigma, frontline">⚔️ {malakasMandirigma}</span>
+          <span style={minionCountChip} title="Mapanahong, ranged">🏹 {malakasMapanahong}</span>
+          <span style={minionCountChip} title="Bagani, siege">🐂 {malakasBagani}</span>
         </div>
       </div>
 
@@ -3013,7 +3051,7 @@ export default function HeroHud({
                 textShadow: won ? '0 0 20px rgba(255, 215, 0, 0.6)' : '0 0 20px rgba(239, 68, 68, 0.6)',
               }}
             >
-              {won ? 'TAGUMPAY — VICTORY!' : 'KASAWIAN — DEFEAT'}
+              {won ? 'VICTORY' : 'DEFEAT'}
             </strong>
             <span
               style={{
@@ -3414,10 +3452,15 @@ const skillClusterContainer: React.CSSProperties = {
   zIndex: 10,
 };
 
+/*
+ * Sits clear of the ability arc. At right: 215 it ran straight through the
+ * Q button once the abilities were placed on a proper arc. Every position in
+ * this cluster is checked against every other for overlap; if one moves, re-check.
+ */
 const quickSpellsRow: React.CSSProperties = {
   position: 'absolute',
   bottom: 30,
-  right: 215,
+  right: 285,
   display: 'flex',
   flexDirection: 'column',
   gap: 8,
@@ -3496,10 +3539,90 @@ const ultimateCircleBtn: React.CSSProperties = {
   overflow: 'hidden',
 };
 
+/*
+ * The anchor of the whole right thumb.
+ *
+ * 96px, and deliberately larger than every ability: it is pressed an order of
+ * magnitude more often than anything else, so it is the one button the thumb
+ * should find without looking. Mobile Legends and Wild Rift both do this, and
+ * the abilities arc around it rather than sitting in a row beside it.
+ *
+ * The previous layout had this at 82px with four 58-68px abilities scattered
+ * around it, and three pairs actually OVERLAPPED (attack/skill2, attack/creep,
+ * skill1/creep). Positions are now computed on one arc, verified collision free.
+ */
+const thumbVitals: React.CSSProperties = {
+  position: 'absolute',
+  bottom: 272,
+  right: 26,
+  width: 238,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 4,
+  padding: '6px 9px 7px',
+  borderRadius: 9,
+  background: 'rgba(8, 15, 26, 0.72)',
+  border: '1px solid rgba(148, 178, 209, 0.28)',
+  backdropFilter: 'blur(3px)',
+  pointerEvents: 'none',
+  zIndex: 11,
+};
+
+const thumbVitalsHead: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 7,
+};
+
+const thumbLevelBadge: React.CSSProperties = {
+  minWidth: 19,
+  height: 19,
+  padding: '0 4px',
+  borderRadius: 5,
+  background: '#FFD700',
+  color: '#111827',
+  fontSize: 11,
+  fontWeight: 900,
+  display: 'grid',
+  placeItems: 'center',
+};
+
+const thumbHeroName: React.CSSProperties = {
+  flex: 1,
+  fontSize: 11,
+  fontWeight: 800,
+  letterSpacing: '0.05em',
+  color: '#DDE8F3',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+};
+
+const thumbHpNumbers: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 700,
+  color: '#9FB6CB',
+  fontVariantNumeric: 'tabular-nums',
+};
+
+const thumbHpTrack: React.CSSProperties = {
+  height: 9,
+  borderRadius: 5,
+  background: 'rgba(2, 8, 16, 0.85)',
+  border: '1px solid rgba(120, 150, 180, 0.3)',
+  overflow: 'hidden',
+};
+
+const thumbHpFill: React.CSSProperties = {
+  height: '100%',
+  borderRadius: 4,
+  transition: 'width 0.18s linear',
+};
+
 const mainAttackBtn: React.CSSProperties = {
   position: 'absolute',
-  width: 82,
-  height: 82,
+  width: 96,
+  height: 96,
   borderRadius: '50%',
   background: 'radial-gradient(circle, #D97706 0%, #78350F 100%)',
   border: '3px solid #FDE68A',
@@ -3555,7 +3678,16 @@ const ultimateEmoji: React.CSSProperties = {
   fontSize: 26,
 };
 
+/*
+ * Ability names are NOT drawn on the buttons any more.
+ *
+ * They were clipped to 50px with an ellipsis, so players read "Turned Ar..."
+ * and "Trailbl...". A label you cannot finish is worse than no label. Real
+ * MOBAs put an icon, a cooldown number and a hotkey on the button and leave the
+ * name to the tooltip, which is what the title attribute already carries.
+ */
 const abilitySubName: React.CSSProperties = {
+  display: 'none',
   fontSize: 8.5,
   fontWeight: 700,
   color: '#E2E8F0',
@@ -3567,6 +3699,7 @@ const abilitySubName: React.CSSProperties = {
 };
 
 const ultimateSubName: React.CSSProperties = {
+  display: 'none',
   fontSize: 9,
   fontWeight: 800,
   color: '#FDE68A',

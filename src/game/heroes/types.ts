@@ -78,6 +78,14 @@ export interface Hero {
   role: HeroRole;
   emoji: string;
   /**
+   * The roster card image: Meshy's 512px render of this hero's own model.
+   *
+   * The roster used to draw `emoji` alone, so Tikbalang and Diwata both showed
+   * a leaf and read as the same character on that page even after they had
+   * distinct 3D models. The emoji stays as the fallback and for compact chips.
+   */
+  portrait?: string;
+  /**
    * This hero's own rigged model, if it has one.
    *
    * Absent means they fall back to the shared adventurer tinted by `palette`,

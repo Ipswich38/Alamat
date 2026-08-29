@@ -42,6 +42,9 @@ export const HEROES: Hero[] = [
       'It turns travellers in circles until they give up on the path they chose. Wear your shirt inside out and it lets you pass, which is the only apology it knows how to make.',
     role: 'vanguard',
     emoji: '🐴',
+    /* Meshy renders this alongside the model; the roster shows it
+       instead of the emoji, which two heroes used to share. */
+    portrait: '/models/heroes/tikbalang.png',
     palette: { skin: '#8a5a3c', cloth: '#2f6f57', accent: '#ffd24a', hair: '#241a14' },
     // The tankiest and the slowest to act. A vanguard that is also quick has no
     // weakness, and every fight becomes about who has one.
@@ -128,11 +131,14 @@ export const HEROES: Hero[] = [
       'Never seen at the act. A doll, a strand of hair, a name said the wrong number of times, and a person three towns away sits down and does not get up.',
     role: 'mystic',
     emoji: '🪡',
+    /* Meshy renders this alongside the model; the roster shows it
+       instead of the emoji, which two heroes used to share. */
+    portrait: '/models/heroes/mangkukulam.png',
     palette: { skin: '#b07f57', cloth: '#7a3fa8', accent: '#ff5f8f', hair: '#1a1418' },
     build: { scale: 0.94, bulk: 0.92, gear: ['cape', 'pouch'] },
     model: {
-      rigged: '/models/heroes/diwata-rigged.glb',
-      walk: '/models/heroes/diwata-walk.glb',
+      rigged: '/models/heroes/mangkukulam-rigged.glb',
+      walk: '/models/heroes/mangkukulam-walk.glb',
     },
     health: 720,
     speed: 6.0,
@@ -216,6 +222,9 @@ export const HEROES: Hero[] = [
       'By day it is a neighbour who asks after your mother. The tell is the reflection: look at its eyes in water and you are standing upside down in them.',
     role: 'stalker',
     emoji: '🦇',
+    /* Meshy renders this alongside the model; the roster shows it
+       instead of the emoji, which two heroes used to share. */
+    portrait: '/models/heroes/aswang.png',
     palette: { skin: '#9a6a4f', cloth: '#3a2f4a', accent: '#e03a4a', hair: '#0f0d10' },
     build: { scale: 0.98, bulk: 0.82, gear: ['knives'] },
     health: 780,
@@ -300,6 +309,9 @@ export const HEROES: Hero[] = [
       'Ask before you cut the tree. Say tabi-tabi po before you cross the mound. She is not unkind, she is simply owed a courtesy nobody remembers to pay.',
     role: 'warden',
     emoji: '🌿',
+    /* Meshy renders this alongside the model; the roster shows it
+       instead of the emoji, which two heroes used to share. */
+    portrait: '/models/heroes/diwata.png',
     palette: { skin: '#e0b98a', cloth: '#2fae7a', accent: '#ffe98a', hair: '#4a3220' },
     build: { scale: 1.04, bulk: 0.95, gear: ['cape'] },
     health: 860,
@@ -376,14 +388,17 @@ export const HEROES: Hero[] = [
       effect: '+15% Physical Armor & Seismic Cleave',
     },
     model: {
-      rigged: '/models/heroes/tikbalang-rigged.glb',
-      walk: '/models/heroes/tikbalang-walk.glb',
+      rigged: '/models/heroes/bernardo-rigged.glb',
+      walk: '/models/heroes/bernardo-walk.glb',
     },
     origin: 'The strength held between two mountains',
     lore:
       'He stands in the gap in the Montalban range with a hand on each cliff. When he shifts his shoulders, the ground in Manila moves. He has been getting free for a very long time.',
     role: 'ranger',
     emoji: '⛰',
+    /* Meshy renders this alongside the model; the roster shows it
+       instead of the emoji, which two heroes used to share. */
+    portrait: '/models/heroes/bernardo.png',
     palette: { skin: '#c08a58', cloth: '#c96a2f', accent: '#cfd8de', hair: '#20160f' },
     build: { scale: 1.14, bulk: 1.18, gear: ['crossbow'] },
     health: 820,
@@ -468,6 +483,12 @@ export const HEROES: Hero[] = [
       'By dusk she rubs enchanted oil on her skin and splits at the waist. Her bat-winged torso hunts the night skies while her lower half stands hidden beneath banana groves.',
     role: 'stalker',
     emoji: '🩸',
+    /* ⚠ TEMPORARILY SHARING ASWANG'S MODEL AND PORTRAIT, on purpose.
+       The generated manananggal was a horned winged demon AND was bare
+       chested, which Google Play prohibits. Sharing Aswang is the lesser
+       problem: same folklore family, no content risk. Replace when credits
+       allow, using the corrected prompt in scripts/meshy-assets.mjs. */
+    portrait: '/models/heroes/aswang.png',
     palette: { skin: '#8b5a5a', cloth: '#3d1c24', accent: '#ff1744', hair: '#110b10' },
     build: { scale: 1.02, bulk: 0.85, gear: ['knives'] },
     health: 760,
@@ -544,14 +565,17 @@ export const HEROES: Hero[] = [
       effect: 'Max-Range Spell +45 HP Heal & 20% Slow',
     },
     model: {
-      rigged: '/models/heroes/diwata-rigged.glb',
-      walk: '/models/heroes/diwata-walk.glb',
+      rigged: '/models/heroes/mayari-rigged.glb',
+      walk: '/models/heroes/mayari-walk.glb',
     },
     origin: 'The one-eyed Goddess of the Moon and War',
     lore:
       'Daughter of Bathala who rules the celestial night with serene silver brilliance. Though she lost an eye to Apolaki in their war for the sky, her lunar radiance guides the lost.',
     role: 'warden',
     emoji: '🌙',
+    /* Meshy renders this alongside the model; the roster shows it
+       instead of the emoji, which two heroes used to share. */
+    portrait: '/models/heroes/mayari.png',
     palette: { skin: '#f0d5b8', cloth: '#1a365d', accent: '#00e5ff', hair: '#2b2d42' },
     build: { scale: 1.06, bulk: 0.96, gear: ['cape'] },
     health: 890,
@@ -628,14 +652,17 @@ export const HEROES: Hero[] = [
       effect: '+15 Burn Dmg/s & True Sight in Brush',
     },
     model: {
-      rigged: '/models/heroes/tikbalang-rigged.glb',
-      walk: '/models/heroes/tikbalang-walk.glb',
+      rigged: '/models/heroes/apolaki-rigged.glb',
+      walk: '/models/heroes/apolaki-walk.glb',
     },
     origin: 'The Sovereign God of Sun and War',
     lore:
       'Patron lord of ancient warriors who commands the searing light of the noonday sun. With his golden Kalasag shield and flaming spear, he leads every charge.',
     role: 'vanguard',
     emoji: '☀️',
+    /* Meshy renders this alongside the model; the roster shows it
+       instead of the emoji, which two heroes used to share. */
+    portrait: '/models/heroes/apolaki.png',
     palette: { skin: '#b87333', cloth: '#c0392b', accent: '#ffb300', hair: '#1a1a1a' },
     build: { scale: 1.2, bulk: 1.22, gear: ['cape'] },
     health: 1100,
@@ -712,14 +739,17 @@ export const HEROES: Hero[] = [
       effect: 'Stacking Moon Devour (+ATK & +HP on Kills)',
     },
     model: {
-      rigged: '/models/creatures/kapre-rigged.glb',
-      walk: '/models/creatures/kapre-walk.glb',
+      rigged: '/models/heroes/bakunawaHero-rigged.glb',
+      walk: '/models/heroes/bakunawaHero-walk.glb',
     },
     origin: 'The colossal serpent that swallows the moon',
     lore:
       'A primordial leviathan of the deep seas whose hunger pulls the tides and devours the celestial bodies. When it rises, the sky turns blood red.',
     role: 'mystic',
     emoji: '🐉',
+    /* Meshy renders this alongside the model; the roster shows it
+       instead of the emoji, which two heroes used to share. */
+    portrait: '/models/heroes/bakunawaHero.png',
     palette: { skin: '#1a365d', cloth: '#0f172a', accent: '#7c3aed', hair: '#020617' },
     build: { scale: 1.28, bulk: 1.35, gear: [] },
     health: 1050,

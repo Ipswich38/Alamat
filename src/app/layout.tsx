@@ -56,12 +56,34 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+              /*
+                NEVER in development.
+
+                sw.js serves /_next/ cache-first, and Next's dev chunk URLs are
+                NOT content hashed, so once a chunk is cached the browser keeps
+                serving the old code after every edit. A change to a component
+                simply does not appear, which reads as the change not working
+                rather than as a caching problem. It cost a full afternoon here.
+
+                Production chunk names ARE hashed, so cache-first is fine there.
+              */
+              if (${JSON.stringify(process.env.NODE_ENV)} === 'production' && 'serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
                 window.addEventListener('load', function() {
                   navigator.serviceWorker.register('/sw.js').catch(function(err) {
                     console.log('[alamat sw] registration failed: ', err);
                   });
                 });
+              } else if ('serviceWorker' in navigator) {
+                /* Unregister anything left over from a previous dev session and
+                   drop its caches, or the stale bundle survives this fix. */
+                navigator.serviceWorker.getRegistrations().then(function (rs) {
+                  rs.forEach(function (r) { r.unregister(); });
+                });
+                if (window.caches) {
+                  caches.keys().then(function (ks) {
+                    ks.forEach(function (k) { if (k.indexOf('alamat') === 0) caches.delete(k); });
+                  });
+                }
               }
             `,
           }}

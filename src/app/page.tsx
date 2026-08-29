@@ -195,11 +195,11 @@ export default function HeroSelectionLobby() {
   return (
     <div style={lobbyContainer}>
       {/* Top Navigation Bar */}
-      <header style={topHeader}>
+      <header className="lobby-topbar" style={topHeader}>
         <div style={brandCol}>
           <span style={baybayinGlyph}>ᜀᜎᜋᜆ᜔</span>
           <h1 style={brandTitle}>ALAMAT</h1>
-          <span style={brandSubtitle}>PHILIPPINE MYTHOLOGY 3D MOBA</span>
+          <span className="lobby-tagline" style={brandSubtitle}>PHILIPPINE MYTHOLOGY 3D MOBA</span>
         </div>
 
         {/* Master Navigation View Tabs */}
@@ -315,7 +315,7 @@ export default function HeroSelectionLobby() {
       {activeTab === 'heroes' && (
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
           {/* Role Filters Subheader */}
-          <div style={filterSubheader}>
+          <div className="lobby-filters" style={filterSubheader}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
               <span style={{ fontSize: 12, color: '#FFD700', fontWeight: 800 }}>ROLE FILTER:</span>
               {['all', 'vanguard', 'mystic', 'stalker', 'warden', 'ranger'].map((r) => (
@@ -355,7 +355,7 @@ export default function HeroSelectionLobby() {
 
           <main className="lobby-main-grid" style={mainGrid}>
             {/* 1. Left Hero List */}
-            <section style={rosterSection}>
+            <section className="lobby-roster" style={rosterSection}>
               <h2 style={sectionTitle}>CHOOSE CHAMPION</h2>
               <div className="lobby-hero-list" style={heroCardList}>
                 {filteredHeroes.map((h) => {
@@ -374,7 +374,26 @@ export default function HeroSelectionLobby() {
                         sound.playPing('select');
                       }}
                     >
-                      <span style={{ fontSize: 32 }}>{h.emoji}</span>
+                      {h.portrait ? (
+                        <img
+                          src={h.portrait}
+                          alt={h.name}
+                          width={44}
+                          height={44}
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 8,
+                            objectFit: 'cover',
+                            /* the renders are lit on white, so they need a
+                               ground of their own against the dark card */
+                            background: 'rgba(255,255,255,0.06)',
+                            flex: 'none',
+                          }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: 32 }}>{h.emoji}</span>
+                      )}
                       <div style={{ flex: 1, marginLeft: 12 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -398,11 +417,11 @@ export default function HeroSelectionLobby() {
             {/* 2. Center 3D Interactive Turntable */}
             <section className="lobby-turntable" style={previewSection}>
               <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
-              <div style={turntableOverlay}>
+              <div className="lobby-nameplate" style={turntableOverlay}>
                 {selectedHero.baybayin && <span style={{ fontSize: 18, color: '#FFD700', letterSpacing: 6 }}>{selectedHero.baybayin}</span>}
                 <span style={heroOriginBadge}>{selectedHero.title || selectedHero.origin}</span>
                 <h2 style={heroDisplayName}>{selectedHero.name.toUpperCase()}</h2>
-                {selectedHero.quote && <p style={heroQuoteText}>&ldquo;{selectedHero.quote}&rdquo;</p>}
+                {selectedHero.quote && <p className="lobby-quote" style={heroQuoteText}>&ldquo;{selectedHero.quote}&rdquo;</p>}
                 <div style={heroStatChips}>
                   <span style={statChip}>❤️ {selectedHero.health} HP</span>
                   <span style={statChip}>⚔️ {selectedHero.attack} ATK</span>
@@ -413,7 +432,7 @@ export default function HeroSelectionLobby() {
             </section>
 
             {/* 3. Right Hero Dossier & Abilities Showcase */}
-            <section style={dossierSection}>
+            <section className="lobby-dossier" style={dossierSection}>
               <div style={loreBox}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 style={loreHeader}>FOLKLORE DOSSIER</h3>

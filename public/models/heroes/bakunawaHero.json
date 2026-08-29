@@ -1,0 +1,9 @@
+{
+  "id": "bakunawaHero",
+  "mode": "refine",
+  "previewTaskId": "01a04cd9-a5e3-7586-b641-b37027f9ad42",
+  "refineTaskId": "01a04cda-d359-7547-8b7a-9599c590fb77",
+  "prompt": "Stylised 3D MOBA character model, Filipino serpent deity warrior, humanoid male figure with blue-green dragon scales, a horned serpent head with a long jaw and whiskers, heroic stylised proportions like a League of Legends champion. Broad scaled shoulders, clawed hands, a finned crest running back from the skull, a thick tapering tail behind. Wearing dark lacquered plate over the chest with pearl inlays. Standing upright on two human legs in a neutral A-pose, arms held away from the body, legs straight and slightly apart, facing forward. Clean readable silhouette, game-ready character mesh, A-pose. No base, no plinth, no background.",
+  "bytes": 11093180,
+  "rigTaskId": "01a04cdb-d220-74b8-9caa-89bddd378507"
+}

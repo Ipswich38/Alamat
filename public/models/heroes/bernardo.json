@@ -1,0 +1,9 @@
+{
+  "id": "bernardo",
+  "mode": "refine",
+  "previewTaskId": "01a04cc5-ea46-7608-afb5-c24f86dd4d85",
+  "refineTaskId": "01a04cc7-09d8-73f7-9bd8-90004d8f499e",
+  "prompt": "Stylised 3D MOBA character model, heroic young Filipino folk strongman, human male, heroic stylised proportions like a League of Legends champion. Broad powerful shoulders and thick arms, determined friendly face, short dark hair tied back with a woven headband. Bare chested with a woven abaca sash across the torso, simple dark trousers, wide leather belt with a carved stone buckle. Heavy stone shackles broken open around both wrists, short lengths of chain still hanging. Standing upright on two legs in a neutral A-pose, arms held away from the body, legs straight and slightly apart, facing forward. Clean readable silhouette, game-ready character mesh, A-pose. No base, no plinth, no ground, no background.",
+  "bytes": 8392012,
+  "rigTaskId": "01a04cc7-fcc1-7712-a123-2a6d271756c5"
+}

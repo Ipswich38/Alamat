@@ -34,7 +34,16 @@ export interface Mood {
 }
 
 export const DEFAULT_MOOD: Mood = {
-  exposure: 1.5,
+  /*
+   * 1.10, not 1.5.
+   *
+   * ACES already lifts the midtones. Exposure on top of it was pushing a large
+   * share of the frame past the bloom threshold, so the arena washed out to a
+   * gold haze and unit silhouettes disappeared into the ground. In a MOBA the
+   * first job of the renderer is telling hero from creep from terrain at a
+   * glance, and a blown frame destroys exactly that.
+   */
+  exposure: 1.10,
   fogNear: 65,
   fogFar: 145,
   vignette: 0.22,
@@ -139,11 +148,23 @@ export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string):
   const composer = new EffectComposer(renderer);
   const renderPass = new RenderPass(scene, camera);
   composer.addPass(renderPass);
+  /*
+   * strength 0.45, radius 0.60, threshold 0.86.
+   *
+   * Was 1.1 / 0.85 / 0.80, which is about double the usual working range for
+   * UnrealBloom and smeared the whole scene rather than picking out the things
+   * that should glow. The higher threshold means only genuinely bright pixels
+   * (ability effects, lanterns, the agimat stream) bloom at all; the tighter
+   * radius keeps the glow near its source instead of hazing the terrain.
+   *
+   * If this ever needs to go back up, raise the threshold with it. Strength and
+   * threshold move together or the frame washes out again.
+   */
   const bloom = new UnrealBloomPass(
     new THREE.Vector2(1, 1),
-    1.1,
-    0.85,
-    0.80
+    0.45,
+    0.60,
+    0.86
   );
   composer.addPass(bloom);
   composer.addPass(new OutputPass());

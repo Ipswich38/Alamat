@@ -15,6 +15,13 @@
 // stylisation has to come from the prompt itself.
 //
 // ⚠ Only the refine stage produces textures. A preview is untextured geometry.
+//
+// ⚠ THE AUTO-RIGGER NEEDS TO SEE TWO LEGS. Mangkukulam was first described in
+// "layered robes" and the rig came back 422 "Pose estimation failed" after the
+// 30 credits for preview and refine were already spent. A floor-length garment
+// is one silhouette with no limbs in it. Any character that must rig wears a
+// KNEE LENGTH garment over trousers or leggings, states that BOTH LEGS ARE
+// FULLY VISIBLE AND CLEARLY SEPARATE, and carries nothing in its hands.
 
 import { apiKey, balance, generate } from './lib/meshy.mjs';
 
@@ -77,6 +84,140 @@ export const ASSETS = {
       'carved oak wood armour with bronze trim, green woven leaves, glowing jade green spear blade, ' +
       'clean saturated colours, no photoreal grain.',
   },
+  // ── Heroes that were sharing another hero's model ────────────────────────
+  //
+  // Nine heroes shipped against three rigged models: Tikbalang stood in for
+  // Bernardo Carpio and Apolaki, Diwata for Mangkukulam and Mayari, Aswang for
+  // Manananggal. The Diwata and Aswang groups at least share a silhouette. The
+  // Tikbalang one does not: it is a horse from the neck up, and putting that
+  // head on a human strongman and a sun god is the mismatch you actually see.
+  // These two come first for that reason.
+  //
+  // Every constraint below was learned on the heroes above and is not optional:
+  // stand like a person or the auto-rigger refuses, state the A-pose twice, and
+  // never mention a pedestal or it gets modelled onto the feet.
+  bernardo: {
+    dir: `${OUT_DIR}/heroes`,
+    prompt:
+      'Stylised 3D MOBA character model, heroic young Filipino folk strongman, human male, ' +
+      'heroic stylised proportions like a League of Legends champion. Broad powerful shoulders and ' +
+      'thick arms, determined friendly face, short dark hair tied back with a woven headband. ' +
+      'Bare chested with a woven abaca sash across the torso, simple dark trousers, wide leather ' +
+      'belt with a carved stone buckle. Heavy stone shackles broken open around both wrists, short ' +
+      'lengths of chain still hanging. Standing upright on two legs in a neutral A-pose, arms held ' +
+      'away from the body, legs straight and slightly apart, facing forward. Clean readable ' +
+      'silhouette, game-ready character mesh, A-pose. No base, no plinth, no ground, no background.',
+    texture:
+      'Vibrant hand-painted stylised texturing, warm brown skin, black hair, natural cream abaca ' +
+      'sash, deep indigo trousers, weathered grey granite shackles with pale fracture lines, ' +
+      'aged bronze chain, clean saturated colours, no photoreal grain.',
+  },
+
+  apolaki: {
+    dir: `${OUT_DIR}/heroes`,
+    prompt:
+      'Stylised 3D MOBA character model, heroic FILIPINO sun god warrior, SOUTHEAST ASIAN man with warm brown skin and jet BLACK hair, ' +
+      'stylised proportions like a League of Legends champion. Confident noble Filipino face, strong ' +
+      'jaw, black topknot. NOT european, NOT blond, NOT pale skinned. Wearing burnished gold scale armour over one shoulder, an ornate sun disc ' +
+      'breastplate with radiating rays, a red woven cape falling behind, gold arm bands. Holding a ' +
+      'short curved kampilan sword at his side. Standing upright on two legs in a neutral A-pose, ' +
+      'arms held away from the body, legs straight and slightly apart, facing forward. Clean ' +
+      'readable silhouette, game-ready character mesh, A-pose. No base, no plinth, no background.',
+    texture:
+      'Vibrant hand-painted stylised texturing, DEEP WARM BROWN Filipino skin, JET BLACK hair, ' +
+      'polished gold armour with deep ' +
+      'shadow lines, glowing amber sun disc, deep crimson cape, dark steel blade with a gold hilt, ' +
+      'clean saturated colours, no photoreal grain.',
+  },
+
+  mangkukulam: {
+    dir: `${OUT_DIR}/heroes`,
+    prompt:
+      'Stylised 3D MOBA character model, Filipino village witch, older human woman, heroic ' +
+      'stylised proportions like a League of Legends champion. Sharp knowing face, long grey ' +
+      'streaked black hair, a woven bamboo hat pushed back on her shoulders. Wearing layered dark ' +
+      'earth-toned KNEE LENGTH tunic over narrow dark trousers so BOTH LEGS ARE FULLY VISIBLE AND ' +
+      'CLEARLY SEPARATE, a beaded neckpiece, a pouch belt of small bottles and bone ' +
+      'needles at her waist. Arms empty, hands open. Standing upright on ' +
+      'two legs in a neutral A-pose, arms held away from the body, legs straight and slightly ' +
+      'apart, facing forward. Clean readable silhouette, game-ready character mesh, A-pose. ' +
+      'No base, no plinth, no ground, no background.',
+    texture:
+      'Vibrant hand-painted stylised texturing, warm brown skin, grey and black hair, deep maroon ' +
+      'and umber robes, pale straw hat, bone-white needles, dull red thread, clean saturated ' +
+      'colours, no photoreal grain.',
+  },
+
+  mayari: {
+    dir: `${OUT_DIR}/heroes`,
+    prompt:
+      'Stylised 3D MOBA character model, Filipino moon goddess, young human woman, heroic stylised ' +
+      'proportions like a League of Legends champion. Serene face, one eye closed by an old scar, ' +
+      'long flowing dark hair. Wearing pale silver-white flowing robes with a crescent moon ' +
+      'headpiece over a KNEE LENGTH tunic and fitted leggings so BOTH LEGS ARE FULLY VISIBLE AND ' +
+      'CLEARLY SEPARATE, silver arm bands, a short shoulder cape NOT trailing to the ground. ' +
+      'Arms empty, hands open. Standing upright on two legs in a neutral A-pose, arms held away ' +
+      'from the body, legs straight and slightly apart, facing forward. Clean readable ' +
+      'silhouette, game-ready character mesh, A-pose. No base, no plinth, no background.',
+    texture:
+      'Vibrant hand-painted stylised texturing, cool pale skin, black hair with silver sheen, ' +
+      'moonlight white and pale blue robes, polished silver headpiece and staff, soft cyan glow on ' +
+      'the crescent blade, clean saturated colours, no photoreal grain.',
+  },
+
+  // ⚠ REJECTED ONCE, 2026-08-29. The first attempt returned a generic horned
+  // winged demon, bare chested, which Google Play would not accept. Two things
+  // were wrong with the prompt: it never said what a manananggal actually IS,
+  // and it never insisted on clothing.
+  //
+  // THE CREATURE: a woman who SEVERS AT THE WAIST after dark. The upper half
+  // flies on huge bat wings, trailing entrails; the lower half is left standing
+  // where she split. She is not a demon and has no horns.
+  //
+  // ⚠ THE CONFLICT THAT HAS NO CLEAN ANSWER YET: the auto-rigger needs two
+  // legs, and the defining feature of this creature is that it has none. So
+  // this prompt asks for the WHOLE woman, pre-transformation, wings furled, and
+  // the severing is left to the game to portray rather than the model. Asking
+  // Meshy for a half body will fail pose estimation exactly as the robes did.
+  manananggal: {
+    dir: `${OUT_DIR}/heroes`,
+    prompt:
+      'Stylised 3D MOBA character model, Filipino folklore woman before her night transformation, ' +
+      'SOUTHEAST ASIAN woman with warm brown skin and long black hair, heroic stylised proportions ' +
+      'like a League of Legends champion. Calm unsettling face, NO horns, NOT a demon, NOT ' +
+      'devilish. Large leathery bat wings furled close behind her back. FULLY CLOTHED in a modest ' +
+      'high necked dark red KNEE LENGTH dress over dark leggings, chest and shoulders completely ' +
+      'covered, so BOTH LEGS ARE FULLY VISIBLE AND CLEARLY SEPARATE. Arms empty, hands open. ' +
+      'Standing upright on two legs in a neutral A-pose, arms held away from the body, legs ' +
+      'straight and slightly apart, facing forward. Clean readable silhouette, game-ready ' +
+      'character mesh, A-pose. No base, no plinth, no background.',
+    texture:
+      'Vibrant hand-painted stylised texturing, warm brown Filipino skin, long black hair, deep ' +
+      'blood red dress, dark charcoal wing membrane with lighter veining, clean saturated colours, ' +
+      'no photoreal grain.',
+  },
+
+  // ⚠ Bakunawa is a moon-eating SERPENT in the folklore, and an auto-rigger
+  // needs a human skeleton, so this is deliberately a humanoid naga warrior
+  // rather than a snake. A true serpent would fail pose estimation exactly the
+  // way the first Tikbalang did.
+  bakunawaHero: {
+    dir: `${OUT_DIR}/heroes`,
+    prompt:
+      'Stylised 3D MOBA character model, Filipino serpent deity warrior, humanoid male figure with ' +
+      'blue-green dragon scales, a horned serpent head with a long jaw and whiskers, heroic ' +
+      'stylised proportions like a League of Legends champion. Broad scaled shoulders, clawed ' +
+      'hands, a finned crest running back from the skull, a thick tapering tail behind. Wearing ' +
+      'dark lacquered plate over the chest with pearl inlays. Standing upright on two human legs ' +
+      'in a neutral A-pose, arms held away from the body, legs straight and slightly apart, facing ' +
+      'forward. Clean readable silhouette, game-ready character mesh, A-pose. ' +
+      'No base, no plinth, no background.',
+    texture:
+      'Vibrant hand-painted stylised texturing, deep teal and blue-green iridescent scales, pale ' +
+      'cream underbelly, black lacquered armour with pearl white inlay, amber eyes, clean ' +
+      'saturated colours, no photoreal grain.',
+  },
+
   aswang: {
     dir: `${OUT_DIR}/heroes`,
     // ⚠ NO PEDESTAL. The reference prompt asked for "a simple flat pedestal",

@@ -25,6 +25,13 @@ export interface SkyColors {
   fogColor: THREE.Color;
   fogNear: number;
   fogFar: number;
+  /*
+   * Drives renderer.toneMappingExposure directly (stage.ts eases toward it every
+   * frame), so this OVERRIDES Mood.exposure. Scaled down from the 1.25-1.5 band
+   * on 2026-08-29: combined with ACES it was pushing most of the frame past the
+   * bloom threshold and washing the arena out. Raise these and the bloom
+   * threshold in stage.ts together, never one alone.
+   */
   exposure: number;
   gradeStrength: number;
   contrast: number;
@@ -69,7 +76,7 @@ export function getTodLighting(clock: number, isEclipse: boolean, territoryTheme
     fogColor: new THREE.Color('#B2E0DC'),
     fogNear: 65,
     fogFar: 145,
-    exposure: 1.5,
+    exposure: 1.12,
     gradeStrength: 0.20,
     contrast: 1.14,
     saturation: 1.20,
@@ -93,7 +100,7 @@ export function getTodLighting(clock: number, isEclipse: boolean, territoryTheme
     colors.fogColor.set('#2E060F');
     colors.fogNear = 45;
     colors.fogFar = 115;
-    colors.exposure = 1.25;
+    colors.exposure = 0.95;
     colors.gradeStrength = 0.35;
     colors.contrast = 1.25;
     colors.saturation = 1.30;
@@ -119,7 +126,7 @@ export function getTodLighting(clock: number, isEclipse: boolean, territoryTheme
     colors.fogColor.set('#7A5F70').lerp(new THREE.Color('#9DC8C8'), p);
     colors.fogNear = 55;
     colors.fogFar = 135;
-    colors.exposure = 1.35 + p * 0.15;
+    colors.exposure = 1.02 + p * 0.11;
     colors.gradeStrength = 0.24;
     colors.contrast = 1.14;
     colors.saturation = 1.16;
@@ -142,7 +149,7 @@ export function getTodLighting(clock: number, isEclipse: boolean, territoryTheme
     colors.fogColor.set('#B2E0DC');
     colors.fogNear = 70;
     colors.fogFar = 155;
-    colors.exposure = 1.5;
+    colors.exposure = 1.12;
     colors.gradeStrength = 0.18;
     colors.contrast = 1.14;
     colors.saturation = 1.20;
@@ -165,7 +172,7 @@ export function getTodLighting(clock: number, isEclipse: boolean, territoryTheme
     colors.fogColor.set('#6E2B24').lerp(new THREE.Color('#3A1828'), p);
     colors.fogNear = 60;
     colors.fogFar = 135;
-    colors.exposure = 1.38;
+    colors.exposure = 1.04;
     colors.gradeStrength = 0.26;
     colors.contrast = 1.20;
     colors.saturation = 1.25;
@@ -188,7 +195,7 @@ export function getTodLighting(clock: number, isEclipse: boolean, territoryTheme
     colors.fogColor.set('#122238');
     colors.fogNear = 50;
     colors.fogFar = 125;
-    colors.exposure = 1.28;
+    colors.exposure = 0.97;
     colors.gradeStrength = 0.30;
     colors.contrast = 1.22;
     colors.saturation = 1.18;
@@ -200,7 +207,7 @@ export function getTodLighting(clock: number, isEclipse: boolean, territoryTheme
     colors.sunColor.lerp(new THREE.Color('#FFE17D'), 0.35);
     colors.rimColor.lerp(new THREE.Color('#FFD700'), 0.45);
     colors.fogColor.lerp(new THREE.Color('#FDE68A'), 0.25);
-    colors.exposure = Math.min(1.65, colors.exposure * 1.06);
+    colors.exposure = Math.min(1.24, colors.exposure * 1.06);
   } else if (territoryTheme === 'jade_karst_mist' || territoryTheme === 'van_long_uyen') {
     colors.ambientColor.lerp(new THREE.Color('#6EE7B7'), 0.35);
     colors.rimColor.lerp(new THREE.Color('#10B981'), 0.4);
