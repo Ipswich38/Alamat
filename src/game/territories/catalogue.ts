@@ -11,7 +11,7 @@ export const TERRITORIES: Territory[] = [
   {
     id: 'kaluwalhatian',
     name: 'Kaluwalhatian',
-    title: 'Ang Kaharian sa Kalangitan at Kataasan',
+    title: 'The Kingdom in the Sky',
     baybayin: 'ᜃᜎᜓᜏᜎ᜔ᜑᜆᜒᜀᜈ᜔',
     region: 'Luzon Highlands & Celestial Sky Realm (Montalban Peaks)',
     lore:
@@ -73,7 +73,7 @@ export const TERRITORIES: Territory[] = [
   {
     id: 'van_long_uyen',
     name: 'Vạn Long Uyên',
-    title: 'Ang Kaharian ng Sampung Libong Dragon at Banal na Pagong',
+    title: 'Kingdom of Ten Thousand Dragons',
     baybayin: '萬龍淵',
     region: 'Red River Delta & Ha Long Karst Archipelago (Ancient Đại Lạc Kingdom - Vietnam)',
     lore:
@@ -137,7 +137,7 @@ export const TERRITORIES: Territory[] = [
   {
     id: 'kasakitan',
     name: 'Kasakitan & Kalaliman',
-    title: 'Ang Abyssal na Karagatan at Bunganga ng Mayon',
+    title: 'The Abyssal Sea and the Mouth of Mayon',
     baybayin: 'ᜃᜐᜃᜒᜆᜈ᜔',
     region: 'Visayan & Sibuyan Seas / Bicol Volcanic Caldera',
     lore:
@@ -199,7 +199,7 @@ export const TERRITORIES: Territory[] = [
   {
     id: 'diwata',
     name: 'Gubat ng mga Diwata',
-    title: 'Ang Sagradong Kagubatan at Matatandang Balete',
+    title: 'The Sacred Forest of Ancient Balete',
     baybayin: 'ᜇᜒᜏᜆ',
     region: 'Mindanao Rainforests, Mount Apo & Bukidnon Canopies',
     lore:
@@ -261,7 +261,7 @@ export const TERRITORIES: Territory[] = [
   {
     id: 'biringan',
     name: 'Biringan & Kasamaan',
-    title: 'Ang Lungsod ng Anino at Maninila sa Dilim',
+    title: 'The City of Shadows',
     baybayin: 'ᜊᜒᜇᜒᜅᜈ᜔',
     region: 'Phantom Mists of Samar, Leyte & Capiz Nocturnal Groves',
     lore:
@@ -323,7 +323,7 @@ export const TERRITORIES: Territory[] = [
   {
     id: 'kapatagan',
     name: 'Kapatagan ng Agimat',
-    title: 'Ang Banal na Ilog Pasig at Kuta ng mga Barangay',
+    title: 'The Sacred River and the Village Forts',
     baybayin: 'ᜃᜉᜆᜄᜈ᜔',
     region: 'Pasig River Delta & Ancient Central Barangay Battlefield',
     lore:

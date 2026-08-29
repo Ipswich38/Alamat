@@ -44,3 +44,6 @@ next-env.d.ts
 # scratch screenshots
 /*.png
 
+
+# Local Netlify folder
+.netlify

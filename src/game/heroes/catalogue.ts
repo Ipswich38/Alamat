@@ -23,12 +23,12 @@ export const HEROES: Hero[] = [
   {
     id: 'tikbalang',
     name: 'Tikbalang',
-    title: 'Ang Tagapagligaw ng Kagubatan',
+    title: 'The Trailbreaker',
     baybayin: 'ᜆᜒᜃ᜔ᜊᜎᜅ᜔',
     quote: 'Ibaligtad mo ang iyong damit, bago ka tuluyang mawala sa gubat.',
     passive: {
       id: 'tikbalang-passive',
-      name: 'Baliktad na Damit',
+      name: 'Inside-Out Shirt',
       blurb: 'Moving through jungle brush grants 25% movement speed and generates a 120 HP earthen shield.',
       emoji: '🌿',
       effect: '+25% Brush SPD & +120 HP Shield',
@@ -116,12 +116,12 @@ export const HEROES: Hero[] = [
   {
     id: 'mangkukulam',
     name: 'Mangkukulam',
-    title: 'Ang Mananambal at Manggagaway',
+    title: 'The Healer and the Hexer',
     baybayin: 'ᜋᜅ᜔ᜃᜓᜃᜓᜎᜋ᜔',
     quote: 'Isang hibla ng buhok mo lamang, hawak ko na ang iyong kapalaran.',
     passive: {
       id: 'kulam-passive',
-      name: 'Buhok at Karayom',
+      name: 'Hair and Needle',
       blurb: 'Abilities apply a Hex stack. At 3 stacks, detonates for 140 bonus magic damage and slows target.',
       emoji: '🪡',
       effect: '3-Stack Hex Detonation (+140 Dmg)',
@@ -203,12 +203,12 @@ export const HEROES: Hero[] = [
   {
     id: 'aswang',
     name: 'Aswang',
-    title: 'Ang Maninila ng Kadiliman',
+    title: 'The Hunter in the Dark',
     baybayin: 'ᜀᜐ᜔ᜏᜅ᜔',
     quote: 'Huwag kang titingin sa tubig, baka makita mo ang iyong sariling wakas.',
     passive: {
       id: 'aswang-passive',
-      name: 'Amoy ng Dugo',
+      name: 'Scent of Blood',
       blurb: 'Gains 30% bonus attack speed against targets below 40% HP and 15% physical lifesteal.',
       emoji: '🩸',
       effect: '+30% Low-HP ATK Speed & 15% Lifesteal',
@@ -290,12 +290,12 @@ export const HEROES: Hero[] = [
   {
     id: 'diwata',
     name: 'Diwata',
-    title: 'Ang Tagapag-ingat ng Kagubatan',
+    title: 'Warden of the Grove',
     baybayin: 'ᜇᜒᜏᜆ',
     quote: 'Magbigay-galang sa lupa, bago kayo lamunin ng mga ugat.',
     passive: {
       id: 'diwata-passive',
-      name: 'Tabi-tabi Po',
+      name: 'By Your Leave',
       blurb: 'Standing near allied structures or shrines heals 18 HP/sec and grants 10% cooldown haste.',
       emoji: '🌿',
       effect: '+18 HP/s Structure Aura & 10% Haste',
@@ -377,12 +377,12 @@ export const HEROES: Hero[] = [
   {
     id: 'bernardo',
     name: 'Bernardo Carpio',
-    title: 'Ang Higante ng Montalban',
+    title: 'The Mountain Giant',
     baybayin: 'ᜊᜒᜇ᜔ᜈᜇ᜔ᜇᜓ',
     quote: 'Kapag akoy kumilos, yayanig ang buong kapuluan!',
     passive: {
       id: 'bernardo-passive',
-      name: 'Gipit na Bundok',
+      name: 'The Narrow Mountain',
       blurb: 'Takes 15% reduced damage from physical strikes; basic attacks cleave in a 1.5u seismic arc.',
       emoji: '⛰',
       effect: '+15% Physical Armor & Seismic Cleave',
@@ -464,7 +464,7 @@ export const HEROES: Hero[] = [
   {
     id: 'manananggal',
     name: 'Manananggal',
-    title: 'Ang Maninila sa Hatinggabi',
+    title: 'The Midnight Hunter',
     baybayin: 'ᜋᜈᜈᜅ᜔ᜄᜎ᜔',
     quote: 'Sa pagpatak ng dilim, maririnig mo ang pagaspas ng aking pakpak.',
     passive: {
@@ -554,12 +554,12 @@ export const HEROES: Hero[] = [
   {
     id: 'mayari',
     name: 'Mayari',
-    title: 'Ang Diyosa ng Buwan at Digmaan',
+    title: 'Goddess of Moon and War',
     baybayin: 'ᜋᜌᜇᜒ',
     quote: 'Bagamat iisa ang aking mata, malinaw kong nakikita ang inyong kahihinatnan.',
     passive: {
       id: 'mayari-passive',
-      name: 'Sinag ng Bulan',
+      name: 'Moonlight',
       blurb: 'Landing skillshots at max range restores 45 HP and slows target movement by 20% for 1.5s.',
       emoji: '🌙',
       effect: 'Max-Range Spell +45 HP Heal & 20% Slow',
@@ -641,7 +641,7 @@ export const HEROES: Hero[] = [
   {
     id: 'apolaki',
     name: 'Apolaki',
-    title: 'Ang Soberanong Diyos ng Araw at Digmaan',
+    title: 'Sovereign of Sun and War',
     baybayin: 'ᜀᜉᜓᜎᜃᜒ',
     quote: 'Sa ngalan ng Araw, walang aninong makapagtatago sa aking sibat!',
     passive: {
@@ -728,12 +728,12 @@ export const HEROES: Hero[] = [
   {
     id: 'bakunawa',
     name: 'Bakunawa',
-    title: 'Ang Higanteng Dragon ng Kalawakan',
+    title: 'The Sky-Swallowing Dragon',
     baybayin: 'ᜊᜃᜓᜈᜏ',
     quote: 'Ako ang lalamon sa liwanag, hanggang sa maghari ang walang hanggang dilim!',
     passive: {
       id: 'bakunawa-passive',
-      name: 'Lamon ng Pitong Buwan',
+      name: 'Seven Moons Devoured',
       blurb: 'Slaying minions and creeps grants +2 ATK and +20 Max HP (stacks up to 20 times).',
       emoji: '🐉',
       effect: 'Stacking Moon Devour (+ATK & +HP on Kills)',

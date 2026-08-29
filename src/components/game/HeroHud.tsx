@@ -674,8 +674,8 @@ export default function HeroHud({
 
   // Teammates list for status indicators (supports live 3v3 bot data)
   const defaultTeammates: TeammateHudData[] = [
-    { id: 'tm-1', name: 'Bernardo', heroId: 'bernardo', emoji: '⛰', hpPct: 100, manaPct: 100, ultReady: true, level: playerLevel, x: -70, z: 20, kills: 0, deaths: 0, assists: 0, gold: 500, damageDealt: 0, role: 'vanguard', title: 'Ang Higante ng Montalban' },
-    { id: 'tm-2', name: 'Diwata', heroId: 'diwata', emoji: '🌿', hpPct: 90, manaPct: 90, ultReady: true, level: playerLevel, x: -20, z: 70, kills: 0, deaths: 0, assists: 0, gold: 500, damageDealt: 0, role: 'warden', title: 'Ang Diwata ng Kagubatan' },
+    { id: 'tm-1', name: 'Bernardo', heroId: 'bernardo', emoji: '⛰', hpPct: 100, manaPct: 100, ultReady: true, level: playerLevel, x: -70, z: 20, kills: 0, deaths: 0, assists: 0, gold: 500, damageDealt: 0, role: 'vanguard', title: 'The Mountain Giant' },
+    { id: 'tm-2', name: 'Diwata', heroId: 'diwata', emoji: '🌿', hpPct: 90, manaPct: 90, ultReady: true, level: playerLevel, x: -20, z: 70, kills: 0, deaths: 0, assists: 0, gold: 500, damageDealt: 0, role: 'warden', title: 'Warden of the Grove' },
   ];
   const teammates = teammatesData && teammatesData.length > 0 ? teammatesData : defaultTeammates;
 

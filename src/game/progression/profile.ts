@@ -22,7 +22,7 @@ export interface RankInfo {
 export const RANK_TIERS: RankInfo[] = [
   {
     tier: 'mandirigma',
-    title: 'Mandirigma ng Bayan',
+    title: 'Warrior of the People',
     baybayin: 'ᜋᜈ᜔ᜇᜒᜇᜒᜄ᜔ᜋ',
     minLevel: 1,
     badgeEmoji: '🗡️',
@@ -30,7 +30,7 @@ export const RANK_TIERS: RankInfo[] = [
   },
   {
     tier: 'bagani',
-    title: 'Bagani ng Kagubatan',
+    title: 'Champion of the Wilds',
     baybayin: 'ᜊᜄᜈᜒ',
     minLevel: 6,
     badgeEmoji: '🛡️',
@@ -38,7 +38,7 @@ export const RANK_TIERS: RankInfo[] = [
   },
   {
     tier: 'datu',
-    title: 'Datu ng Kapuluan',
+    title: 'Chief of the Isles',
     baybayin: 'ᜇᜆᜓ',
     minLevel: 15,
     badgeEmoji: '👑',
@@ -46,7 +46,7 @@ export const RANK_TIERS: RankInfo[] = [
   },
   {
     tier: 'rajah',
-    title: 'Rajah ng Kalangitan',
+    title: 'Sovereign of the Skies',
     baybayin: 'ᜇᜑ᜔',
     minLevel: 30,
     badgeEmoji: '⚡',
@@ -54,7 +54,7 @@ export const RANK_TIERS: RankInfo[] = [
   },
   {
     tier: 'bathala',
-    title: 'Pinili ni Bathala',
+    title: 'Chosen of the Creator',
     baybayin: 'ᜊ8ᜎ',
     minLevel: 45,
     badgeEmoji: '☀️',
@@ -154,7 +154,7 @@ export const DEFAULT_SETTINGS: MobileGameSettings = {
 const DEFAULT_QUESTS: DailyQuest[] = [
   {
     id: 'quest_first_blood',
-    title: 'Unang Dugo sa Ilog',
+    title: 'First Blood at the River',
     description: 'Score 3 takedowns against enemy invaders in the arena.',
     icon: '⚔️',
     target: 3,
@@ -166,7 +166,7 @@ const DEFAULT_QUESTS: DailyQuest[] = [
   },
   {
     id: 'quest_slay_boss',
-    title: 'Pagsupil sa Halimaw',
+    title: 'Monster Subdued',
     description: 'Defeat the Kapre in the jungle or the Bakunawa in the river pit.',
     icon: '🐉',
     target: 1,
@@ -178,7 +178,7 @@ const DEFAULT_QUESTS: DailyQuest[] = [
   },
   {
     id: 'quest_destroy_towers',
-    title: 'Pagbagsak ng Moog',
+    title: 'Tower Fallen',
     description: 'Destroy 2 enemy totem towers or defenses with your squad.',
     icon: '🛡️',
     target: 2,
@@ -190,7 +190,7 @@ const DEFAULT_QUESTS: DailyQuest[] = [
   },
   {
     id: 'quest_archipelago_victory',
-    title: 'Tagumpay sa Kapuluan',
+    title: 'Victory in the Isles',
     description: 'Achieve victory in any territory of the Philippine Archipelago.',
     icon: '👑',
     target: 1,
@@ -223,7 +223,7 @@ export function getRankForLevel(level: number): RankInfo {
 
 export function getDefaultProfile(): PlayerProfile {
   return {
-    name: 'Bayani ng Alamat',
+    name: 'Hero of Legend',
     accountLevel: 1,
     accountXp: 0,
     gold: 500,

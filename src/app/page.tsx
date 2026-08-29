@@ -296,7 +296,7 @@ export default function HeroSelectionLobby() {
             onClick={handleInstallApp}
           >
             <span>📱</span>
-            <span>I-INSTALL ANG APP</span>
+            <span>INSTALL APP</span>
           </button>
 
           <Link
@@ -786,16 +786,16 @@ export default function HeroSelectionLobby() {
               <div style={{ background: 'rgba(15, 23, 42, 0.7)', borderRadius: 10, padding: 14, border: '1px solid rgba(0, 229, 255, 0.3)' }}>
                 <strong style={{ color: '#00E5FF', fontSize: 13.5 }}>Para sa iPhone / iPad (iOS Safari):</strong>
                 <ol style={{ fontSize: 12, color: '#CBD5E1', paddingLeft: 20, marginTop: 6, lineHeight: 1.6 }}>
-                  <li>Pindutin ang <strong>Share button (⎋ / 🔲⬆)</strong> sa ibaba ng Safari.</li>
-                  <li>Pumili ng <strong>&ldquo;Add to Home Screen&rdquo; (➕ Idagdag sa Home Screen)</strong>.</li>
-                  <li>Pindutin ang <strong>&ldquo;Add&rdquo;</strong> upang maging buong fullscreen mobile app!</li>
+                  <li>Tap the <strong>Share button (⎋ / 🔲⬆)</strong> at the bottom of Safari.</li>
+                  <li>Choose <strong>&ldquo;Add to Home Screen&rdquo;</strong>.</li>
+                  <li>Tap <strong>&ldquo;Add&rdquo;</strong> to install it as a fullscreen app.</li>
                 </ol>
               </div>
 
               <div style={{ background: 'rgba(15, 23, 42, 0.7)', borderRadius: 10, padding: 14, border: '1px solid rgba(16, 185, 129, 0.3)' }}>
                 <strong style={{ color: '#10B981', fontSize: 13.5 }}>Para sa Android (Chrome) / Desktop:</strong>
                 <p style={{ fontSize: 12, color: '#CBD5E1', marginTop: 4, lineHeight: 1.5 }}>
-                  Pindutin ang tatlong tuldok (⋮) sa Chrome menu at piliin ang <strong>Install Alamat MOBA</strong> para sa mabilis at offline progressive play!
+                  Open the Chrome menu (⋮) and choose <strong>Install Alamat MOBA</strong> to play fullscreen and offline.
                 </p>
               </div>
 
