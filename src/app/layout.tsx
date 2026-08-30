@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Talisman — Old Legend 3D Action MOBA",
+  title: "Talisman: a 3D action MOBA",
   description: "Heroes of old legend in a duel arena where nothing locks on. Dawn vs Dusk.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {

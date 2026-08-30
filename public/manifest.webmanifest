@@ -1,14 +1,18 @@
 {
-  "name": "Alamat: Philippine Mythology MOBA",
-  "short_name": "Alamat",
-  "description": "Heroes of Philippine folklore in a 3D duel arena where nothing locks on. Anito Seekers vs Malakas Realm.",
+  "name": "Talisman",
+  "short_name": "Talisman",
+  "description": "A 3D duel arena where nothing locks on. Dawn against Dusk.",
   "start_url": "/",
   "id": "/",
   "display": "standalone",
   "orientation": "landscape",
   "background_color": "#020617",
   "theme_color": "#0f172a",
-  "categories": ["games", "action", "strategy"],
+  "categories": [
+    "games",
+    "action",
+    "strategy"
+  ],
   "icons": [
     {
       "src": "/icon.svg",
@@ -23,14 +27,24 @@
       "short_name": "Play",
       "description": "Jump directly into the 3D Action Arena",
       "url": "/play",
-      "icons": [{ "src": "/icon.svg", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icon.svg",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Hero Selection",
       "short_name": "Lobby",
       "description": "Choose your hero and territory",
       "url": "/",
-      "icons": [{ "src": "/icon.svg", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icon.svg",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }
