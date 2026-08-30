@@ -4,7 +4,7 @@
 // 1. High-Ground Bases elevated by +3.0u relative to lane riverbeds (-1.05u).
 // 2. Tiered mossy terraces & natural stepped contours along jungle slopes.
 // 3. Wetness & specular masks along riverbanks for glistening, humid mud/slate.
-// 4. Giant exposed Balete roots framing jungle chokepoints.
+// 4. Giant exposed Banyan roots framing jungle chokepoints.
 // 5. Rocky cliff edges and animated waterfall cascades pouring into the river basin.
 
 import * as THREE from 'three';
@@ -54,7 +54,7 @@ function terrainNoise(x: number, z: number): number {
 }
 
 /**
- * Proximity factor to the North-West Mayon volcanic biome.
+ * Proximity factor to the North-West the Fire Peak volcanic biome.
  *
  * Exported because the floor has to agree with the ground it stands on:
  * groundcover.ts uses this to keep grass and flowers out of the scorched zone.
@@ -91,7 +91,7 @@ function baseStrength(x: number, z: number): number {
 
 /**
  * Base High-Ground Elevation (+3.0u relative to riverbeds).
- * Elevates the Anito & Malakas sanctuary platforms and creates smooth stepped ramps into lanes.
+ * Elevates the Dawn & Dusk sanctuary platforms and creates smooth stepped ramps into lanes.
  */
 function baseHighGround(x: number, z: number): number {
   let elevation = 0;
@@ -185,7 +185,7 @@ function surfaceColour(x: number, z: number, out: THREE.Color): void {
   // Paved base ground
   const base = baseStrength(x, z);
   if (base > 0) {
-    const t = Math.hypot(x - TEAMS.anito.x, z - TEAMS.anito.z) < HALF ? 0 : 1;
+    const t = Math.hypot(x - TEAMS.dawn.x, z - TEAMS.dawn.z) < HALF ? 0 : 1;
     out.lerp(new THREE.Color(t === 0 ? '#c9bd97' : '#9db3bc'), base * 0.9);
   }
 
@@ -235,8 +235,8 @@ export function buildTerrain(): THREE.Group {
   // 1. Rocky Cliff Edges along high-ground drops into the river
   group.add(buildCliffEdges());
 
-  // 2. Giant Exposed Balete Roots framing jungle chokepoints
-  group.add(buildChokepointBaleteRoots());
+  // 2. Giant Exposed Banyan Roots framing jungle chokepoints
+  group.add(buildChokepointBanyanRoots());
 
   // 3. Waterfalls cascading from high-ground into the river channel
   const waterfalls = buildWaterfallCascades();
@@ -306,11 +306,11 @@ function buildCliffEdges(): THREE.Group {
 }
 
 /**
- * Giant exposed Balete roots framing jungle chokepoints and crossings.
+ * Giant exposed Banyan roots framing jungle chokepoints and crossings.
  */
-function buildChokepointBaleteRoots(): THREE.Group {
+function buildChokepointBanyanRoots(): THREE.Group {
   const g = new THREE.Group();
-  g.name = 'chokepoint-balete-roots';
+  g.name = 'chokepoint-banyan-roots';
 
   const rootMat = surfaceMaterial(0x3e2817, { roughness: 0.96 });
 
@@ -357,7 +357,7 @@ function buildChokepointBaleteRoots(): THREE.Group {
 }
 
 /**
- * Animated waterfall cascades where highland river tributaries drop into the Pasig Agimat basin.
+ * Animated waterfall cascades where highland river tributaries drop into the the Sacred River Talisman basin.
  */
 function buildWaterfallCascades(): { group: THREE.Group; update: (t: number) => void } {
   const group = new THREE.Group();

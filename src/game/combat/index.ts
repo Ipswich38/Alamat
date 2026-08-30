@@ -34,4 +34,4 @@ export { createCreepManager } from './creeps';
 export type { CreepKind, CreepManager, CreepStrikeReport, CreepTickResult, CreepUnit, JungleBuffType } from './creeps';
 
 export { createBossManager } from './bosses';
-export type { BossKind, BossManager, BossStrikeReport, BossTickResult, EpicBoss, PushingKapreUnit } from './bosses';
+export type { BossKind, BossManager, BossStrikeReport, BossTickResult, EpicBoss, PushingTreantUnit } from './bosses';

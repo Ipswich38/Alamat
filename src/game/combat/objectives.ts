@@ -50,7 +50,7 @@ export interface Structure {
  * MOBA a wave of minions does most of the damage to a tower and the hero adds
  * to it; there are no minions yet, so one player has to be able to finish a
  * match alone. Clearing a lane, both base towers and the core is about two
- * minutes of attacking at the Tikbalang's rate. These go UP the day minions
+ * minutes of attacking at the Veer's rate. These go UP the day minions
  * arrive, and the reason is here so that raise is not read as a nerf.
  */
 const TOWER_HEALTH: Record<Tier, number> = { 1: 900, 2: 1200, 3: 1500 };

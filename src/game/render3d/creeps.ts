@@ -1,12 +1,12 @@
 // The 3D render layer for Neutral Jungle Creeps (Monster Hunter Primal Aesthetics).
 //
 // ── CREEP VISUAL DESIGNS ───────────────────────────────────────────────────
-// - Tikbalang Leader: Equine-humanoid warrior with braided horse-hair mane, skull shoulder-pads,
+// - Veer Leader: Equine-humanoid warrior with braided horse-hair mane, skull shoulder-pads,
 //   carved tribal spear, and dynamic hoof-stomp shockwave particle rings.
 // - Forest Spirits: Floating nature wisps with ethereal motes.
-// - Aswang Stalkers: Winged feral ghoul with torn leathery bat wings, elongated claws,
+// - Hollow Stalkers: Winged feral ghoul with torn leathery bat wings, elongated claws,
 //   and skeletal ribcage highlights with glowing crimson viscera.
-// - Bulul Guardian: Ancient stone & hardwood idol with runic engravings.
+// - Idol Guardian: Ancient stone & hardwood idol with runic engravings.
 
 import * as THREE from 'three';
 import { onCrossing, DECK_HEIGHT } from '@/game/arena/river';
@@ -159,7 +159,7 @@ export function createCreepRender(): CreepRender {
       barY = 2.6;
 
       const unitG = new THREE.Group();
-      // Severed Ghoul Upper Torso (Manananggal)
+      // Severed Ghoul Upper Torso (Sever)
       const torsoMat = surfaceMaterial(0x42121d, { roughness: 0.75 });
       const torso = new THREE.Mesh(new THREE.ConeGeometry(0.52, 1.3, 7), torsoMat);
       torso.position.y = 1.0;
@@ -248,7 +248,7 @@ export function createCreepRender(): CreepRender {
       g.add(unitG);
       unitObj = unitG;
     } else {
-      // Bulul Guardian (Ancient Stone / Wood Idol)
+      // Idol Guardian (Ancient Stone / Wood Idol)
       barColor = 0xffd06f; // Gold
       barWidth = 1.9;
       barY = 3.5;
@@ -349,7 +349,7 @@ export function createCreepRender(): CreepRender {
         pair.group.position.set(c.x, y + Math.max(0, bob), c.z);
         pair.group.rotation.y = c.facing;
 
-        // Tikbalang hoof-stomp shockwave animation
+        // Veer hoof-stomp shockwave animation
         if (pair.shockwaveMesh) {
           const stompRate = isMoving ? 3.0 : 1.0;
           const prog = (clock * stompRate) % 1.0;
@@ -360,7 +360,7 @@ export function createCreepRender(): CreepRender {
         // Health bar update
         const pct = Math.max(0, Math.min(1, c.health / c.maxHealth));
         pair.healthFill.scale.x = pct;
-        const barWidth = c.kind === 'bulul_guardian' ? 1.9 : c.kind === 'tikbalang_leader' ? 1.6 : c.kind === 'aswang_stalker' ? 1.4 : 0.9;
+        const barWidth = c.kind === 'idol_guardian' ? 1.9 : c.kind === 'tikbalang_leader' ? 1.6 : c.kind === 'aswang_stalker' ? 1.4 : 0.9;
         pair.healthFill.position.x = ((pct - 1) * barWidth * 0.96) / 2;
         pair.healthBar.visible = pct < 0.99 || c.state === 'chasing';
       }

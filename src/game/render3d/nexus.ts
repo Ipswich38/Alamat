@@ -1,14 +1,14 @@
-// The sanctuaries and bases: culturally accurate pre-colonial Philippine architecture.
+// The sanctuaries and bases: culturally accurate pre-colonial ancient architecture.
 //
 // ── FACTION 1: ANITO SENTINELS (SOUTH-WEST BASE) ────────────────────────────
-// - Raised multi-tiered stone altar surrounded by 6 carved Bulul guardian pillars.
+// - Raised multi-tiered stone altar surrounded by 6 carved Idol guardian pillars.
 // - Ornate pre-colonial brass pedestal (Maranao Gador inspired).
 // - Central Floating Artifact: Glowing Gold/Amber Sun Crystal (#FFB300) with solar corona.
 // - Lighting: Warm radial point light (Radius: 15u, Intensity: 3.5, Color: #FFA000) with dynamic flickering.
 // - High-ground spawner platform behind core with stone-carved Baybayin rune circle.
 //
 // ── FACTION 2: MALAKAS CLAN (NORTH-EAST BASE) ──────────────────────────────
-// - Giant ancestral Balete/Ironwood tree root altar bound in glowing ironwood rings.
+// - Giant ancestral Banyan/Ironwood tree root altar bound in glowing ironwood rings.
 // - Open carved volcanic stone basin cradled within the root columns.
 // - Central Floating Artifact: Glowing Sapphire/Cyan Mana Crystal (#00E5FF) with orbiting shards.
 // - Lighting: Cool radial point light (Radius: 15u, Intensity: 3.5, Color: #00B0FF) with pulsing emission.
@@ -48,18 +48,18 @@ export function createNexus(): Nexus {
   group.name = 'nexus-and-sanctuaries';
   const artifacts: BaseArtifact[] = [];
 
-  // 1. Build Faction 1: Anito Sentinels Base (SW)
-  const anitoBase = buildAnitoBase(TEAMS.anito);
-  group.add(anitoBase.group);
-  artifacts.push(anitoBase.artifact);
+  // 1. Build Faction 1: Dawn Sentinels Base (SW)
+  const dawnBase = buildDawnBase(TEAMS.dawn);
+  group.add(dawnBase.group);
+  artifacts.push(dawnBase.artifact);
 
-  // 2. Build Faction 2: Malakas Clan Base (NE)
-  const malakasBase = buildMalakasBase(TEAMS.malakas);
-  group.add(malakasBase.group);
-  artifacts.push(malakasBase.artifact);
+  // 2. Build Faction 2: Dusk Clan Base (NE)
+  const duskBase = buildDuskBase(TEAMS.dusk);
+  group.add(duskBase.group);
+  artifacts.push(duskBase.artifact);
 
   // Optional enhancement: load external GLB asset if present
-  loadModel('/models/props/anitoCore.glb', { height: 4.5 }).then((model) => {
+  loadModel('/models/props/wardstone.glb', { height: 4.5 }).then((model) => {
     if (!model) return;
   });
 
@@ -69,7 +69,7 @@ export function createNexus(): Nexus {
       for (const a of artifacts) {
         if (a.broken) continue;
 
-        if (a.team === 'anito') {
+        if (a.team === 'dawn') {
           // Dynamic flame/sunlight flicker (3.5 base intensity, 15u radius)
           const flicker = 3.5 + Math.sin(t * 8.5 + a.seed) * 0.35 + Math.sin(t * 14.3) * 0.22 + Math.cos(t * 22.1) * 0.15;
           a.lamp.intensity = flicker * 28;
@@ -116,9 +116,9 @@ export function createNexus(): Nexus {
 // FACTION 1: ANITO SENTINELS BASE (SW)
 // ────────────────────────────────────────────────────────────────────────────
 
-function buildAnitoBase(team: Team): { group: THREE.Group; artifact: BaseArtifact } {
+function buildDawnBase(team: Team): { group: THREE.Group; artifact: BaseArtifact } {
   const g = new THREE.Group();
-  g.name = 'anito-sanctuary';
+  g.name = 'dawn-sanctuary';
   const baseY = terrainHeight(team.x, team.z);
   g.position.set(team.x, baseY, team.z);
 
@@ -180,16 +180,16 @@ function buildAnitoBase(team: Team): { group: THREE.Group; artifact: BaseArtifac
   altarGroup.add(tier3);
   g.add(altarGroup);
 
-  // 3. Carved Bulul Guardian Pillars (6 Pillars surrounding Altar)
+  // 3. Carved Idol Guardian Pillars (6 Pillars surrounding Altar)
   const BULUL_COUNT = 6;
   const BULUL_RADIUS = 5.2;
   for (let i = 0; i < BULUL_COUNT; i++) {
     const angle = (i / BULUL_COUNT) * Math.PI * 2;
     const px = Math.cos(angle) * BULUL_RADIUS;
     const pz = Math.sin(angle) * BULUL_RADIUS;
-    const bululPillar = buildBululGuardianPillar(angle + Math.PI);
-    bululPillar.position.set(px, 0.8, pz);
-    g.add(bululPillar);
+    const idolPillar = buildIdolGuardianPillar(angle + Math.PI);
+    idolPillar.position.set(px, 0.8, pz);
+    g.add(idolPillar);
   }
 
   // 4. Ornate Brass Pedestal (Pre-colonial Maranao Brass Gador motif)
@@ -218,7 +218,7 @@ function buildAnitoBase(team: Team): { group: THREE.Group; artifact: BaseArtifac
 
   // 5. Central Floating Artifact: Glowing Gold/Amber Sun Crystal (#FFB300)
   const sunCrystal = new THREE.Group();
-  sunCrystal.name = 'core:anito';
+  sunCrystal.name = 'core:dawn';
 
   // Primary Octahedron Sun Gem
   const gemMat = new THREE.MeshBasicMaterial({
@@ -265,7 +265,7 @@ function buildAnitoBase(team: Team): { group: THREE.Group; artifact: BaseArtifac
   return {
     group: g,
     artifact: {
-      team: 'anito',
+      team: 'dawn',
       group: g,
       crystal: sunCrystal,
       lamp,
@@ -280,9 +280,9 @@ function buildAnitoBase(team: Team): { group: THREE.Group; artifact: BaseArtifac
 // FACTION 2: MALAKAS CLAN BASE (NE)
 // ────────────────────────────────────────────────────────────────────────────
 
-function buildMalakasBase(team: Team): { group: THREE.Group; artifact: BaseArtifact } {
+function buildDuskBase(team: Team): { group: THREE.Group; artifact: BaseArtifact } {
   const g = new THREE.Group();
-  g.name = 'malakas-sanctuary';
+  g.name = 'dusk-sanctuary';
   const baseY = terrainHeight(team.x, team.z);
   g.position.set(team.x, baseY, team.z);
 
@@ -345,7 +345,7 @@ function buildMalakasBase(team: Team): { group: THREE.Group; artifact: BaseArtif
 
   // 4. Central Floating Artifact: Glowing Sapphire/Cyan Mana Crystal (#00E5FF)
   const manaCrystal = new THREE.Group();
-  manaCrystal.name = 'core:malakas';
+  manaCrystal.name = 'core:dusk';
 
   const manaGemMat = new THREE.MeshBasicMaterial({
     color: 0x00e5ff,
@@ -395,7 +395,7 @@ function buildMalakasBase(team: Team): { group: THREE.Group; artifact: BaseArtif
   return {
     group: g,
     artifact: {
-      team: 'malakas',
+      team: 'dusk',
       group: g,
       crystal: manaCrystal,
       lamp,
@@ -411,9 +411,9 @@ function buildMalakasBase(team: Team): { group: THREE.Group; artifact: BaseArtif
 // ────────────────────────────────────────────────────────────────────────────
 
 /**
- * Carved Bulul Guardian Pillar (Cordillera traditional rice granary deity motif).
+ * Carved Idol Guardian Pillar (Cordillera traditional rice granary deity motif).
  */
-function buildBululGuardianPillar(facing: number): THREE.Group {
+function buildIdolGuardianPillar(facing: number): THREE.Group {
   const g = new THREE.Group();
   g.rotation.y = facing;
 
@@ -427,52 +427,52 @@ function buildBululGuardianPillar(facing: number): THREE.Group {
   base.receiveShadow = true;
   g.add(base);
 
-  // Carved Bulul Seated Figure
-  const bulul = new THREE.Group();
+  // Carved Idol Seated Figure
+  const idol = new THREE.Group();
 
   // Torso
   const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.95, 0.55), woodMat);
   torso.position.y = 1.9;
   torso.castShadow = true;
-  bulul.add(torso);
+  idol.add(torso);
 
   // Crossed arms resting on knees
   const crossedArms = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.35, 0.45), woodMat);
   crossedArms.position.set(0, 1.75, 0.25);
   crossedArms.castShadow = true;
-  bulul.add(crossedArms);
+  idol.add(crossedArms);
 
   // Bent legs / knees
   const knees = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.6, 0.6), woodMat);
   knees.position.set(0, 1.45, 0.15);
   knees.castShadow = true;
-  bulul.add(knees);
+  idol.add(knees);
 
   // Carved Head & Mortar/Crown
   const head = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.65, 0.5), woodMat);
   head.position.set(0, 2.65, 0);
   head.castShadow = true;
-  bulul.add(head);
+  idol.add(head);
 
   // Carved Ear Pendants / Plumes
   const earL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.4, 0.15), woodMat);
   earL.position.set(-0.35, 2.6, 0);
   const earR = earL.clone();
   earR.position.x = 0.35;
-  bulul.add(earL, earR);
+  idol.add(earL, earR);
 
   // Mortar Headdress
   const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.3, 0.35, 8), woodMat);
   crown.position.y = 3.1;
   crown.castShadow = true;
-  bulul.add(crown);
+  idol.add(crown);
 
-  g.add(bulul);
+  g.add(idol);
   return g;
 }
 
 /**
- * Ancestral Balete / Ironwood Tree Root Altar with glowing ironwood rings.
+ * Ancestral Banyan / Ironwood Tree Root Altar with glowing ironwood rings.
  */
 function buildAncestralRootAltar(runeMats: THREE.MeshStandardMaterial[]): THREE.Group {
   const g = new THREE.Group();
@@ -586,7 +586,7 @@ function buildBaybayinSpawnerPlatform(
   runeRing.position.y = 0.58;
   g.add(runeRing);
 
-  // Center Baybayin Glyph Emblem (Bathala / Agimat emblem)
+  // Center Baybayin Glyph Emblem (the Maker / Talisman emblem)
   const centerEmblem = new THREE.Mesh(
     new THREE.CircleGeometry(1.3, 16),
     runeMat
@@ -629,14 +629,14 @@ export function buildGround(): THREE.Mesh {
   const pos = geo.attributes.position;
   const colours = new Float32Array(pos.count * 3);
   const c = new THREE.Color();
-  const anito = new THREE.Color('#5f8f4a');
-  const malakas = new THREE.Color('#4a6f7f');
+  const dawn = new THREE.Color('#5f8f4a');
+  const dusk = new THREE.Color('#4a6f7f');
   const BED = new THREE.Color('#6b7a5c');
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
     const z = pos.getZ(i);
     const t = Math.max(0, Math.min(1, (x - z) / 90 + 0.5));
-    c.copy(anito).lerp(malakas, t);
+    c.copy(dawn).lerp(dusk, t);
     const grain = Math.sin(x * 0.7 + z * 1.3) * 0.5 + 0.5;
     c.offsetHSL(0, 0, (grain - 0.5) * 0.05);
     const wet = riverDepth(x, z);

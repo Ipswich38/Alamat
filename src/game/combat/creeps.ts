@@ -1,8 +1,8 @@
-// Neutral Jungle Creeps: Tikbalang Tricksters, Aswang Stalkers, and Bulul Guardians.
+// Neutral Jungle Creeps: Veer Tricksters, Hollow Stalkers, and Idol Guardians.
 import { CAMPS, type Camp } from "@/game/arena/camps";
 
-export type CreepKind = "tikbalang_leader" | "tikbalang_wisp" | "aswang_stalker" | "bulul_guardian";
-export type JungleBuffType = "wind_stride" | "blood_thirst" | "bulul_blessing";
+export type CreepKind = "tikbalang_leader" | "tikbalang_wisp" | "aswang_stalker" | "idol_guardian";
+export type JungleBuffType = "wind_stride" | "blood_thirst" | "idol_blessing";
 
 export interface CreepUnit {
   id: string;
@@ -79,12 +79,12 @@ export function createCreepManager(): CreepManager {
   function spawnCamp(camp: Camp): CreepUnit[] {
     const units: CreepUnit[] = [];
 
-    if (camp.id.startsWith("tikbalang")) {
+    if (camp.id.startsWith("veer")) {
       units.push({
         id: camp.id + "-leader",
         campId: camp.id,
         kind: "tikbalang_leader",
-        name: "Tikbalang Trickster",
+        name: "Veer Trickster",
         anchorX: camp.x,
         anchorZ: camp.z,
         x: camp.x,
@@ -129,7 +129,7 @@ export function createCreepManager(): CreepManager {
           state: "idle",
         });
       }
-    } else if (camp.id.startsWith("aswang")) {
+    } else if (camp.id.startsWith("hollow")) {
       const offsets = [
         { dx: -1.4, dz: -0.8 },
         { dx: 1.4, dz: 0.8 },
@@ -139,7 +139,7 @@ export function createCreepManager(): CreepManager {
           id: camp.id + "-stalker-" + i,
           campId: camp.id,
           kind: "aswang_stalker",
-          name: "Aswang Stalker",
+          name: "Hollow Stalker",
           anchorX: camp.x + offsets[i].dx,
           anchorZ: camp.z + offsets[i].dz,
           x: camp.x + offsets[i].dx,
@@ -157,12 +157,12 @@ export function createCreepManager(): CreepManager {
           state: "idle",
         });
       }
-    } else if (camp.id.startsWith("bulul")) {
+    } else if (camp.id.startsWith("idol")) {
       units.push({
         id: camp.id + "-guardian",
         campId: camp.id,
-        kind: "bulul_guardian",
-        name: "Bulul Guardian",
+        kind: "idol_guardian",
+        name: "Idol Guardian",
         anchorX: camp.x,
         anchorZ: camp.z,
         x: camp.x,
@@ -258,28 +258,28 @@ export function createCreepManager(): CreepManager {
         const aliveCount = tracker.units.filter((u) => u.alive).length;
         if (aliveCount === 0 && !tracker.cleared) {
           tracker.cleared = true;
-          const isMedium = tracker.camp.id.startsWith("bulul");
+          const isMedium = tracker.camp.id.startsWith("idol");
           tracker.respawnAt = clock + (isMedium ? MEDIUM_RESPAWN : MINOR_RESPAWN);
           clearedCampName = tracker.camp.name;
 
-          if (tracker.camp.id.startsWith("tikbalang")) {
+          if (tracker.camp.id.startsWith("veer")) {
             buffGranted = {
               type: "wind_stride",
               name: "Wind Stride",
               duration: 60,
               description: "+35% Movement Speed for 60s",
             };
-          } else if (tracker.camp.id.startsWith("aswang")) {
+          } else if (tracker.camp.id.startsWith("hollow")) {
             buffGranted = {
               type: "blood_thirst",
               name: "Blood Thirst",
               duration: 60,
               description: "+20% Lifesteal & +30% Attack Speed for 60s",
             };
-          } else if (tracker.camp.id.startsWith("bulul")) {
+          } else if (tracker.camp.id.startsWith("idol")) {
             buffGranted = {
-              type: "bulul_blessing",
-              name: "Bulul Blessing",
+              type: "idol_blessing",
+              name: "Idol Blessing",
               duration: 90,
               description: "+35 HP/s Regen & 20% CDR for 90s",
             };
@@ -332,7 +332,7 @@ export function createCreepManager(): CreepManager {
                 totalDamage += u.damage;
               }
 
-              if (u.kind === "bulul_guardian") {
+              if (u.kind === "idol_guardian") {
                 const nextSlam = slamTimers.get(u.id) ?? (clock + 3.0);
                 if (clock >= nextSlam) {
                   slamTimers.set(u.id, clock + 4.8);

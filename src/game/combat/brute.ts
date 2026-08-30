@@ -4,7 +4,7 @@
 // It was, and the loop is the wrong home for it: every second creature added
 // there would copy the same chase, the same swing timer and the same respawn,
 // and the three would drift apart within a session. The canon names a second
-// foe already (a Manananggal assassin), so this is the moment to make ONE
+// foe already (a Sever assassin), so this is the moment to make ONE
 // brain that a foe record configures, rather than two that merely resemble
 // each other.
 //

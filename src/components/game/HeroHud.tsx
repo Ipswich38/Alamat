@@ -19,8 +19,8 @@
 // 5. FLOATING OVERHEAD BARS: Centered directly above character meshes with Player
 //    Name (e.g. APOLAKI), Level Badge (Lvl 1-15), segmented Health/Mana bars, and Gold XP Bar.
 // 6. FLOATING COMBAT NUMBERS: Projected damage, crits, heals, gold, and status badges.
-// 7. TOP-CENTER: Epic Boss HUD Bar (Bakunawa & Kapre) and Streamlined Combat Log.
-// 8. REAL INVENTORY & STAT MODALS: Live Agimat item shop & detailed RPG stat calculations.
+// 7. TOP-CENTER: Epic Boss HUD Bar (Maw & Treant) and Streamlined Combat Log.
+// 8. REAL INVENTORY & STAT MODALS: Live Talisman item shop & detailed RPG stat calculations.
 
 import React, { useState, useRef, useEffect } from 'react';
 import { TEAMS, type TeamId } from '@/game/arena/nexus';
@@ -28,7 +28,7 @@ import type { CastSlot, CooldownState } from '@/game/combat';
 import { abilityForSlot } from '@/game/combat/casting';
 import type { Hero, Ability } from '@/game/heroes';
 import { CAMPS } from '@/game/arena/camps';
-import { AGIMAT_ITEMS, type AgimatItem } from '@/game/items/catalogue';
+import { AGIMAT_ITEMS, type TalismanItem } from '@/game/items/catalogue';
 import type { EffectiveHeroStats } from '@/game/items/inventory';
 import type { FloatingTextHudData } from '@/game/render3d/damageNumbers';
 import { sound } from '@/game/audio/synth';
@@ -65,7 +65,7 @@ export interface MinionHudData {
   x: number;
   z: number;
   team: TeamId;
-  kind?: 'mandirigma' | 'mapanahong' | 'bagani';
+  kind?: 'spear' | 'archer' | 'ram';
   health: number;
   maxHealth: number;
 }
@@ -176,8 +176,8 @@ export interface HeroHudProps {
   onScoutMap?: (target: { x: number; z: number } | null) => void;
   onSkillUpgrade?: (slot: 'ability0' | 'ability1' | 'ability2' | 'ultimate', newLevel: number) => void;
   onQualityChange?: (quality: 'performance' | 'balanced' | 'ultra') => void;
-  onBuyItem?: (item: AgimatItem) => void;
-  equippedItems?: AgimatItem[];
+  onBuyItem?: (item: TalismanItem) => void;
+  equippedItems?: TalismanItem[];
   effectiveStats?: EffectiveHeroStats;
   floatingTexts?: FloatingTextHudData[];
   activeBuffs?: ActiveBuff[];
@@ -622,7 +622,7 @@ export default function HeroHud({
     setTimeout(() => setPingNotification(null), 3000);
   };
 
-  const triggerWarCall = (warCallType: 'sulong' | 'iwas' | 'tabi' | 'tulong' | 'kulintang') => {
+  const triggerWarCall = (warCallType: 'sulong' | 'iwas' | 'tabi' | 'tulong' | 'chime') => {
     setShowBattlePings(false);
     if (warCallType === 'sulong') {
       sound.playPing('danger');
@@ -633,16 +633,16 @@ export default function HeroHud({
       setPingNotification('⚠️ DANGER! Watch the jungle');
       onPing?.('retreat');
     } else if (warCallType === 'tabi') {
-      sound.playKubingTwang();
+      sound.playReedTwang();
       setPingNotification('🌿 FALL BACK! Hide and regroup');
       onPing?.('stealth');
     } else if (warCallType === 'tulong') {
       sound.playPing('gather');
       setPingNotification('🛡 HELP! Defend the tower');
       onPing?.('assist');
-    } else if (warCallType === 'kulintang') {
-      sound.playKulintangChime();
-      setPingNotification('🎶 KULINTANG: the Diwata bless this fight');
+    } else if (warCallType === 'chime') {
+      sound.playChimeChime();
+      setPingNotification('🎶 KULINTANG: the Willow bless this fight');
       onPing?.('blessing');
     }
     setTimeout(() => setPingNotification(null), 3500);
@@ -674,18 +674,18 @@ export default function HeroHud({
 
   // Teammates list for status indicators (supports live 3v3 bot data)
   const defaultTeammates: TeammateHudData[] = [
-    { id: 'tm-1', name: 'Bernardo', heroId: 'bernardo', emoji: '⛰', hpPct: 100, manaPct: 100, ultReady: true, level: playerLevel, x: -70, z: 20, kills: 0, deaths: 0, assists: 0, gold: 500, damageDealt: 0, role: 'vanguard', title: 'The Mountain Giant' },
-    { id: 'tm-2', name: 'Diwata', heroId: 'diwata', emoji: '🌿', hpPct: 90, manaPct: 90, ultReady: true, level: playerLevel, x: -20, z: 70, kills: 0, deaths: 0, assists: 0, gold: 500, damageDealt: 0, role: 'warden', title: 'Warden of the Grove' },
+    { id: 'tm-1', name: 'Bernardo', heroId: 'bedrock', emoji: '⛰', hpPct: 100, manaPct: 100, ultReady: true, level: playerLevel, x: -70, z: 20, kills: 0, deaths: 0, assists: 0, gold: 500, damageDealt: 0, role: 'vanguard', title: 'The Mountain Giant' },
+    { id: 'tm-2', name: 'Willow', heroId: 'willow', emoji: '🌿', hpPct: 90, manaPct: 90, ultReady: true, level: playerLevel, x: -20, z: 70, kills: 0, deaths: 0, assists: 0, gold: 500, damageDealt: 0, role: 'warden', title: 'Warden of the Grove' },
   ];
   const teammates = teammatesData && teammatesData.length > 0 ? teammatesData : defaultTeammates;
 
   // Minion divisions breakdown
-  const anitoMandirigma = minions.filter((m) => m.team === 'anito' && m.kind === 'mandirigma' && m.health > 0).length;
-  const anitoMapanahong = minions.filter((m) => m.team === 'anito' && m.kind === 'mapanahong' && m.health > 0).length;
-  const anitoBagani = minions.filter((m) => m.team === 'anito' && m.kind === 'bagani' && m.health > 0).length;
-  const malakasMandirigma = minions.filter((m) => m.team === 'malakas' && m.kind === 'mandirigma' && m.health > 0).length;
-  const malakasMapanahong = minions.filter((m) => m.team === 'malakas' && m.kind === 'mapanahong' && m.health > 0).length;
-  const malakasBagani = minions.filter((m) => m.team === 'malakas' && m.kind === 'bagani' && m.health > 0).length;
+  const dawnSpear = minions.filter((m) => m.team === 'dawn' && m.kind === 'spear' && m.health > 0).length;
+  const dawnArcher = minions.filter((m) => m.team === 'dawn' && m.kind === 'archer' && m.health > 0).length;
+  const dawnRam = minions.filter((m) => m.team === 'dawn' && m.kind === 'ram' && m.health > 0).length;
+  const duskSpear = minions.filter((m) => m.team === 'dusk' && m.kind === 'spear' && m.health > 0).length;
+  const duskArcher = minions.filter((m) => m.team === 'dusk' && m.kind === 'archer' && m.health > 0).length;
+  const duskRam = minions.filter((m) => m.team === 'dusk' && m.kind === 'ram' && m.health > 0).length;
 
   // Match time formatted
   const formatTime = (secs: number) => {
@@ -715,7 +715,7 @@ export default function HeroHud({
           <circle cx="90" cy="90" r="80" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
           <circle cx="90" cy="90" r="45" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
 
-          {/* Pasig River S-Curve Channel */}
+          {/* the Sacred River S-Curve Channel */}
           <path
             d="M 170,10 C 130,50 150,90 90,90 C 30,90 50,130 10,170"
             fill="none"
@@ -725,7 +725,7 @@ export default function HeroHud({
           />
 
           {/* 3 MOBA Lanes */}
-          {/* Top Lane: Anito -> West -> North -> Malakas */}
+          {/* Top Lane: Dawn -> West -> North -> Dusk */}
           <path
             d="M 22,158 L 22,22 L 158,22"
             fill="none"
@@ -733,7 +733,7 @@ export default function HeroHud({
             strokeWidth="7"
             strokeLinejoin="round"
           />
-          {/* Mid Lane: Diagonal Anito -> Malakas */}
+          {/* Mid Lane: Diagonal Dawn -> Dusk */}
           <line
             x1="22"
             y1="158"
@@ -742,7 +742,7 @@ export default function HeroHud({
             stroke="rgba(255, 255, 255, 0.24)"
             strokeWidth="8"
           />
-          {/* Bot Lane: Anito -> South -> East -> Malakas */}
+          {/* Bot Lane: Dawn -> South -> East -> Dusk */}
           <path
             d="M 22,158 L 158,158 L 158,22"
             fill="none"
@@ -752,13 +752,13 @@ export default function HeroHud({
           />
 
           {/* Base Sanctuaries */}
-          {/* Anito Base (South-West / Bottom-Left) */}
+          {/* Dawn Base (South-West / Bottom-Left) */}
           <circle cx="22" cy="158" r="14" fill="rgba(255, 179, 0, 0.25)" stroke="#FFB300" strokeWidth="2" />
           <text x="22" y="161" fill="#FFB300" fontSize="8" fontWeight="bold" textAnchor="middle">
             ANITO
           </text>
 
-          {/* Malakas Base (North-East / Top-Right) */}
+          {/* Dusk Base (North-East / Top-Right) */}
           <circle cx="158" cy="22" r="14" fill="rgba(0, 229, 255, 0.25)" stroke="#00E5FF" strokeWidth="2" />
           <text x="158" y="25" fill="#00E5FF" fontSize="7.5" fontWeight="bold" textAnchor="middle">
             MALAKAS
@@ -768,15 +768,15 @@ export default function HeroHud({
           {towers.map((t) => {
             const mx = ((t.x + 100) / 200) * 180;
             const my = ((t.z + 100) / 200) * 180;
-            const isAnito = t.team === 'anito';
+            const isDawn = t.team === 'dawn';
             return (
               <circle
                 key={t.id}
                 cx={mx}
                 cy={my}
                 r={t.tier === 3 ? 3.5 : 2.8}
-                fill={t.alive ? (isAnito ? '#2980B9' : '#C0392B') : '#475569'}
-                stroke={t.alive ? (isAnito ? '#60A5FA' : '#F87171') : '#334155'}
+                fill={t.alive ? (isDawn ? '#2980B9' : '#C0392B') : '#475569'}
+                stroke={t.alive ? (isDawn ? '#60A5FA' : '#F87171') : '#334155'}
                 strokeWidth="1"
               />
             );
@@ -786,17 +786,17 @@ export default function HeroHud({
           {CAMPS.map((c) => {
             const mx = ((c.x + 100) / 200) * 180;
             const my = ((c.z + 100) / 200) * 180;
-            const isBakunawa = c.id.includes('bakunawa');
-            const isKapre = c.id.includes('kapre');
+            const isMaw = c.id.includes('maw');
+            const isTreant = c.id.includes('treant');
             return (
               <g key={c.id}>
                 <circle
                   cx={mx}
                   cy={my}
-                  r={isBakunawa || isKapre ? 4.5 : 2.5}
-                  fill={isBakunawa ? '#7852FF' : isKapre ? '#FF7A36' : '#50E3C2'}
+                  r={isMaw || isTreant ? 4.5 : 2.5}
+                  fill={isMaw ? '#7852FF' : isTreant ? '#FF7A36' : '#50E3C2'}
                   stroke="#FFFFFF"
-                  strokeWidth={isBakunawa || isKapre ? 1.2 : 0.6}
+                  strokeWidth={isMaw || isTreant ? 1.2 : 0.6}
                 />
               </g>
             );
@@ -806,14 +806,14 @@ export default function HeroHud({
           {minions.map((m) => {
             const mx = ((m.x + 100) / 200) * 180;
             const my = ((m.z + 100) / 200) * 180;
-            const isAnito = m.team === 'anito';
+            const isDawn = m.team === 'dawn';
             return (
               <circle
                 key={m.id}
                 cx={mx}
                 cy={my}
                 r="1.8"
-                fill={isAnito ? '#60A5FA' : '#F87171'}
+                fill={isDawn ? '#60A5FA' : '#F87171'}
               />
             );
           })}
@@ -865,7 +865,7 @@ export default function HeroHud({
             );
           })}
 
-          {/* Foe / Kapre Indicator */}
+          {/* Foe / Treant Indicator */}
           {foeHp > 0 ? (
             <circle
               cx={((foePos.x + 100) / 200) * 180}
@@ -939,7 +939,7 @@ export default function HeroHud({
         </button>
         <button
           style={{ ...utilityBtn, borderColor: 'rgba(255, 215, 0, 0.6)' }}
-          title={`Agimat Shop (🪙 ${playerGold}) [Shop]`}
+          title={`Talisman Shop (🪙 ${playerGold}) [Shop]`}
           onClick={() => setShowShop(!showShop)}
           aria-label="Shop"
         >
@@ -1115,7 +1115,6 @@ export default function HeroHud({
         title="View Realm Story, Culture & Videos"
       >
         <span style={{ fontSize: 13, color: territory.atmosphere.primaryColor, letterSpacing: 2 }}>
-          {territory.baybayin}
         </span>
         <strong style={{ fontSize: 12, color: '#FFF', letterSpacing: 1 }}>
           {territory.name.toUpperCase()}
@@ -1322,7 +1321,7 @@ export default function HeroHud({
               opacity: cooldowns.potion > 0 ? 0.55 : 1,
             }}
             onClick={() => onCast('potion')}
-            title="Health Potion / Agimat Regen (+250 HP) [D]"
+            title="Health Potion / Talisman Regen (+250 HP) [D]"
           >
             <span style={spellKeyBadge}>D</span>
             <span style={{ fontSize: 18 }}>🌿</span>
@@ -1339,7 +1338,7 @@ export default function HeroHud({
           world. In a fight the player's eyes are on the enemy and their thumb is
           in this corner, so checking their own health meant looking away from
           what is about to kill them. Every mobile MOBA carries the overhead bar
-          AND a readout here; Alamat had only the first.
+          AND a readout here; Talisman had only the first.
 
           Numbers as well as a bar: "how much health" is a decision input, and a
           bar alone cannot answer "can I survive one more hit".
@@ -1705,7 +1704,7 @@ export default function HeroHud({
             I-IKOT ANG TELEPONO SA LANDSCAPE
           </strong>
           <p style={{ fontSize: 14, color: '#94A3B8', maxWidth: 360, lineHeight: 1.6 }}>
-            Ang Alamat MOBA ay idinisenyo para sa <strong style={{ color: '#00E5FF' }}>Pahiga (Landscape)</strong> na kontrol ng dalawang kamay. I-rotate ang iyong device para magpatuloy sa labanan!
+            Ang Talisman ay idinisenyo para sa <strong style={{ color: '#00E5FF' }}>Pahiga (Landscape)</strong> na kontrol ng dalawang kamay. I-rotate ang iyong device para magpatuloy sa labanan!
           </p>
           <button
             style={{
@@ -1849,18 +1848,18 @@ export default function HeroHud({
 
       {/* Minion Wave Divisions Live Ribbon */}
       <div style={minionWaveRibbon}>
-        <div style={minionTeamBadgeAnito}>
+        <div style={minionTeamBadgeDawn}>
           <span style={{ color: '#FFD700', fontWeight: 800, fontSize: 10 }}>ANITO:</span>
-          <span style={minionCountChip} title="Mandirigma, frontline">⚔️ {anitoMandirigma}</span>
-          <span style={minionCountChip} title="Mapanahong, ranged">🏹 {anitoMapanahong}</span>
-          <span style={minionCountChip} title="Bagani, siege">🐂 {anitoBagani}</span>
+          <span style={minionCountChip} title="Spear, frontline">⚔️ {dawnSpear}</span>
+          <span style={minionCountChip} title="Archer, ranged">🏹 {dawnArcher}</span>
+          <span style={minionCountChip} title="Ram, siege">🐂 {dawnRam}</span>
         </div>
         <div style={minionWaveDivider}>VS</div>
-        <div style={minionTeamBadgeMalakas}>
+        <div style={minionTeamBadgeDusk}>
           <span style={{ color: '#F87171', fontWeight: 800, fontSize: 10 }}>MALAKAS:</span>
-          <span style={minionCountChip} title="Mandirigma, frontline">⚔️ {malakasMandirigma}</span>
-          <span style={minionCountChip} title="Mapanahong, ranged">🏹 {malakasMapanahong}</span>
-          <span style={minionCountChip} title="Bagani, siege">🐂 {malakasBagani}</span>
+          <span style={minionCountChip} title="Spear, frontline">⚔️ {duskSpear}</span>
+          <span style={minionCountChip} title="Archer, ranged">🏹 {duskArcher}</span>
+          <span style={minionCountChip} title="Ram, siege">🐂 {duskRam}</span>
         </div>
       </div>
 
@@ -1894,7 +1893,6 @@ export default function HeroHud({
             <div style={modalHeader}>
               <div>
                 <strong style={{ fontSize: 18, color: '#FFD700' }}>
-                  {hero.emoji} {hero.name} {hero.baybayin ? `(${hero.baybayin})` : ''}
                 </strong>
                 <span style={{ display: 'block', fontSize: 12, color: '#00E5FF' }}>
                   {hero.title || hero.origin}
@@ -2025,7 +2023,7 @@ export default function HeroHud({
                   🛡 Aklat ng mga Pangkat (Minions Division Codex)
                 </strong>
                 <span style={{ display: 'block', fontSize: 11.5, color: '#94A3B8' }}>
-                  Pre-colonial Philippine Vanguard, Ranged, and Heavy Siege Formations
+                  Pre-colonial ancient Vanguard, Ranged, and Heavy Siege Formations
                 </span>
               </div>
               <button style={closeBtn} onClick={() => setShowMinionsCodex(false)}>
@@ -2034,7 +2032,7 @@ export default function HeroHud({
             </div>
 
             <div style={{ display: 'grid', gap: 12, maxHeight: '60vh', overflowY: 'auto', marginTop: 10 }}>
-              {/* 1. Mandirigma Card */}
+              {/* 1. Spear Card */}
               <div style={minionCodexCard}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={minionCodexAvatar}>
@@ -2042,10 +2040,10 @@ export default function HeroHud({
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <strong style={{ color: '#F8FAFC', fontSize: 15 }}>Pangkat Mandirigma (Frontline Vanguard)</strong>
+                      <strong style={{ color: '#F8FAFC', fontSize: 15 }}>Pangkat Spear (Frontline Vanguard)</strong>
                       <span style={{ fontSize: 10.5, color: '#FFD700', background: 'rgba(255,215,0,0.15)', padding: '2px 8px', borderRadius: 4 }}>MELEE</span>
                     </div>
-                    <span style={{ fontSize: 11.5, color: '#00E5FF' }}>Gear: Kalasag Rattan Shield · Kampilan Single-Edge Sword · Putong Crown</span>
+                    <span style={{ fontSize: 11.5, color: '#00E5FF' }}>Gear: Kalasag Rattan Shield · Blade Single-Edge Sword · Putong Crown</span>
                   </div>
                 </div>
                 <p style={{ fontSize: 12, color: '#CBD5E1', margin: '8px 0 6px', lineHeight: 1.4 }}>
@@ -2059,7 +2057,7 @@ export default function HeroHud({
                 </div>
               </div>
 
-              {/* 2. Mapanahong Card */}
+              {/* 2. Archer Card */}
               <div style={minionCodexCard}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ ...minionCodexAvatar, background: 'rgba(16, 185, 129, 0.2)', borderColor: '#10B981' }}>
@@ -2067,14 +2065,14 @@ export default function HeroHud({
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <strong style={{ color: '#F8FAFC', fontSize: 15 }}>Pangkat Mapanahong (Poison Dart Hunter)</strong>
+                      <strong style={{ color: '#F8FAFC', fontSize: 15 }}>Pangkat Archer (Poison Dart Hunter)</strong>
                       <span style={{ fontSize: 10.5, color: '#34D399', background: 'rgba(16,185,129,0.15)', padding: '2px 8px', borderRadius: 4 }}>RANGED</span>
                     </div>
-                    <span style={{ fontSize: 11.5, color: '#34D399' }}>Gear: Woven Conical Salakot Hat · Bamboo Sumpit & Longbow · Poison Quiver</span>
+                    <span style={{ fontSize: 11.5, color: '#34D399' }}>Gear: Woven Conical Wicker Hat Hat · Bamboo Dart & Longbow · Poison Quiver</span>
                   </div>
                 </div>
                 <p style={{ fontSize: 12, color: '#CBD5E1', margin: '8px 0 6px', lineHeight: 1.4 }}>
-                  Agile jungle marksmen equipped with ceremonial feathered Salakot headgear. They fire venom-tipped sumpit darts over friendly frontline shields.
+                  Agile jungle marksmen equipped with ceremonial feathered Wicker Hat headgear. They fire venom-tipped dart darts over friendly frontline shields.
                 </p>
                 <div style={{ display: 'flex', gap: 10, fontSize: 11, color: '#94A3B8' }}>
                   <span>❤️ 360 HP</span>
@@ -2084,7 +2082,7 @@ export default function HeroHud({
                 </div>
               </div>
 
-              {/* 3. Bagani Card */}
+              {/* 3. Ram Card */}
               <div style={{ ...minionCodexCard, borderColor: 'rgba(255, 215, 0, 0.4)', background: 'rgba(120, 53, 15, 0.25)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ ...minionCodexAvatar, background: 'rgba(245, 158, 11, 0.25)', borderColor: '#F59E0B' }}>
@@ -2092,14 +2090,14 @@ export default function HeroHud({
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <strong style={{ color: '#FFD700', fontSize: 15 }}>Pangkat Bagani (Heavy Horned Siege Ram)</strong>
+                      <strong style={{ color: '#FFD700', fontSize: 15 }}>Pangkat Ram (Heavy Horned Siege Ram)</strong>
                       <span style={{ fontSize: 10.5, color: '#FCD34D', background: 'rgba(245,158,11,0.2)', padding: '2px 8px', borderRadius: 4 }}>SIEGE VANGUARD</span>
                     </div>
                     <span style={{ fontSize: 11.5, color: '#FDE68A' }}>Gear: Bronze Carabao Skull Battering Ram · Hardwood Pauldrons · War Horns</span>
                   </div>
                 </div>
                 <p style={{ fontSize: 12, color: '#FEF08A', margin: '8px 0 6px', lineHeight: 1.4 }}>
-                  Armored elite siege vanguard carrying sacred Carabao skull battering rams. Deals massive 2.5x structural demolition damage to enemy defensive towers and the Moog Core.
+                  Armored elite siege vanguard carrying sacred Carabao skull battering rams. Deals massive 2.5x structural demolition damage to enemy defensive towers and the Tower Core.
                 </p>
                 <div style={{ display: 'flex', gap: 10, fontSize: 11, color: '#FDE68A' }}>
                   <span>❤️ 1,100 HP</span>
@@ -2129,7 +2127,6 @@ export default function HeroHud({
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 16, color: territory.atmosphere.primaryColor, letterSpacing: 4 }}>
-                    {territory.baybayin}
                   </span>
                   <strong style={{ fontSize: 18, color: '#FFD700' }}>
                     {territory.name.toUpperCase()}
@@ -2336,7 +2333,7 @@ export default function HeroHud({
                       <td style={{ padding: '8px', color: '#F87171' }}>{tm.damageDealt || (tm.kills * 700 + 800)}</td>
                       <td style={{ padding: '8px', color: '#FFD700', fontWeight: 700 }}>🪙 {tm.gold || 600}</td>
                       <td style={{ padding: '8px' }}>
-                        <span title="Agimat Shield">🛡️ 🌾</span>
+                        <span title="Talisman Shield">🛡️ 🌾</span>
                       </td>
                     </tr>
                   ))}
@@ -2358,7 +2355,7 @@ export default function HeroHud({
                         <td style={{ padding: '8px', color: '#F87171' }}>{eb.damageDealt || (eb.kills * 650 + 750)}</td>
                         <td style={{ padding: '8px', color: '#FFD700', fontWeight: 700 }}>🪙 {eb.gold || 550}</td>
                         <td style={{ padding: '8px' }}>
-                          <span title="Agimat Charm">🩸 🪓</span>
+                          <span title="Talisman Charm">🩸 🪓</span>
                         </td>
                       </tr>
                     ))
@@ -2377,7 +2374,7 @@ export default function HeroHud({
                       <td style={{ padding: '8px', color: '#F87171' }}>{enemyKills * 800 + 500}</td>
                       <td style={{ padding: '8px', color: '#FFD700', fontWeight: 800 }}>🪙 {400 + enemyKills * 300}</td>
                       <td style={{ padding: '8px' }}>
-                        <span title="Tabako ng Kapre">🚬 🪓</span>
+                        <span title="Tabako ng Treant">🚬 🪓</span>
                       </td>
                     </tr>
                   )}
@@ -2388,13 +2385,13 @@ export default function HeroHud({
         </div>
       ) : null}
 
-      {/* Mythological Agimat Shop Modal */}
+      {/* Mythological Talisman Shop Modal */}
       {showShop ? (
         <div style={modalOverlay} onClick={() => setShowShop(false)}>
           <div style={modalCard} onClick={(e) => e.stopPropagation()}>
             <div style={modalHeader}>
               <strong style={{ fontSize: 18, color: '#FFD700' }}>
-                🪙 Agimat Armory (Gold: {playerGold})
+                🪙 Talisman Armory (Gold: {playerGold})
               </strong>
               <button style={closeBtn} onClick={() => setShowShop(false)}>
                 ✕
@@ -2494,7 +2491,6 @@ export default function HeroHud({
                     </span>
                   </div>
                   <span style={{ fontSize: 11.5, color: '#94A3B8' }}>
-                    {getRankForLevel(playerProfile.accountLevel).baybayin} · {getRankForLevel(playerProfile.accountLevel).title}
                   </span>
                 </div>
               </div>
@@ -2948,7 +2944,7 @@ export default function HeroHud({
         <div style={modalOverlay} onClick={() => setShowIosInstallGuide(false)}>
           <div style={modalCard} onClick={(e) => e.stopPropagation()}>
             <div style={modalHeader}>
-              <strong style={{ fontSize: 18, color: '#FFD700' }}>📱 I-install ang Alamat MOBA</strong>
+              <strong style={{ fontSize: 18, color: '#FFD700' }}>📱 I-install ang Talisman</strong>
               <button style={closeBtn} onClick={() => setShowIosInstallGuide(false)}>
                 ✕
               </button>
@@ -2965,7 +2961,7 @@ export default function HeroHud({
               <div style={{ background: 'rgba(30, 41, 59, 0.7)', borderRadius: 10, padding: 14, border: '1px solid rgba(16, 185, 129, 0.3)' }}>
                 <strong style={{ color: '#10B981', fontSize: 14 }}>Para sa Android (Chrome) / PC:</strong>
                 <p style={{ fontSize: 12.5, color: '#CBD5E1', marginTop: 4, lineHeight: 1.5 }}>
-                  Pindutin ang <strong>&ldquo;Install App&rdquo;</strong> banner o ang tatlong tuldok (⋮) sa browser menu at piliin ang <strong>Install Alamat MOBA</strong> para sa offline 60fps gaming!
+                  Pindutin ang <strong>&ldquo;Install App&rdquo;</strong> banner o ang tatlong tuldok (⋮) sa browser menu at piliin ang <strong>Install Talisman</strong> para sa offline 60fps gaming!
                 </p>
               </div>
               <button
@@ -3063,8 +3059,8 @@ export default function HeroHud({
               }}
             >
               {won
-                ? `The ${TEAMS.malakas.name} core has been shattered in ${territory.name}. Light returns to the archipelago!`
-                : `The ${TEAMS.anito.name} sanctuary has fallen. Reorganize your forces and rise again!`}
+                ? `The ${TEAMS.dusk.name} core has been shattered in ${territory.name}. Light returns to the archipelago!`
+                : `The ${TEAMS.dawn.name} sanctuary has fallen. Reorganize your forces and rise again!`}
             </span>
 
             {/* MVP Champion Badge */}
@@ -3084,7 +3080,7 @@ export default function HeroHud({
               <span style={{ fontSize: 24 }}>🎖️</span>
               <div style={{ textAlign: 'left' }}>
                 <strong style={{ fontSize: 13, color: won ? '#FFD700' : '#FCA5A5' }}>
-                  MVP: {hero.name.toUpperCase()} (Pinakamahusay na Mandirigma)
+                  MVP: {hero.name.toUpperCase()} (Pinakamahusay na Spear)
                 </strong>
                 <span style={{ display: 'block', fontSize: 11, color: '#CBD5E1' }}>
                   Score: {allyKills} Kills · Level {playerLevel} · {formatTime(matchTime)} Match Duration
@@ -4159,13 +4155,13 @@ const minionWaveRibbon: React.CSSProperties = {
   boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
 };
 
-const minionTeamBadgeAnito: React.CSSProperties = {
+const minionTeamBadgeDawn: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: 6,
 };
 
-const minionTeamBadgeMalakas: React.CSSProperties = {
+const minionTeamBadgeDusk: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: 6,

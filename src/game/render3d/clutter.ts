@@ -1,7 +1,7 @@
 // Enchanted Jungle Bioluminescence ("Lupang Hinirang"):
 // 1. Procedural micro-props (300 ferns, 80 mossy boulders & logs, 150 bioluminescent mushrooms).
-// 2. Anito Shrines & Ancient Baybayin/Okir etched stones with glowing runic gold (#FFD700).
-// 3. Diwata Spirit Particles (ambient floating golden/cyan motes drifting through the jungle volume).
+// 2. Dawn Shrines & Ancient Baybayin/Okir etched stones with glowing runic gold (#FFD700).
+// 3. Willow Spirit Particles (ambient floating golden/cyan motes drifting through the jungle volume).
 // 4. Smooth 0.5Hz sine-wave pulsing for bioluminescent Cyan (#00E5FF) and gold runes.
 
 import * as THREE from 'three';
@@ -49,19 +49,19 @@ export function buildClutter(): Clutter {
   const mushrooms = buildBioluminescentMushrooms(150);
   group.add(mushrooms.mesh);
 
-  // 4. Anito Shrines & Ancient Baybayin/Okir etched stones
-  const anitoShrines = buildAnitoRunicStones();
-  group.add(anitoShrines.group);
+  // 4. Dawn Shrines & Ancient Baybayin/Okir etched stones
+  const dawnShrines = buildDawnRunicStones();
+  group.add(dawnShrines.group);
 
-  // 5. Diwata Spirit Particles (ambient floating golden/cyan motes)
-  const spiritParticles = buildDiwataSpiritParticles();
+  // 5. Willow Spirit Particles (ambient floating golden/cyan motes)
+  const spiritParticles = buildWillowSpiritParticles();
   group.add(spiritParticles.points);
 
   return {
     group,
     update: (t) => {
       mushrooms.update(t);
-      anitoShrines.update(t);
+      dawnShrines.update(t);
       spiritParticles.update(t);
     },
     dispose: () => {
@@ -230,9 +230,9 @@ function buildBioluminescentMushrooms(count: number): {
 }
 
 /**
- * Anito Shrines & Ancient Stones with Baybayin/Okir etched runic gold (#FFD700) glow.
+ * Dawn Shrines & Ancient Stones with Baybayin/Okir etched runic gold (#FFD700) glow.
  */
-function buildAnitoRunicStones(): { group: THREE.Group; update: (t: number) => void } {
+function buildDawnRunicStones(): { group: THREE.Group; update: (t: number) => void } {
   const group = new THREE.Group();
   const SHRINE_COUNT = 16;
 
@@ -291,10 +291,10 @@ function buildAnitoRunicStones(): { group: THREE.Group; update: (t: number) => v
 }
 
 /**
- * Diwata Spirit Particles & Ground Fireflies (ambient floating golden/cyan motes drifting through jungle volume).
+ * Willow Spirit Particles & Ground Fireflies (ambient floating golden/cyan motes drifting through jungle volume).
  * Particle count: 360 motes (dynamic +200% density boost at night).
  */
-function buildDiwataSpiritParticles(): {
+function buildWillowSpiritParticles(): {
   points: THREE.Points;
   update: (t: number) => void;
 } {

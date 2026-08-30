@@ -1,6 +1,6 @@
 'use client';
 
-// Mythic Hero Selection & 5 Territories Lobby Route (Alamat MOBA).
+// Mythic Hero Selection & 5 Territories Lobby Route (Talisman).
 //
 // ── FEATURES ────────────────────────────────────────────────────────────────
 // 1. Dual Master Navigation: [CHAMPIONS] & [5 TERRITORIES OF THE ARCHIPELAGO]
@@ -197,9 +197,8 @@ export default function HeroSelectionLobby() {
       {/* Top Navigation Bar */}
       <header className="lobby-topbar" style={topHeader}>
         <div style={brandCol}>
-          <span style={baybayinGlyph}>ᜀᜎᜋᜆ᜔</span>
-          <h1 style={brandTitle}>ALAMAT</h1>
-          <span className="lobby-tagline" style={brandSubtitle}>PHILIPPINE MYTHOLOGY 3D MOBA</span>
+          <h1 style={brandTitle}>TALISMAN</h1>
+          <span className="lobby-tagline" style={brandSubtitle}>A 3D ACTION MOBA</span>
         </div>
 
         {/* Master Navigation View Tabs */}
@@ -271,7 +270,7 @@ export default function HeroSelectionLobby() {
                 </span>
               </div>
               <span style={{ fontSize: 10, color: '#FFD700' }}>
-                {getRankForLevel(playerProfile.accountLevel).baybayin} · {getRankForLevel(playerProfile.accountLevel).title}
+                {getRankForLevel(playerProfile.accountLevel).title}
               </span>
             </div>
           </div>
@@ -346,7 +345,7 @@ export default function HeroSelectionLobby() {
               >
                 {TERRITORIES.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.name} ({t.baybayin})
+                    {t.name}
                   </option>
                 ))}
               </select>
@@ -398,7 +397,6 @@ export default function HeroSelectionLobby() {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <strong style={{ color: '#F8FAFC', fontSize: 16 }}>{h.name}</strong>
-                            {h.baybayin && <span style={{ fontSize: 11, color: '#FFD700', letterSpacing: 2 }}>{h.baybayin}</span>}
                           </div>
                           <span style={{ ...roleBadge, background: getRoleColor(h.role) }}>
                             {h.role.toUpperCase()}
@@ -418,7 +416,6 @@ export default function HeroSelectionLobby() {
             <section className="lobby-turntable" style={previewSection}>
               <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
               <div className="lobby-nameplate" style={turntableOverlay}>
-                {selectedHero.baybayin && <span style={{ fontSize: 18, color: '#FFD700', letterSpacing: 6 }}>{selectedHero.baybayin}</span>}
                 <span style={heroOriginBadge}>{selectedHero.title || selectedHero.origin}</span>
                 <h2 style={heroDisplayName}>{selectedHero.name.toUpperCase()}</h2>
                 {selectedHero.quote && <p className="lobby-quote" style={heroQuoteText}>&ldquo;{selectedHero.quote}&rdquo;</p>}
@@ -436,7 +433,6 @@ export default function HeroSelectionLobby() {
               <div style={loreBox}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 style={loreHeader}>FOLKLORE DOSSIER</h3>
-                  {selectedHero.baybayin && <span style={{ fontSize: 11, color: '#FFD700', letterSpacing: 3 }}>{selectedHero.baybayin}</span>}
                 </div>
                 <p style={loreText}>{selectedHero.lore}</p>
               </div>
@@ -543,7 +539,6 @@ export default function HeroSelectionLobby() {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: 13, color: t.atmosphere.primaryColor, letterSpacing: 3 }}>
-                      {t.baybayin}
                     </span>
                     <span style={{ fontSize: 10, color: '#94A3B8', fontWeight: 700 }}>
                       {t.media.cinematicDuration}s 4K
@@ -592,7 +587,6 @@ export default function HeroSelectionLobby() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <span style={{ fontSize: 16, color: selectedTerritory.atmosphere.primaryColor, letterSpacing: 4 }}>
-                      {selectedTerritory.baybayin}
                     </span>
                     <h2 style={territoryBigTitle}>{selectedTerritory.name.toUpperCase()}</h2>
                     <span style={{ fontSize: 12, color: '#00E5FF', fontWeight: 600 }}>
@@ -767,7 +761,7 @@ export default function HeroSelectionLobby() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <strong style={{ fontSize: 18, color: '#FFD700' }}>📱 I-install ang Alamat MOBA App</strong>
+              <strong style={{ fontSize: 18, color: '#FFD700' }}>📱 I-install ang Talisman App</strong>
               <button
                 style={{
                   background: 'none',
@@ -795,7 +789,7 @@ export default function HeroSelectionLobby() {
               <div style={{ background: 'rgba(15, 23, 42, 0.7)', borderRadius: 10, padding: 14, border: '1px solid rgba(16, 185, 129, 0.3)' }}>
                 <strong style={{ color: '#10B981', fontSize: 13.5 }}>Para sa Android (Chrome) / Desktop:</strong>
                 <p style={{ fontSize: 12, color: '#CBD5E1', marginTop: 4, lineHeight: 1.5 }}>
-                  Open the Chrome menu (⋮) and choose <strong>Install Alamat MOBA</strong> to play fullscreen and offline.
+                  Open the Chrome menu (⋮) and choose <strong>Install Talisman</strong> to play fullscreen and offline.
                 </p>
               </div>
 

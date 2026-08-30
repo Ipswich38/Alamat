@@ -11,8 +11,8 @@
 //
 // ── WHY HEROES AND CREATURES SHARE THIS ─────────────────────────────────────
 // They arrive identically: a rigged GLB from the same pipeline, 24 joints, its
-// own textures, and a walk cycle in a second file. Nothing about a Kapre needs
-// different loading code from an Aswang, and giving them separate paths would
+// own textures, and a walk cycle in a second file. Nothing about a Treant needs
+// different loading code from an Hollow, and giving them separate paths would
 // mean two places to fix the next thing the generator does oddly.
 
 import * as THREE from 'three';

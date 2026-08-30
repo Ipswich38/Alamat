@@ -1,9 +1,9 @@
 // The 3D render layer for minion waves.
 //
 // ── THE THREE PANGKAT (DIVISIONS) ───────────────────────────────────────────
-// - Mandirigma: Kalasag rattan shield + Kampilan short sword
-// - Mapanahong: Bamboo bow / Sumpit blowgun + poison dart
-// - Bagani: Heavy armor + portable carved battering ram
+// - Spear: Kalasag rattan shield + Blade short sword
+// - Archer: Bamboo bow / Dart blowgun + poison dart
+// - Ram: Heavy armor + portable carved battering ram
 
 import * as THREE from 'three';
 import { TEAMS } from '@/game/arena/nexus';
@@ -33,17 +33,17 @@ export function createMinionRender(): MinionRender {
 
   function makeMinionMesh(minion: Minion): MinionMeshPair {
     const g = new THREE.Group();
-    const isAnito = minion.team === 'anito';
-    const team = isAnito ? TEAMS.anito : TEAMS.malakas;
-    const bodyColor = isAnito ? 0x1f5c66 : 0x6e1b32;
-    const armorColor = isAnito ? 0x7c5e2d : 0x3d1720;
-    const weaponColor = isAnito ? 0xd4af37 : 0xa62b3b;
-    const clothAccent = isAnito ? 0xe5c158 : 0xd63031;
+    const isDawn = minion.team === 'dawn';
+    const team = isDawn ? TEAMS.dawn : TEAMS.dusk;
+    const bodyColor = isDawn ? 0x1f5c66 : 0x6e1b32;
+    const armorColor = isDawn ? 0x7c5e2d : 0x3d1720;
+    const weaponColor = isDawn ? 0xd4af37 : 0xa62b3b;
+    const clothAccent = isDawn ? 0xe5c158 : 0xd63031;
 
     let weaponObj: THREE.Object3D;
 
-    if (minion.kind === 'mandirigma') {
-      // ── MANDIRIGMA: Pre-colonial Warrior with Putong, Kalasag & Kampilan ────
+    if (minion.kind === 'spear') {
+      // ── MANDIRIGMA: Pre-colonial Warrior with Putong, Kalasag & Blade ────
       const unitGroup = new THREE.Group();
 
       // Torso with Bahag Cloth Wrap
@@ -55,7 +55,7 @@ export function createMinionRender(): MinionRender {
       torso.castShadow = true;
       unitGroup.add(torso);
 
-      // Pintados Tattoo Band / Bahag Sash
+      // the Painted Tattoo Band / Bahag Sash
       const sash = new THREE.Mesh(
         new THREE.TorusGeometry(0.55, 0.08, 4, 8),
         surfaceMaterial(clothAccent, { roughness: 0.8 })
@@ -110,8 +110,8 @@ export function createMinionRender(): MinionRender {
       kalasagGroup.rotation.y = 0.25;
       unitGroup.add(kalasagGroup);
 
-      // Kampilan (Traditional Single-Edge Sword with Forked Tip & Crocodile Hilt)
-      const kampilanGroup = new THREE.Group();
+      // Blade (Traditional Single-Edge Sword with Forked Tip & Crocodile Hilt)
+      const bladeGroup = new THREE.Group();
       const blade = new THREE.Mesh(
         new THREE.BoxGeometry(0.06, 1.05, 0.18),
         new THREE.MeshStandardMaterial({ color: 0xe0e0e0, metalness: 0.85, roughness: 0.2 })
@@ -140,15 +140,15 @@ export function createMinionRender(): MinionRender {
       );
       hilt.position.y = -0.05;
 
-      kampilanGroup.add(blade, tipFork, edgeGlow, hilt);
-      kampilanGroup.position.set(0.52, 0.68, 0.22);
-      kampilanGroup.rotation.x = Math.PI / 4;
-      unitGroup.add(kampilanGroup);
+      bladeGroup.add(blade, tipFork, edgeGlow, hilt);
+      bladeGroup.position.set(0.52, 0.68, 0.22);
+      bladeGroup.rotation.x = Math.PI / 4;
+      unitGroup.add(bladeGroup);
 
       g.add(unitGroup);
-      weaponObj = kampilanGroup;
-    } else if (minion.kind === 'mapanahong') {
-      // ── MAPANAHONG: Village Hunter with Conical Salakot & Bamboo Sumpit/Bow ──
+      weaponObj = bladeGroup;
+    } else if (minion.kind === 'archer') {
+      // ── MAPANAHONG: Village Hunter with Conical Wicker Hat & Bamboo Dart/Bow ──
       const unitGroup = new THREE.Group();
 
       // Agile Body
@@ -169,16 +169,16 @@ export function createMinionRender(): MinionRender {
       head.castShadow = true;
       unitGroup.add(head);
 
-      // Conical Woven Salakot Hat
-      const salakot = new THREE.Mesh(
+      // Conical woven wicker hat
+      const wickerHat = new THREE.Mesh(
         new THREE.ConeGeometry(0.65, 0.35, 10),
         surfaceMaterial(0x8f764a, { roughness: 0.92 })
       );
-      salakot.position.set(0, 1.62, 0);
-      salakot.castShadow = true;
-      unitGroup.add(salakot);
+      wickerHat.position.set(0, 1.62, 0);
+      wickerHat.castShadow = true;
+      unitGroup.add(wickerHat);
 
-      // Feathered Spirit Crest Plume on Salakot
+      // Feathered Spirit Crest Plume on Wicker Hat
       const feather = new THREE.Mesh(
         new THREE.BoxGeometry(0.06, 0.45, 0.22),
         new THREE.MeshBasicMaterial({ color: team.light, toneMapped: false })
@@ -312,7 +312,7 @@ export function createMinionRender(): MinionRender {
     }
 
     // Mini overhead health bar with clean team accent
-    const barWidth = minion.kind === 'bagani' ? 1.6 : minion.kind === 'mandirigma' ? 1.3 : 1.1;
+    const barWidth = minion.kind === 'ram' ? 1.6 : minion.kind === 'spear' ? 1.3 : 1.1;
     const barBg = new THREE.Mesh(
       new THREE.PlaneGeometry(barWidth, 0.16),
       new THREE.MeshBasicMaterial({
@@ -323,7 +323,7 @@ export function createMinionRender(): MinionRender {
         side: THREE.DoubleSide,
       })
     );
-    barBg.position.y = minion.kind === 'bagani' ? 2.55 : 2.25;
+    barBg.position.y = minion.kind === 'ram' ? 2.55 : 2.25;
     barBg.renderOrder = 9;
 
     const fillMat = new THREE.MeshBasicMaterial({
@@ -367,17 +367,17 @@ export function createMinionRender(): MinionRender {
 
         const y = onCrossing(m.x, m.z) ? DECK_HEIGHT : terrainHeight(m.x, m.z);
         // Marching bob animation
-        const bob = Math.sin(clock * 9 + m.progress * 40) * (m.kind === 'bagani' ? 0.05 : 0.08);
+        const bob = Math.sin(clock * 9 + m.progress * 40) * (m.kind === 'ram' ? 0.05 : 0.08);
         pair.group.position.set(m.x, y + Math.max(0, bob), m.z);
         pair.group.rotation.y = m.facing;
 
         // Weapon dynamic motion during movement & attack
         if (pair.weapon) {
-          if (m.kind === 'mandirigma') {
+          if (m.kind === 'spear') {
             pair.weapon.rotation.x = Math.PI / 4 + Math.sin(clock * 9) * 0.18;
-          } else if (m.kind === 'bagani') {
+          } else if (m.kind === 'ram') {
             pair.weapon.position.z = 0.25 + Math.sin(clock * 7) * 0.12;
-          } else if (m.kind === 'mapanahong') {
+          } else if (m.kind === 'archer') {
             pair.weapon.rotation.y = Math.sin(clock * 5) * 0.1;
           }
         }
@@ -385,7 +385,7 @@ export function createMinionRender(): MinionRender {
         // Update health bar scale
         const pct = Math.max(0, Math.min(1, m.health / m.maxHealth));
         pair.healthFill.scale.x = pct;
-        const barWidth = m.kind === 'bagani' ? 1.6 : m.kind === 'mandirigma' ? 1.3 : 1.1;
+        const barWidth = m.kind === 'ram' ? 1.6 : m.kind === 'spear' ? 1.3 : 1.1;
         pair.healthFill.position.x = ((pct - 1) * barWidth * 0.96) / 2;
         pair.healthBar.visible = pct < 0.99;
       }

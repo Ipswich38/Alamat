@@ -1,9 +1,9 @@
 // The roster.
 //
-// Five to start, one per role, each drawn from a real figure in Philippine
+// Five to start, one per role, each drawn from a real figure in ancient
 // folklore rather than a reskin of a western archetype. The lore lines are not
 // decoration: they are the only place the myth is told, and a player who never
-// reads them should still learn what a Tikbalang is from how it plays.
+// reads them should still learn what a Veer is from how it plays.
 //
 // ⚠ IDS ARE PERMANENT NAMES. A save, a match record and a ladder entry all
 // refer to a hero by id. Rename the `name`, never the `id`.
@@ -21,21 +21,21 @@ import type { Hero } from './types';
 
 export const HEROES: Hero[] = [
   {
-    id: 'tikbalang',
-    name: 'Tikbalang',
+    id: 'veer',
+    name: 'Veer',
     title: 'The Trailbreaker',
     baybayin: 'ᜆᜒᜃ᜔ᜊᜎᜅ᜔',
     quote: 'Ibaligtad mo ang iyong damit, bago ka tuluyang mawala sa gubat.',
     passive: {
-      id: 'tikbalang-passive',
+      id: 'veer-passive',
       name: 'Inside-Out Shirt',
       blurb: 'Moving through jungle brush grants 25% movement speed and generates a 120 HP earthen shield.',
       emoji: '🌿',
       effect: '+25% Brush SPD & +120 HP Shield',
     },
     model: {
-      rigged: '/models/heroes/tikbalang-rigged.glb',
-      walk: '/models/heroes/tikbalang-walk.glb',
+      rigged: '/models/heroes/veer-rigged.glb',
+      walk: '/models/heroes/veer-walk.glb',
     },
     origin: 'The horse-headed trickster of the forest trails',
     lore:
@@ -44,7 +44,7 @@ export const HEROES: Hero[] = [
     emoji: '🐴',
     /* Meshy renders this alongside the model; the roster shows it
        instead of the emoji, which two heroes used to share. */
-    portrait: '/models/heroes/tikbalang.png',
+    portrait: '/models/heroes/veer.png',
     palette: { skin: '#8a5a3c', cloth: '#2f6f57', accent: '#ffd24a', hair: '#241a14' },
     // The tankiest and the slowest to act. A vanguard that is also quick has no
     // weakness, and every fight becomes about who has one.
@@ -58,7 +58,7 @@ export const HEROES: Hero[] = [
     attackCooldown: 0.85,
     abilities: [
       {
-        id: 'tikbalang-charge',
+        id: 'veer-charge',
         name: 'Trailbreak',
         blurb: 'Charges forward and throws whoever it meets back over its shoulder.',
         emoji: '💨',
@@ -73,7 +73,7 @@ export const HEROES: Hero[] = [
         lock: 0,
       },
       {
-        id: 'tikbalang-maze',
+        id: 'veer-maze',
         name: 'Turned Around',
         blurb: 'A ring of false trails. Anyone inside it loses sight of everything outside.',
         emoji: '🌫',
@@ -86,7 +86,7 @@ export const HEROES: Hero[] = [
         lock: 0.25,
       },
       {
-        id: 'tikbalang-stomp',
+        id: 'veer-stomp',
         name: 'Hoof Stomp',
         blurb: 'Slams hooves down, sending a shockwave in front of the caster.',
         emoji: '💥',
@@ -100,7 +100,7 @@ export const HEROES: Hero[] = [
       },
     ],
     ultimate: {
-      id: 'tikbalang-stampede',
+      id: 'veer-stampede',
       name: 'Stampede',
       blurb: 'The forest runs with it. A wide charge that carries every enemy it touches.',
       emoji: '🌪',
@@ -114,8 +114,8 @@ export const HEROES: Hero[] = [
     },
   },
   {
-    id: 'mangkukulam',
-    name: 'Mangkukulam',
+    id: 'thistle',
+    name: 'Thistle',
     title: 'The Healer and the Hexer',
     baybayin: 'ᜋᜅ᜔ᜃᜓᜃᜓᜎᜋ᜔',
     quote: 'Isang hibla ng buhok mo lamang, hawak ko na ang iyong kapalaran.',
@@ -133,12 +133,12 @@ export const HEROES: Hero[] = [
     emoji: '🪡',
     /* Meshy renders this alongside the model; the roster shows it
        instead of the emoji, which two heroes used to share. */
-    portrait: '/models/heroes/mangkukulam.png',
+    portrait: '/models/heroes/thistle.png',
     palette: { skin: '#b07f57', cloth: '#7a3fa8', accent: '#ff5f8f', hair: '#1a1418' },
     build: { scale: 0.94, bulk: 0.92, gear: ['cape', 'pouch'] },
     model: {
-      rigged: '/models/heroes/mangkukulam-rigged.glb',
-      walk: '/models/heroes/mangkukulam-walk.glb',
+      rigged: '/models/heroes/thistle-rigged.glb',
+      walk: '/models/heroes/thistle-walk.glb',
     },
     health: 720,
     speed: 6.0,
@@ -201,21 +201,21 @@ export const HEROES: Hero[] = [
     },
   },
   {
-    id: 'aswang',
-    name: 'Aswang',
+    id: 'hollow',
+    name: 'Hollow',
     title: 'The Hunter in the Dark',
     baybayin: 'ᜀᜐ᜔ᜏᜅ᜔',
     quote: 'Huwag kang titingin sa tubig, baka makita mo ang iyong sariling wakas.',
     passive: {
-      id: 'aswang-passive',
+      id: 'hollow-passive',
       name: 'Scent of Blood',
       blurb: 'Gains 30% bonus attack speed against targets below 40% HP and 15% physical lifesteal.',
       emoji: '🩸',
       effect: '+30% Low-HP ATK Speed & 15% Lifesteal',
     },
     model: {
-      rigged: '/models/heroes/aswang-rigged.glb',
-      walk: '/models/heroes/aswang-walk.glb',
+      rigged: '/models/heroes/hollow-rigged.glb',
+      walk: '/models/heroes/hollow-walk.glb',
     },
     origin: 'The shape that is not the shape you saw',
     lore:
@@ -224,7 +224,7 @@ export const HEROES: Hero[] = [
     emoji: '🦇',
     /* Meshy renders this alongside the model; the roster shows it
        instead of the emoji, which two heroes used to share. */
-    portrait: '/models/heroes/aswang.png',
+    portrait: '/models/heroes/hollow.png',
     palette: { skin: '#9a6a4f', cloth: '#3a2f4a', accent: '#e03a4a', hair: '#0f0d10' },
     build: { scale: 0.98, bulk: 0.82, gear: ['knives'] },
     health: 780,
@@ -234,7 +234,7 @@ export const HEROES: Hero[] = [
     attackCooldown: 0.65,
     abilities: [
       {
-        id: 'aswang-shift',
+        id: 'hollow-shift',
         name: 'Change',
         blurb: 'Drops to four legs and runs. Faster, quieter, and it cannot strike while it runs.',
         emoji: '🐕‍🦺',
@@ -247,7 +247,7 @@ export const HEROES: Hero[] = [
         lock: 0,
       },
       {
-        id: 'aswang-rend',
+        id: 'hollow-rend',
         name: 'From Behind',
         blurb: 'A short lunge that cuts far deeper when it lands on a back.',
         emoji: '🩸',
@@ -260,7 +260,7 @@ export const HEROES: Hero[] = [
         lock: 0.15,
       },
       {
-        id: 'aswang-slash',
+        id: 'hollow-slash',
         name: 'Blood Arc',
         blurb: 'Sweeps razor talons in a wide crimson arc that slices nearby foes.',
         emoji: '🗡',
@@ -274,7 +274,7 @@ export const HEROES: Hero[] = [
       },
     ],
     ultimate: {
-      id: 'aswang-unmake',
+      id: 'hollow-unmake',
       name: 'Unmake',
       blurb: 'Sheds the borrowed shape entirely. Everything nearby learns what was under it.',
       emoji: '🌑',
@@ -288,30 +288,30 @@ export const HEROES: Hero[] = [
     },
   },
   {
-    id: 'diwata',
-    name: 'Diwata',
+    id: 'willow',
+    name: 'Willow',
     title: 'Warden of the Grove',
     baybayin: 'ᜇᜒᜏᜆ',
     quote: 'Magbigay-galang sa lupa, bago kayo lamunin ng mga ugat.',
     passive: {
-      id: 'diwata-passive',
+      id: 'willow-passive',
       name: 'By Your Leave',
       blurb: 'Standing near allied structures or shrines heals 18 HP/sec and grants 10% cooldown haste.',
       emoji: '🌿',
       effect: '+18 HP/s Structure Aura & 10% Haste',
     },
     model: {
-      rigged: '/models/heroes/diwata-rigged.glb',
-      walk: '/models/heroes/diwata-walk.glb',
+      rigged: '/models/heroes/willow-rigged.glb',
+      walk: '/models/heroes/willow-walk.glb',
     },
     origin: 'The keeper of a place that was there first',
     lore:
-      'Ask before you cut the tree. Say tabi-tabi po before you cross the mound. She is not unkind, she is simply owed a courtesy nobody remembers to pay.',
+      'Ask before you cut the tree. Say by your leave before you cross the mound. She is not unkind, she is simply owed a courtesy nobody remembers to pay.',
     role: 'warden',
     emoji: '🌿',
     /* Meshy renders this alongside the model; the roster shows it
        instead of the emoji, which two heroes used to share. */
-    portrait: '/models/heroes/diwata.png',
+    portrait: '/models/heroes/willow.png',
     palette: { skin: '#e0b98a', cloth: '#2fae7a', accent: '#ffe98a', hair: '#4a3220' },
     build: { scale: 1.04, bulk: 0.95, gear: ['cape'] },
     health: 860,
@@ -321,8 +321,8 @@ export const HEROES: Hero[] = [
     attackCooldown: 1.05,
     abilities: [
       {
-        id: 'diwata-ward',
-        name: 'Tabi-tabi',
+        id: 'willow-ward',
+        name: 'Step Aside',
         blurb: 'Ground nobody may cross without asking. It slows those who try anyway.',
         emoji: '🛡',
         shape: 'ground',
@@ -334,8 +334,8 @@ export const HEROES: Hero[] = [
         lock: 0.2,
       },
       {
-        id: 'diwata-santelmo',
-        name: 'Santelmo',
+        id: 'willow-wisp',
+        name: 'Wisp',
         blurb: 'A ball of cold fire that mends whoever it passes through on the way.',
         emoji: '🔵',
         shape: 'projectile',
@@ -347,8 +347,8 @@ export const HEROES: Hero[] = [
         lock: 0,
       },
       {
-        id: 'diwata-gust',
-        name: 'Amihan Breeze',
+        id: 'willow-gust',
+        name: 'Monsoon Breeze',
         blurb: 'Calls a gust of mountain wind that pushes foes and invigorates allies.',
         emoji: '🍃',
         shape: 'cone',
@@ -361,7 +361,7 @@ export const HEROES: Hero[] = [
       },
     ],
     ultimate: {
-      id: 'diwata-grove',
+      id: 'willow-grove',
       name: 'The Grove Answers',
       blurb: 'The place itself takes a side. Roots hold, and the wounded stop bleeding.',
       emoji: '🌳',
@@ -375,30 +375,30 @@ export const HEROES: Hero[] = [
     },
   },
   {
-    id: 'bernardo',
-    name: 'Bernardo Carpio',
+    id: 'bedrock',
+    name: 'Bedrock',
     title: 'The Mountain Giant',
     baybayin: 'ᜊᜒᜇ᜔ᜈᜇ᜔ᜇᜓ',
     quote: 'Kapag akoy kumilos, yayanig ang buong kapuluan!',
     passive: {
-      id: 'bernardo-passive',
+      id: 'bedrock-passive',
       name: 'The Narrow Mountain',
       blurb: 'Takes 15% reduced damage from physical strikes; basic attacks cleave in a 1.5u seismic arc.',
       emoji: '⛰',
       effect: '+15% Physical Armor & Seismic Cleave',
     },
     model: {
-      rigged: '/models/heroes/bernardo-rigged.glb',
-      walk: '/models/heroes/bernardo-walk.glb',
+      rigged: '/models/heroes/bedrock-rigged.glb',
+      walk: '/models/heroes/bedrock-walk.glb',
     },
     origin: 'The strength held between two mountains',
     lore:
-      'He stands in the gap in the Montalban range with a hand on each cliff. When he shifts his shoulders, the ground in Manila moves. He has been getting free for a very long time.',
+      'He stands in the gap of the Sundered Range with a hand on each cliff. When he shifts his shoulders, the ground in the valley moves. He has been getting free for a very long time.',
     role: 'ranger',
     emoji: '⛰',
     /* Meshy renders this alongside the model; the roster shows it
        instead of the emoji, which two heroes used to share. */
-    portrait: '/models/heroes/bernardo.png',
+    portrait: '/models/heroes/bedrock.png',
     palette: { skin: '#c08a58', cloth: '#c96a2f', accent: '#cfd8de', hair: '#20160f' },
     build: { scale: 1.14, bulk: 1.18, gear: ['crossbow'] },
     health: 820,
@@ -408,7 +408,7 @@ export const HEROES: Hero[] = [
     attackCooldown: 1.15,
     abilities: [
       {
-        id: 'bernardo-slab',
+        id: 'bedrock-slab',
         name: 'Slab',
         blurb: 'Tears a piece of the hillside loose and throws it flat along the ground.',
         emoji: '🪨',
@@ -421,7 +421,7 @@ export const HEROES: Hero[] = [
         lock: 0.25,
       },
       {
-        id: 'bernardo-wall',
+        id: 'bedrock-wall',
         name: 'The Gap',
         blurb: 'Stands a wall of rock where there was a path. It will not last, but it will hold.',
         emoji: '🧱',
@@ -434,7 +434,7 @@ export const HEROES: Hero[] = [
         lock: 0.3,
       },
       {
-        id: 'bernardo-cleave',
+        id: 'bedrock-cleave',
         name: 'Fault Line',
         blurb: 'Slams a seismic fissure through the ground in front of him.',
         emoji: '⚡',
@@ -448,7 +448,7 @@ export const HEROES: Hero[] = [
       },
     ],
     ultimate: {
-      id: 'bernardo-quake',
+      id: 'bedrock-quake',
       name: 'Shoulders',
       blurb: 'He shifts his weight, and everything standing on the ground stops standing.',
       emoji: '🌋',
@@ -462,21 +462,21 @@ export const HEROES: Hero[] = [
     },
   },
   {
-    id: 'manananggal',
-    name: 'Manananggal',
+    id: 'sever',
+    name: 'Sever',
     title: 'The Midnight Hunter',
     baybayin: 'ᜋᜈᜈᜅ᜔ᜄᜎ᜔',
     quote: 'Sa pagpatak ng dilim, maririnig mo ang pagaspas ng aking pakpak.',
     passive: {
-      id: 'manananggal-passive',
-      name: 'Hating-Katawan',
+      id: 'sever-passive',
+      name: 'Severed at the Waist',
       blurb: 'Glides across river water and jungle chokepoints with zero terrain friction and +12% lifesteal.',
       emoji: '🦇',
       effect: 'Water Glide Terrain Ignore & 12% Vamp',
     },
     model: {
-      rigged: '/models/heroes/aswang-rigged.glb',
-      walk: '/models/heroes/aswang-walk.glb',
+      rigged: '/models/heroes/hollow-rigged.glb',
+      walk: '/models/heroes/hollow-walk.glb',
     },
     origin: 'The night predator that severs its body in two',
     lore:
@@ -484,11 +484,11 @@ export const HEROES: Hero[] = [
     role: 'stalker',
     emoji: '🩸',
     /* ⚠ TEMPORARILY SHARING ASWANG'S MODEL AND PORTRAIT, on purpose.
-       The generated manananggal was a horned winged demon AND was bare
-       chested, which Google Play prohibits. Sharing Aswang is the lesser
+       The generated sever was a horned winged demon AND was bare
+       chested, which Google Play prohibits. Sharing Hollow is the lesser
        problem: same folklore family, no content risk. Replace when credits
        allow, using the corrected prompt in scripts/meshy-assets.mjs. */
-    portrait: '/models/heroes/aswang.png',
+    portrait: '/models/heroes/hollow.png',
     palette: { skin: '#8b5a5a', cloth: '#3d1c24', accent: '#ff1744', hair: '#110b10' },
     build: { scale: 1.02, bulk: 0.85, gear: ['knives'] },
     health: 760,
@@ -498,7 +498,7 @@ export const HEROES: Hero[] = [
     attackCooldown: 0.62,
     abilities: [
       {
-        id: 'manananggal-flight',
+        id: 'sever-flight',
         name: 'Night Wings',
         blurb: 'A swift aerial dash that cuts through enemies and leaves a trail of venom.',
         emoji: '🦇',
@@ -511,7 +511,7 @@ export const HEROES: Hero[] = [
         lock: 0,
       },
       {
-        id: 'manananggal-lash',
+        id: 'sever-lash',
         name: 'Viscera Lash',
         blurb: 'Fires an elongated barbed tongue that strikes with agonizing force.',
         emoji: '👅',
@@ -524,7 +524,7 @@ export const HEROES: Hero[] = [
         lock: 0.15,
       },
       {
-        id: 'manananggal-mist',
+        id: 'sever-mist',
         name: 'Blood Mist',
         blurb: 'Releases a noxious cloud of cursed blood mist on target ground.',
         emoji: '🩸',
@@ -538,7 +538,7 @@ export const HEROES: Hero[] = [
       },
     ],
     ultimate: {
-      id: 'manananggal-screech',
+      id: 'sever-screech',
       name: 'Midnight Sever',
       blurb: 'Unleashes a blood-curdling ultrasonic screech that tears through enemies in a wide cone.',
       emoji: '🌑',
@@ -552,30 +552,30 @@ export const HEROES: Hero[] = [
     },
   },
   {
-    id: 'mayari',
-    name: 'Mayari',
+    id: 'argent',
+    name: 'Argent',
     title: 'Goddess of Moon and War',
     baybayin: 'ᜋᜌᜇᜒ',
     quote: 'Bagamat iisa ang aking mata, malinaw kong nakikita ang inyong kahihinatnan.',
     passive: {
-      id: 'mayari-passive',
+      id: 'argent-passive',
       name: 'Moonlight',
       blurb: 'Landing skillshots at max range restores 45 HP and slows target movement by 20% for 1.5s.',
       emoji: '🌙',
       effect: 'Max-Range Spell +45 HP Heal & 20% Slow',
     },
     model: {
-      rigged: '/models/heroes/mayari-rigged.glb',
-      walk: '/models/heroes/mayari-walk.glb',
+      rigged: '/models/heroes/argent-rigged.glb',
+      walk: '/models/heroes/argent-walk.glb',
     },
     origin: 'The one-eyed Goddess of the Moon and War',
     lore:
-      'Daughter of Bathala who rules the celestial night with serene silver brilliance. Though she lost an eye to Apolaki in their war for the sky, her lunar radiance guides the lost.',
+      'Daughter of the Maker who rules the celestial night with serene silver brilliance. Though she lost an eye to Zenith in their war for the sky, her lunar radiance guides the lost.',
     role: 'warden',
     emoji: '🌙',
     /* Meshy renders this alongside the model; the roster shows it
        instead of the emoji, which two heroes used to share. */
-    portrait: '/models/heroes/mayari.png',
+    portrait: '/models/heroes/argent.png',
     palette: { skin: '#f0d5b8', cloth: '#1a365d', accent: '#00e5ff', hair: '#2b2d42' },
     build: { scale: 1.06, bulk: 0.96, gear: ['cape'] },
     health: 890,
@@ -585,8 +585,8 @@ export const HEROES: Hero[] = [
     attackCooldown: 0.95,
     abilities: [
       {
-        id: 'mayari-shield',
-        name: 'Bulan Aegis',
+        id: 'argent-shield',
+        name: 'Moon Aegis',
         blurb: 'Conjures a protective radiant moon crescent barrier that harms and slows intruders.',
         emoji: '🛡',
         shape: 'ground',
@@ -598,7 +598,7 @@ export const HEROES: Hero[] = [
         lock: 0.15,
       },
       {
-        id: 'mayari-beam',
+        id: 'argent-beam',
         name: 'Lunar Ray',
         blurb: 'Fires a high-velocity beam of concentrated moonlight that pierces all targets.',
         emoji: '✨',
@@ -611,7 +611,7 @@ export const HEROES: Hero[] = [
         lock: 0.1,
       },
       {
-        id: 'mayari-sweep',
+        id: 'argent-sweep',
         name: 'Crescent Sweep',
         blurb: 'Sweeps an arc of silver moonlight that cuts through nearby adversaries.',
         emoji: '🌙',
@@ -625,7 +625,7 @@ export const HEROES: Hero[] = [
       },
     ],
     ultimate: {
-      id: 'mayari-eclipse',
+      id: 'argent-eclipse',
       name: 'Eclipse Burst',
       blurb: 'Calls down a blinding lunar eclipse pillar on target area, devastating enemy forces.',
       emoji: '🌕',
@@ -639,30 +639,30 @@ export const HEROES: Hero[] = [
     },
   },
   {
-    id: 'apolaki',
-    name: 'Apolaki',
+    id: 'zenith',
+    name: 'Zenith',
     title: 'Sovereign of Sun and War',
     baybayin: 'ᜀᜉᜓᜎᜃᜒ',
     quote: 'Sa ngalan ng Araw, walang aninong makapagtatago sa aking sibat!',
     passive: {
-      id: 'apolaki-passive',
-      name: 'Haring Araw',
+      id: 'zenith-passive',
+      name: 'Sun King',
       blurb: 'Attacks and spells ignite foes for 15 solar burn damage/sec and illuminate brush hiding spots.',
       emoji: '☀️',
       effect: '+15 Burn Dmg/s & True Sight in Brush',
     },
     model: {
-      rigged: '/models/heroes/apolaki-rigged.glb',
-      walk: '/models/heroes/apolaki-walk.glb',
+      rigged: '/models/heroes/zenith-rigged.glb',
+      walk: '/models/heroes/zenith-walk.glb',
     },
     origin: 'The Sovereign God of Sun and War',
     lore:
-      'Patron lord of ancient warriors who commands the searing light of the noonday sun. With his golden Kalasag shield and flaming spear, he leads every charge.',
+      'Patron lord of ancient warriors who commands the searing light of the noonday sun. With his golden shield and flaming spear, he leads every charge.',
     role: 'vanguard',
     emoji: '☀️',
     /* Meshy renders this alongside the model; the roster shows it
        instead of the emoji, which two heroes used to share. */
-    portrait: '/models/heroes/apolaki.png',
+    portrait: '/models/heroes/zenith.png',
     palette: { skin: '#b87333', cloth: '#c0392b', accent: '#ffb300', hair: '#1a1a1a' },
     build: { scale: 1.2, bulk: 1.22, gear: ['cape'] },
     health: 1100,
@@ -672,8 +672,8 @@ export const HEROES: Hero[] = [
     attackCooldown: 0.82,
     abilities: [
       {
-        id: 'apolaki-charge',
-        name: 'Kalasag Slam',
+        id: 'zenith-charge',
+        name: 'Shield Slam',
         blurb: 'Charges forward behind a blazing brass shield, knocking aside all obstacles.',
         emoji: '🛡',
         shape: 'dash',
@@ -685,7 +685,7 @@ export const HEROES: Hero[] = [
         lock: 0,
       },
       {
-        id: 'apolaki-spear',
+        id: 'zenith-spear',
         name: 'Sunburst Spear',
         blurb: 'Hurls a searing spear of solar fire that strikes with explosive force.',
         emoji: '🔱',
@@ -698,7 +698,7 @@ export const HEROES: Hero[] = [
         lock: 0.2,
       },
       {
-        id: 'apolaki-flare',
+        id: 'zenith-flare',
         name: 'Solar Flare',
         blurb: 'Unleashes a blinding arc of solar rays that sears enemies in front of him.',
         emoji: '✨',
@@ -712,7 +712,7 @@ export const HEROES: Hero[] = [
       },
     ],
     ultimate: {
-      id: 'apolaki-wrath',
+      id: 'zenith-wrath',
       name: 'Solar Wrath',
       blurb: 'Channels the blinding heat of high noon, creating a massive radial shockwave of golden flame.',
       emoji: '💥',
@@ -726,21 +726,21 @@ export const HEROES: Hero[] = [
     },
   },
   {
-    id: 'bakunawa',
-    name: 'Bakunawa',
+    id: 'maw',
+    name: 'Maw',
     title: 'The Sky-Swallowing Dragon',
     baybayin: 'ᜊᜃᜓᜈᜏ',
     quote: 'Ako ang lalamon sa liwanag, hanggang sa maghari ang walang hanggang dilim!',
     passive: {
-      id: 'bakunawa-passive',
+      id: 'maw-passive',
       name: 'Seven Moons Devoured',
       blurb: 'Slaying minions and creeps grants +2 ATK and +20 Max HP (stacks up to 20 times).',
       emoji: '🐉',
       effect: 'Stacking Moon Devour (+ATK & +HP on Kills)',
     },
     model: {
-      rigged: '/models/heroes/bakunawaHero-rigged.glb',
-      walk: '/models/heroes/bakunawaHero-walk.glb',
+      rigged: '/models/heroes/maw-rigged.glb',
+      walk: '/models/heroes/maw-walk.glb',
     },
     origin: 'The colossal serpent that swallows the moon',
     lore:
@@ -749,7 +749,7 @@ export const HEROES: Hero[] = [
     emoji: '🐉',
     /* Meshy renders this alongside the model; the roster shows it
        instead of the emoji, which two heroes used to share. */
-    portrait: '/models/heroes/bakunawaHero.png',
+    portrait: '/models/heroes/maw.png',
     palette: { skin: '#1a365d', cloth: '#0f172a', accent: '#7c3aed', hair: '#020617' },
     build: { scale: 1.28, bulk: 1.35, gear: [] },
     health: 1050,
@@ -759,7 +759,7 @@ export const HEROES: Hero[] = [
     attackCooldown: 1.1,
     abilities: [
       {
-        id: 'bakunawa-wave',
+        id: 'maw-wave',
         name: 'Tidal Surge',
         blurb: 'Unleashes a sweeping wave of abyssal sea water in front of the caster.',
         emoji: '🌊',
@@ -772,7 +772,7 @@ export const HEROES: Hero[] = [
         lock: 0.2,
       },
       {
-        id: 'bakunawa-vortex',
+        id: 'maw-vortex',
         name: 'Abyssal Maw',
         blurb: 'Summons a swirling whirlpool on target ground that crushes everything inside.',
         emoji: '🌀',
@@ -785,7 +785,7 @@ export const HEROES: Hero[] = [
         lock: 0.3,
       },
       {
-        id: 'bakunawa-coil',
+        id: 'maw-coil',
         name: 'Leviathan Dash',
         blurb: 'Surges forward through tidal currents, crashing into enemies.',
         emoji: '🌊',
@@ -799,7 +799,7 @@ export const HEROES: Hero[] = [
       },
     ],
     ultimate: {
-      id: 'bakunawa-eclipse',
+      id: 'maw-eclipse',
       name: 'Moon Devourer',
       blurb: 'Unleashes the ravenous cosmic maw of the serpent, sweeping across the field in a massive cone.',
       emoji: '🌌',

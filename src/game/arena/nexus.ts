@@ -15,7 +15,7 @@
 /** Half-width of the map. The world runs from -HALF to +HALF on both axes. */
 export const HALF = 100;
 
-export type TeamId = 'anito' | 'malakas';
+export type TeamId = 'dawn' | 'dusk';
 
 export interface Team {
   id: TeamId;
@@ -41,9 +41,9 @@ export interface Team {
 }
 
 export const TEAMS: Record<TeamId, Team> = {
-  anito: {
-    id: 'anito',
-    name: 'Anito Sentinels',
+  dawn: {
+    id: 'dawn',
+    name: 'Dawn Sentinels',
     x: -78,
     z: 78,
     spawn: { x: -84.5, z: 84.5 },
@@ -51,9 +51,9 @@ export const TEAMS: Record<TeamId, Team> = {
     lampColor: 0xffa000, // Warm radial point light (#FFA000)
     css: '#ffb300',
   },
-  malakas: {
-    id: 'malakas',
-    name: 'Malakas Clan',
+  dusk: {
+    id: 'dusk',
+    name: 'Dusk Clan',
     x: 78,
     z: -78,
     spawn: { x: 84.5, z: -84.5 },

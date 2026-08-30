@@ -1,4 +1,4 @@
-// Autonomous Multi-Hero 3v3 MOBA AI Team System (Alamat MOBA).
+// Autonomous Multi-Hero 3v3 MOBA AI Team System (Talisman).
 //
 // ── AI SYSTEM ARCHITECTURE ──────────────────────────────────────────────────
 // 1. LANING: Follows assigned lane spline (Top, Mid, Bot) behind minion waves.
@@ -75,8 +75,8 @@ export interface BotHero {
 }
 
 export function createBotHero(
-  heroId: string = 'aswang',
-  team: TeamId = 'malakas',
+  heroId: string = 'hollow',
+  team: TeamId = 'dusk',
   laneIndex: number = 1, // 0: Top, 1: Mid, 2: Bot
   startingLevel: number = 1
 ): BotHero {
@@ -86,7 +86,7 @@ export function createBotHero(
 
   let x = spawnPos.x;
   let z = spawnPos.z;
-  let heading = team === 'anito' ? Math.PI * 0.25 : Math.PI * 1.25;
+  let heading = team === 'dawn' ? Math.PI * 0.25 : Math.PI * 1.25;
   let level = startingLevel;
   let maxHealth = getScaledMaxHp(hero.health, level);
   let attack = getScaledAttack(hero.attack, level);
@@ -102,8 +102,8 @@ export function createBotHero(
 
   const cooldowns: CooldownState = { ...EMPTY_COOLDOWNS };
 
-  // Lane waypoint index: Anito starts at 0, Malakas starts at length - 1
-  let waypointIdx = team === 'anito' ? 1 : lane.path.length - 2;
+  // Lane waypoint index: Dawn starts at 0, Dusk starts at length - 1
+  let waypointIdx = team === 'dawn' ? 1 : lane.path.length - 2;
 
   const botId = `bot-${team}-${hero.id}-${lane.id}`;
 
@@ -113,7 +113,7 @@ export function createBotHero(
     health = maxHealth;
     state = 'laning';
     respawnTime = 0;
-    waypointIdx = team === 'anito' ? 1 : lane.path.length - 2;
+    waypointIdx = team === 'dawn' ? 1 : lane.path.length - 2;
   };
 
   const setLevel = (lvl: number) => {
@@ -184,7 +184,7 @@ export function createBotHero(
         health = Math.min(maxHealth, health + maxHealth * 0.35 * delta);
         if (health >= maxHealth * 0.85) {
           state = 'laning';
-          waypointIdx = team === 'anito' ? 1 : lane.path.length - 2;
+          waypointIdx = team === 'dawn' ? 1 : lane.path.length - 2;
         }
       }
 
@@ -327,7 +327,7 @@ export function createBotHero(
       const dist = Math.hypot(dx, dz);
 
       if (dist < 3.0) {
-        if (team === 'anito') {
+        if (team === 'dawn') {
           if (waypointIdx < lane.path.length - 1) waypointIdx++;
         } else {
           if (waypointIdx > 0) waypointIdx--;
@@ -403,29 +403,29 @@ export interface BotTeamManager {
 }
 
 export function createBotTeamManager(
-  playerHeroId: string = 'tikbalang',
-  playerTeam: TeamId = 'anito'
+  playerHeroId: string = 'veer',
+  playerTeam: TeamId = 'dawn'
 ): BotTeamManager {
   // Select balanced distinct rosters
-  const allyPool = ['bernardo', 'diwata', 'apolaki', 'mayari'].filter((id) => id !== playerHeroId);
-  const enemyPool = ['aswang', 'manananggal', 'tikbalang', 'mangkukulam', 'bakunawa'].filter((id) => id !== playerHeroId);
+  const allyPool = ['bedrock', 'willow', 'zenith', 'argent'].filter((id) => id !== playerHeroId);
+  const enemyPool = ['hollow', 'sever', 'veer', 'thistle', 'maw'].filter((id) => id !== playerHeroId);
 
   // 2 Allies for 3v3 (Top and Bot lane, player covers Mid)
-  const ally1HeroId = allyPool[0] ?? 'bernardo';
-  const ally2HeroId = allyPool[1] ?? 'diwata';
+  const ally1HeroId = allyPool[0] ?? 'bedrock';
+  const ally2HeroId = allyPool[1] ?? 'willow';
 
-  const ally1 = createBotHero(ally1HeroId, 'anito', 0, 1); // Top lane ally
-  const ally2 = createBotHero(ally2HeroId, 'anito', 2, 1); // Bot lane ally
+  const ally1 = createBotHero(ally1HeroId, 'dawn', 0, 1); // Top lane ally
+  const ally2 = createBotHero(ally2HeroId, 'dawn', 2, 1); // Bot lane ally
   const allies: BotHero[] = [ally1, ally2];
 
   // 3 Enemies for 3v3 (Top, Mid, Bot lane)
-  const enemy1HeroId = enemyPool[0] ?? 'tikbalang';
-  const enemy2HeroId = enemyPool[1] ?? 'aswang';
-  const enemy3HeroId = enemyPool[2] ?? 'manananggal';
+  const enemy1HeroId = enemyPool[0] ?? 'veer';
+  const enemy2HeroId = enemyPool[1] ?? 'hollow';
+  const enemy3HeroId = enemyPool[2] ?? 'sever';
 
-  const enemy1 = createBotHero(enemy1HeroId, 'malakas', 0, 1); // Top lane enemy
-  const enemy2 = createBotHero(enemy2HeroId, 'malakas', 1, 1); // Mid lane enemy
-  const enemy3 = createBotHero(enemy3HeroId, 'malakas', 2, 1); // Bot lane enemy
+  const enemy1 = createBotHero(enemy1HeroId, 'dusk', 0, 1); // Top lane enemy
+  const enemy2 = createBotHero(enemy2HeroId, 'dusk', 1, 1); // Mid lane enemy
+  const enemy3 = createBotHero(enemy3HeroId, 'dusk', 2, 1); // Bot lane enemy
   const enemies: BotHero[] = [enemy1, enemy2, enemy3];
 
   const all: BotHero[] = [...allies, ...enemies];
@@ -480,7 +480,7 @@ export function createBotTeamManager(
         isPlayer: true,
       };
 
-      const anitoTargets: BotTarget[] = [
+      const dawnTargets: BotTarget[] = [
         playerTarget,
         ...allies.map((a) => ({
           id: a.id,
@@ -493,7 +493,7 @@ export function createBotTeamManager(
         })),
       ];
 
-      const malakasTargets: BotTarget[] = enemies.map((e) => ({
+      const duskTargets: BotTarget[] = enemies.map((e) => ({
         id: e.id,
         name: e.hero.name,
         x: e.x,
@@ -505,13 +505,13 @@ export function createBotTeamManager(
 
       // Update Allies
       for (const ally of allies) {
-        const action = ally.update(delta, clock, malakasTargets, minions.filter((m) => m.team === 'malakas'), objectives, pingObjective);
+        const action = ally.update(delta, clock, duskTargets, minions.filter((m) => m.team === 'dusk'), objectives, pingObjective);
         actions.set(ally.id, action);
       }
 
       // Update Enemies
       for (const enemy of enemies) {
-        const action = enemy.update(delta, clock, anitoTargets, minions.filter((m) => m.team === 'anito'), objectives, null);
+        const action = enemy.update(delta, clock, dawnTargets, minions.filter((m) => m.team === 'dawn'), objectives, null);
         actions.set(enemy.id, action);
       }
 

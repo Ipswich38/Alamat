@@ -75,7 +75,7 @@ class SoundEngine {
 
   // ── COMBAT SOUNDS ─────────────────────────────────────────────────────────
 
-  /** Blade slash / Kampilan metallic strike */
+  /** Blade slash / Blade metallic strike */
   public playMeleeHit() {
     if (!this.init() || !this.ctx || !this.masterGain) return;
     const now = this.ctx.currentTime;
@@ -128,7 +128,7 @@ class SoundEngine {
     }
   }
 
-  /** Heavy blunt strike / Tikbalang hoof stomp / Kapre fist */
+  /** Heavy blunt strike / Veer hoof stomp / Treant fist */
   public playBluntHit() {
     if (!this.init() || !this.ctx || !this.masterGain) return;
     const now = this.ctx.currentTime;
@@ -512,11 +512,11 @@ class SoundEngine {
     osc.stop(now + 0.32);
   }
 
-  /** Traditional Kulintang bronze gong 5-note pattern (Philippine Gong Melody) */
-  public playKulintangChime() {
+  /** Traditional Chime bronze gong 5-note pattern (ancient Gong Melody) */
+  public playChimeChime() {
     if (!this.init() || !this.ctx || !this.masterGain) return;
     const now = this.ctx.currentTime;
-    // Kulintang tuning pentatonic scale (E5, F#5, G#5, B5, C#6)
+    // Chime tuning pentatonic scale (E5, F#5, G#5, B5, C#6)
     const freqs = [659.25, 739.99, 830.61, 987.77, 1108.73];
 
     freqs.forEach((f, i) => {
@@ -548,8 +548,8 @@ class SoundEngine {
     });
   }
 
-  /** Traditional Bamboo Kubing Jaw Harp twang */
-  public playKubingTwang() {
+  /** Traditional Bamboo Reed Jaw Harp twang */
+  public playReedTwang() {
     if (!this.init() || !this.ctx || !this.masterGain) return;
     const now = this.ctx.currentTime;
 
@@ -602,7 +602,7 @@ class SoundEngine {
     });
   }
 
-  /** Bakunawa Celestial Eclipse Deep War Gong */
+  /** Maw Celestial Eclipse Deep War Gong */
   public playEclipseGong() {
     if (!this.init() || !this.ctx || !this.masterGain) return;
     const now = this.ctx.currentTime;
@@ -802,12 +802,12 @@ class SoundEngine {
     horn.stop(now + 0.8);
   }
 
-  /** Epic Bakunawa Slain Triumphant Mythic Chime */
-  public playBakunawaSlain() {
+  /** Epic Maw Slain Triumphant Mythic Chime */
+  public playMawSlain() {
     if (!this.init() || !this.ctx || !this.masterGain) return;
     this.playEclipseGong();
     this.playLevelUp();
-    this.playKulintangChime();
+    this.playChimeChime();
   }
 
   /** Defeat (Kasawian) Solemn Minor Progression */

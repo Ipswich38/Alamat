@@ -1,14 +1,14 @@
 // Master Progressive Account, Hero Mastery, Quests, Match History & Settings Engine
 //
 // ── PROGRESSION ARCHITECTURE ────────────────────────────────────────────────
-// 1. Account Leveling (1 to 50) with Philippine Mythology Rank Hierarchy
+// 1. Account Leveling (1 to 50) with Old Legend Rank Hierarchy
 // 2. Individual Hero Mastery (Levels 1 to 10) with unique Hero Titles
 // 3. Dynamic Daily & Archipelago Battle Quests with Gold & Account XP rewards
 // 4. Match History & Performance Statistics (K/D/A, MVP ratings, Boss takedowns)
 // 5. Mobile-Tailored Gameplay Settings (Haptics, Drag Sensitivity, Quality, Joystick Mode)
 // 6. Resilient LocalStorage Persistence with automatic synchronization
 
-export type RankTier = 'mandirigma' | 'bagani' | 'datu' | 'rajah' | 'bathala';
+export type RankTier = 'spear' | 'ram' | 'datu' | 'rajah' | 'bathala';
 
 export interface RankInfo {
   tier: RankTier;
@@ -21,7 +21,7 @@ export interface RankInfo {
 
 export const RANK_TIERS: RankInfo[] = [
   {
-    tier: 'mandirigma',
+    tier: 'spear',
     title: 'Warrior of the People',
     baybayin: 'ᜋᜈ᜔ᜇᜒᜇᜒᜄ᜔ᜋ',
     minLevel: 1,
@@ -29,7 +29,7 @@ export const RANK_TIERS: RankInfo[] = [
     color: '#94a3b8',
   },
   {
-    tier: 'bagani',
+    tier: 'ram',
     title: 'Champion of the Wilds',
     baybayin: 'ᜊᜄᜈᜒ',
     minLevel: 6,
@@ -136,7 +136,7 @@ export interface PlayerProfile {
   lastActive: number;
 }
 
-const STORAGE_KEY = 'alamat_player_profile_v2';
+const STORAGE_KEY = 'talisman_player_profile_v2';
 
 export const DEFAULT_SETTINGS: MobileGameSettings = {
   hapticsEnabled: true,
@@ -167,7 +167,7 @@ const DEFAULT_QUESTS: DailyQuest[] = [
   {
     id: 'quest_slay_boss',
     title: 'Monster Subdued',
-    description: 'Defeat the Kapre in the jungle or the Bakunawa in the river pit.',
+    description: 'Defeat the Treant in the jungle or the Maw in the river pit.',
     icon: '🐉',
     target: 1,
     progress: 0,
@@ -191,7 +191,7 @@ const DEFAULT_QUESTS: DailyQuest[] = [
   {
     id: 'quest_archipelago_victory',
     title: 'Victory in the Isles',
-    description: 'Achieve victory in any territory of the Philippine Archipelago.',
+    description: 'Achieve victory in any territory of the ancient Archipelago.',
     icon: '👑',
     target: 1,
     progress: 0,
@@ -233,19 +233,19 @@ export function getDefaultProfile(): PlayerProfile {
     totalTowers: 0,
     totalBosses: 0,
     heroMasteries: {
-      tikbalang: { heroId: 'tikbalang', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
-      mangkukulam: { heroId: 'mangkukulam', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
-      aswang: { heroId: 'aswang', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
-      diwata: { heroId: 'diwata', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
-      bernardo: { heroId: 'bernardo', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
-      manananggal: { heroId: 'manananggal', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
-      mayari: { heroId: 'mayari', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
-      apolaki: { heroId: 'apolaki', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
-      bakunawa: { heroId: 'bakunawa', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
+      veer: { heroId: 'veer', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
+      thistle: { heroId: 'thistle', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
+      hollow: { heroId: 'hollow', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
+      willow: { heroId: 'willow', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
+      bedrock: { heroId: 'bedrock', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
+      sever: { heroId: 'sever', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
+      argent: { heroId: 'argent', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
+      zenith: { heroId: 'zenith', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
+      maw: { heroId: 'maw', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
     },
     matchHistory: [],
     dailyQuests: DEFAULT_QUESTS,
-    unlockedCodexEntries: ['kapatagan', 'tikbalang', 'kampilan'],
+    unlockedCodexEntries: ['warding', 'veer', 'blade'],
     settings: DEFAULT_SETTINGS,
     createdAt: Date.now(),
     lastActive: Date.now(),
@@ -272,7 +272,7 @@ export function loadPlayerProfile(): PlayerProfile {
       matchHistory: parsed.matchHistory || [],
     };
   } catch (err) {
-    console.error('[alamat] Error loading player profile:', err);
+    console.error('[talisman] Error loading player profile:', err);
     return getDefaultProfile();
   }
 }
@@ -283,7 +283,7 @@ export function savePlayerProfile(profile: PlayerProfile): void {
     profile.lastActive = Date.now();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
   } catch (err) {
-    console.error('[alamat] Error saving player profile:', err);
+    console.error('[talisman] Error saving player profile:', err);
   }
 }
 

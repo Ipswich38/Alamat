@@ -1,4 +1,4 @@
-// The Pasig Agimat: Sunken, organic S-curve channel with depth, natural geometry,
+// The the Sacred River Talisman: Sunken, organic S-curve channel with depth, natural geometry,
 // stylized PBR dual-scrolling water shader, mossy rocks, mangrove roots, lotus pads, and trough mist.
 //
 // ── ARCHITECTURE & REFACTOR HIGHLIGHTS ─────────────────────────────────────────

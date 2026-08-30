@@ -2,8 +2,8 @@ import { Suspense } from 'react';
 import Arena3D from '@/components/game/Arena3D';
 
 export const metadata = {
-  title: 'Alamat — Playable 3D MOBA Arena',
-  description: 'Heroes of Philippine folklore, in a duel arena where nothing locks on.',
+  title: 'Talisman — Playable 3D MOBA Arena',
+  description: 'Heroes of old legend, in a duel arena where nothing locks on.',
 };
 
 export default async function PlayPage({
@@ -12,8 +12,8 @@ export default async function PlayPage({
   searchParams: Promise<{ hero?: string; territory?: string }>;
 }) {
   const params = await searchParams;
-  const heroId = params?.hero || 'tikbalang';
-  const territoryId = params?.territory || 'kapatagan';
+  const heroId = params?.hero || 'veer';
+  const territoryId = params?.territory || 'warding';
 
   return (
     <Suspense fallback={<div style={{ background: '#020617', width: '100%', height: '100dvh' }} />}>

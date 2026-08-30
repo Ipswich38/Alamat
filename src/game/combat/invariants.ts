@@ -6,7 +6,7 @@
 // that separation is that a relationship BETWEEN the two files has no home, so
 // nobody notices when one side drifts out from under the other.
 //
-// It already happened once. The Kapre's reach was 3.2 while the longest melee
+// It already happened once. The Treant's reach was 3.2 while the longest melee
 // attackRange in the roster was 2.2, which meant the brute stood outside every
 // melee hero's guard and hit them with impunity. Nothing threw, nothing logged,
 // and the strike simply reported empty air, so the game looked like it worked.

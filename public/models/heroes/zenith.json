@@ -1,0 +1,9 @@
+{
+  "id": "zenith",
+  "mode": "refine",
+  "previewTaskId": "01a04cde-741c-76e1-989a-021f14a071e4",
+  "refineTaskId": "01a04cdf-6d5b-719c-b16b-96210eed0277",
+  "prompt": "Stylised 3D MOBA character model, heroic Filipino sun god warrior, human male, heroic stylised proportions like a League of Legends champion. Confident noble face, strong jaw, dark hair. Wearing burnished gold scale armour over one shoulder, an ornate sun disc breastplate with radiating rays, a red woven cape falling behind, gold arm bands. Holding a short curved blade sword at his side. Standing upright on two legs in a neutral A-pose, arms held away from the body, legs straight and slightly apart, facing forward. Clean readable silhouette, game-ready character mesh, A-pose. No base, no plinth, no background.",
+  "bytes": 10085364,
+  "rigTaskId": "01a04ce0-3caf-721a-9121-47ecfc096777"
+}

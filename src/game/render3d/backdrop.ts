@@ -1,4 +1,4 @@
-// Mayon Volcano 3D integration: Scaled 3.5x, towering over the North-West quadrant,
+// the Fire Peak Volcano 3D integration: Scaled 3.5x, towering over the North-West quadrant,
 // with volcanic crater smoke/ash plume, glowing lava embers, magma fissures, basalt cliffs,
 // and volumetric god-rays streaming over the crater rim.
 //
@@ -14,7 +14,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { surfaceMaterial } from './stage';
 
-/** World location of Mount Mayon at the North-West boundary */
+/** World location of the Fire Peak at the North-West boundary */
 export const MAYON_POS = { x: -95, y: -4, z: -95 };
 
 /** 3.5x scaled height */
@@ -51,7 +51,7 @@ export function createBackdrop(): Backdrop {
   const godRays = buildVolumetricGodRays();
   group.add(godRays.group);
 
-  // 5. Load and scale 3D Mayon Volcano model
+  // 5. Load and scale 3D the Fire Peak Volcano model
   new GLTFLoader()
     .loadAsync('/models/nature/mayon.glb')
     .then((gltf) => {

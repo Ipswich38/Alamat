@@ -13,7 +13,7 @@ const line = () => page.evaluate(() => {
   return text.filter((t) => t.includes('tower') || t.includes('core') || t.includes('Strike') || t.includes('Hero'));
 });
 
-// Aswang is the fastest hitter; ?at drops us right by the mid T1 tower (12.8, -12.8).
+// Hollow is the fastest hitter; ?at drops us right by the mid T1 tower (12.8, -12.8).
 await page.goto('http://localhost:3000/play?at=12.8,-10.2&zoom=22', { waitUntil: 'load' });
 await page.waitForTimeout(5000);
 console.log('SPAWNED     :', (await line()).join(' | '));

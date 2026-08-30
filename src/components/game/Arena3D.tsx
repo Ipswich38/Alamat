@@ -39,7 +39,7 @@ import { createRiver } from '@/game/render3d/river';
 import { createBackdrop } from '@/game/render3d/backdrop';
 import { DECK_HEIGHT, onCrossing, riverSpeed } from '@/game/arena/river';
 import { resolveWalls } from '@/game/arena/walls';
-import { createSantelmo } from '@/game/render3d/santelmo';
+import { createWisp } from '@/game/render3d/wisp';
 import { createActor, type Actor } from '@/game/render3d/actor';
 import { createMinionRender } from '@/game/render3d/minions';
 import { createCreepRender } from '@/game/render3d/creeps';
@@ -56,7 +56,7 @@ import {
   getArmorDamageReduction,
 } from '@/game/combat/progression';
 import { createInventoryManager, type EffectiveHeroStats } from '@/game/items/inventory';
-import { type AgimatItem } from '@/game/items/catalogue';
+import { type TalismanItem } from '@/game/items/catalogue';
 import { createBotTeamManager, type BotHero } from '@/game/ai/botHero';
 import type { TeammateHudData, EnemyBotHudData, TacticalPingData } from '@/components/game/HeroHud';
 import {
@@ -90,11 +90,11 @@ import { combatGroundY, createCombatFx } from '@/game/render3d/combat';
 
 const VIEW_HEIGHT = 15;
 const FOE_RADIUS = KAPRE.model.height * 0.13;
-const ENEMY: TeamId = 'malakas';
+const ENEMY: TeamId = 'dusk';
 
 export default function Arena3D({
-  heroId = 'tikbalang',
-  territoryId = 'kapatagan',
+  heroId = 'veer',
+  territoryId = 'warding',
 }: {
   heroId?: string;
   territoryId?: string;
@@ -112,7 +112,7 @@ export default function Arena3D({
   const [cooldowns, setCooldowns] = useState<CooldownState>(EMPTY_COOLDOWNS);
   const [playerHp, setPlayerHp] = useState(hero.health);
   const [playerMaxHp, setPlayerMaxHp] = useState(hero.health);
-  const [kapreHp, setKapreHp] = useState(KAPRE.health);
+  const [treantHp, setTreantHp] = useState(KAPRE.health);
   const [playerLevel, setPlayerLevel] = useState(1);
   const [playerGold, setPlayerGold] = useState(500);
   const [playerXpPercent, setPlayerXpPercent] = useState(0);
@@ -135,7 +135,7 @@ export default function Arena3D({
   const [won, setWon] = useState(false);
   const [defeated, setDefeated] = useState(false);
   const [matchReward, setMatchReward] = useState<MatchRewardResult | undefined>(undefined);
-  const [equippedItems, setEquippedItems] = useState<AgimatItem[]>([]);
+  const [equippedItems, setEquippedItems] = useState<TalismanItem[]>([]);
   const [effectiveStats, setEffectiveStats] = useState<EffectiveHeroStats | undefined>(undefined);
   const [floatingTexts, setFloatingTexts] = useState<FloatingTextHudData[]>([]);
   const [teammatesData, setTeammatesData] = useState<TeammateHudData[]>([]);
@@ -159,7 +159,7 @@ export default function Arena3D({
   const castFn = useRef<((slot: CastSlot) => void) | null>(null);
   const castTargetFn = useRef<((slot: CastSlot, target?: { x?: number; z?: number; heading?: number; targetType?: 'hero' | 'minion' | 'tower' }) => void) | null>(null);
   const aimPreviewFn = useRef<((data: AimPreviewData) => void) | null>(null);
-  const buyFn = useRef<((item: AgimatItem) => void) | null>(null);
+  const buyFn = useRef<((item: TalismanItem) => void) | null>(null);
   const activePingRef = useRef<{ x: number; z: number; type: string; expiresAt: number } | undefined>(undefined);
   const aimPreviewRef = useRef<AimPreviewData | undefined>(undefined);
 
@@ -177,7 +177,7 @@ export default function Arena3D({
     skillLevelsRef.current[slot] = newLevel;
   };
   const handleQualityChange = (q: 'performance' | 'balanced' | 'ultra') => qualityFn.current?.(q);
-  const handleBuyItem = (item: AgimatItem) => buyFn.current?.(item);
+  const handleBuyItem = (item: TalismanItem) => buyFn.current?.(item);
 
   const heroRef = useRef(hero);
   useEffect(() => {
@@ -189,7 +189,7 @@ export default function Arena3D({
     if (!canvas) return;
 
     if (process.env.NODE_ENV !== 'production') {
-      for (const problem of checkContent([KAPRE])) console.warn('[alamat content]', problem);
+      for (const problem of checkContent([KAPRE])) console.warn('[talisman content]', problem);
     }
 
     const stage = createStage(canvas, territory.atmosphere.skyTheme || territory.id);
@@ -219,8 +219,8 @@ export default function Arena3D({
     stage.scene.add(stage.camera);
     backdrop.attach(stage.camera);
 
-    const santelmo = createSantelmo();
-    stage.scene.add(santelmo.group);
+    const wisp = createWisp();
+    stage.scene.add(wisp.group);
     const combatFx = createCombatFx();
     stage.scene.add(combatFx.group);
     const reticles = createReticleController();
@@ -252,7 +252,7 @@ export default function Arena3D({
     };
     let activeStats = refreshStats();
 
-    buyFn.current = (item: AgimatItem) => {
+    buyFn.current = (item: TalismanItem) => {
       if (currentGold >= item.cost && !inventory.isFull()) {
         currentGold -= item.cost;
         inventory.addItem(item);
@@ -283,8 +283,8 @@ export default function Arena3D({
     // ── Player & Spawn Anchor ───────────────────────────────────────────────
     const atParam = new URLSearchParams(window.location.search).get('at');
     const at = atParam?.split(',').map(Number);
-    const spawnX = at && at.length === 2 && at.every(Number.isFinite) ? at[0] : TEAMS.anito.spawn.x;
-    const spawnZ = at && at.length === 2 && at.every(Number.isFinite) ? at[1] : TEAMS.anito.spawn.z;
+    const spawnX = at && at.length === 2 && at.every(Number.isFinite) ? at[0] : TEAMS.dawn.spawn.x;
+    const spawnZ = at && at.length === 2 && at.every(Number.isFinite) ? at[1] : TEAMS.dawn.spawn.z;
     let px = spawnX;
     let pz = spawnZ;
     let heading = Math.PI * 0.25;
@@ -300,7 +300,7 @@ export default function Arena3D({
       createActor({
         ...h.model,
         height: heroHeight(h.build.scale),
-        ring: { radius: SELECTION_RING, colour: TEAMS.anito.light },
+        ring: { radius: SELECTION_RING, colour: TEAMS.dawn.light },
       }).then((next) => {
         if (disposed || builtFor !== h.id) {
           next.dispose();
@@ -322,7 +322,7 @@ export default function Arena3D({
     };
     swapTo(hero);
 
-    // ── Neutral Brute Kapre ─────────────────────────────────────────────────
+    // ── Neutral Brute Treant ─────────────────────────────────────────────────
     let foe: Actor | null = null;
     const brute = createBrute(KAPRE, 0, 0);
     createActor(KAPRE.model).then((a) => {
@@ -336,13 +336,13 @@ export default function Arena3D({
     });
 
     // ── 3v3 MOBA AI Champion Team System ────────────────────────────────────
-    const botTeamManager = createBotTeamManager(hero.id, 'anito');
+    const botTeamManager = createBotTeamManager(hero.id, 'dawn');
     const botActors = new Map<string, Actor>();
 
     for (const bot of botTeamManager.all) {
       const modelConfig = bot.hero.model ?? {
-        rigged: '/models/heroes/tikbalang-rigged.glb',
-        walk: '/models/heroes/tikbalang-walk.glb',
+        rigged: '/models/heroes/veer-rigged.glb',
+        walk: '/models/heroes/veer-walk.glb',
       };
       createActor({
         ...modelConfig,
@@ -426,7 +426,7 @@ export default function Arena3D({
         const currentHero = heroRef.current;
         const ability = abilityForSlot(currentHero, data.slot);
         if (ability) {
-          const color = data.isCancelZone ? 0xef4444 : TEAMS.anito.light;
+          const color = data.isCancelZone ? 0xef4444 : TEAMS.dawn.light;
           reticles.show(ability, px, pz, data.targetX ?? mouseGroundX, data.targetZ ?? mouseGroundZ, color);
         }
       }
@@ -533,8 +533,8 @@ export default function Arena3D({
     let jadeShieldCooldown = 0;
 
     const awardXpAndGold = (xp: number, gold: number, entityName: string) => {
-      const goldMult = territory.id === 'kapatagan' && entityName.toLowerCase().includes('minion') ? 1.25 : 1.0;
-      const xpMult = territory.id === 'kapatagan' && entityName.toLowerCase().includes('minion') ? 1.25 : 1.0;
+      const goldMult = territory.id === 'warding' && entityName.toLowerCase().includes('minion') ? 1.25 : 1.0;
+      const xpMult = territory.id === 'warding' && entityName.toLowerCase().includes('minion') ? 1.25 : 1.0;
       currentXp += Math.round(xp * xpMult);
       currentGold += Math.round(gold * goldMult);
       setPlayerGold(currentGold);
@@ -572,13 +572,13 @@ export default function Arena3D({
       const mitigation = getArmorDamageReduction(activeStats.armor);
       const actualDmg = Math.max(1, amount * (1 - mitigation));
       playerHealth = Math.max(0, playerHealth - actualDmg);
-      combatFx.addBurst(px, pz, TEAMS.malakas.light);
+      combatFx.addBurst(px, pz, TEAMS.dusk.light);
       damageNumbers.spawn(px, terrainHeight(px, pz) + 1.0, pz, actualDmg, 'physical');
 
       if (playerHealth <= 0) {
         setPlayerHp(0);
         setEnemyKills((k) => k + 1);
-        resetPlayer(`${source} drops you. You wake at the Anito gate.`);
+        resetPlayer(`${source} drops you. You wake at the Dawn gate.`);
       } else {
         setPlayerHp(playerHealth);
         setCombatLine(`${source} hits you for ${Math.round(actualDmg)}.`);
@@ -597,7 +597,7 @@ export default function Arena3D({
       const emojis: Record<string, string> = {
         wind_stride: '💨',
         blood_thirst: '🩸',
-        bulul_blessing: '🌾',
+        idol_blessing: '🌾',
         moons_eclipse: '🌙',
       };
       const emoji = emojis[type] ?? '✨';
@@ -621,11 +621,11 @@ export default function Arena3D({
       const hasEclipse = liveBuffs.some((b) => b.type === 'moons_eclipse' && clock < b.expiresAt);
       const appliedDamage = hasEclipse ? amount * 1.2 : amount;
 
-      // ── Kapre Duel Strike ─────────────────────────────────────────────────
+      // ── Treant Duel Strike ─────────────────────────────────────────────────
       if (covers(brute.x, brute.z, FOE_RADIUS) && brute.hurt(appliedDamage, clock)) {
         foeOutcome = { name: KAPRE.name, amount: appliedDamage, downed: !brute.alive };
-        setKapreHp(brute.health);
-        combatFx.addBurst(brute.x, brute.z, TEAMS.anito.light);
+        setTreantHp(brute.health);
+        combatFx.addBurst(brute.x, brute.z, TEAMS.dawn.light);
         sound.playSpellImpact();
         damageNumbers.spawn(brute.x, terrainHeight(brute.x, brute.z) + 1.2, brute.z, appliedDamage, isCrit ? 'crit' : 'physical');
 
@@ -640,9 +640,9 @@ export default function Arena3D({
       }
 
       // ── 3v3 MOBA AI Team Strike ───────────────────────────────────────────
-      const botReport = botTeamManager.strike('anito', (x, z, r) => covers(x, z, r), appliedDamage);
+      const botReport = botTeamManager.strike('dawn', (x, z, r) => covers(x, z, r), appliedDamage);
       for (const hit of botReport.hits) {
-        combatFx.addBurst(hit.x, hit.z, TEAMS.anito.light);
+        combatFx.addBurst(hit.x, hit.z, TEAMS.dawn.light);
         sound.playMeleeHit();
         damageNumbers.spawn(hit.x, terrainHeight(hit.x, hit.z) + 1.2, hit.z, appliedDamage, isCrit ? 'crit' : 'physical');
         damageDealtToFoes += appliedDamage;
@@ -681,7 +681,7 @@ export default function Arena3D({
       // ── Neutral Jungle Creeps Strike ──────────────────────────────────────
       const creepReport = creepManager.strike(covers, appliedDamage);
       for (const hit of creepReport.hits) {
-        combatFx.addBurst(hit.x, hit.z, TEAMS.anito.light);
+        combatFx.addBurst(hit.x, hit.z, TEAMS.dawn.light);
         sound.playMeleeHit();
         damageNumbers.spawn(hit.x, terrainHeight(hit.x, hit.z) + 1.0, hit.z, appliedDamage, 'magic');
         damageDealtToFoes += appliedDamage;
@@ -690,10 +690,10 @@ export default function Arena3D({
         awardXpAndGold(BOUNTIES.jungleCreep.xp, BOUNTIES.jungleCreep.gold, down.name);
       }
 
-      // ── Major Epic Boss Strike (Bakunawa & Kapre) ─────────────────────────
+      // ── Major Epic Boss Strike (Maw & Treant) ─────────────────────────
       const bossReport = bossManager.strike(covers, appliedDamage, clock);
       for (const hit of bossReport.hits) {
-        combatFx.addBurst(hit.x, hit.z, TEAMS.anito.light);
+        combatFx.addBurst(hit.x, hit.z, TEAMS.dawn.light);
         sound.playSpellImpact();
         damageNumbers.spawn(hit.x, terrainHeight(hit.x, hit.z) + 1.5, hit.z, appliedDamage, 'crit');
         damageDealtToFoes += appliedDamage;
@@ -708,20 +708,20 @@ export default function Arena3D({
       // ── Minion Waves Strike ───────────────────────────────────────────────
       const minionReport = minionManager.strike(ENEMY, covers, appliedDamage);
       for (const hit of minionReport.hits) {
-        combatFx.addBurst(hit.x, hit.z, TEAMS.anito.light);
+        combatFx.addBurst(hit.x, hit.z, TEAMS.dawn.light);
         sound.playMinionHit();
         damageNumbers.spawn(hit.x, terrainHeight(hit.x, hit.z) + 0.8, hit.z, appliedDamage, 'physical');
         damageDealtToFoes += appliedDamage;
       }
       for (const down of minionReport.felled) {
-        const bounty = down.kind === 'bagani' ? BOUNTIES.siegeMinion : down.kind === 'mapanahong' ? BOUNTIES.rangedMinion : BOUNTIES.meleeMinion;
+        const bounty = down.kind === 'ram' ? BOUNTIES.siegeMinion : down.kind === 'archer' ? BOUNTIES.rangedMinion : BOUNTIES.meleeMinion;
         awardXpAndGold(bounty.xp, bounty.gold, 'Minion');
       }
 
       // ── Objectives / Structure Strike ─────────────────────────────────────
       const report = objectives.strike(ENEMY, covers, appliedDamage);
       for (const hit of report.hits) {
-        combatFx.addBurst(hit.x, hit.z, TEAMS.anito.light);
+        combatFx.addBurst(hit.x, hit.z, TEAMS.dawn.light);
         damageNumbers.spawn(hit.x, terrainHeight(hit.x, hit.z) + 2.0, hit.z, appliedDamage, 'magic');
       }
       for (const down of report.felled) {
@@ -789,20 +789,20 @@ export default function Arena3D({
 
       sound.playSpellCast(ability.shape);
       haptics.cast();
-      combatFx.addCastRune(startX, startZ, 2.4, TEAMS.anito.light, life + 0.1);
+      combatFx.addCastRune(startX, startZ, 2.4, TEAMS.dawn.light, life + 0.1);
 
       if (ability.shape === 'ground') {
         const targetDist = Math.min(ability.range, Math.hypot(targetX - startX, targetZ - startZ));
         const tx = startX + dir.x * targetDist;
         const tz = startZ + dir.z * targetDist;
-        combatFx.addCircle(tx, tz, ability.width, TEAMS.anito.light, life);
-        reticles.show(ability, startX, startZ, tx, tz, TEAMS.anito.light);
+        combatFx.addCircle(tx, tz, ability.width, TEAMS.dawn.light, life);
+        reticles.show(ability, startX, startZ, tx, tz, TEAMS.dawn.light);
       } else if (ability.shape === 'cone') {
-        combatFx.addCone(startX, startZ, castHeading, ability.range, ability.width, TEAMS.anito.light, life);
-        reticles.show(ability, startX, startZ, targetX, targetZ, TEAMS.anito.light);
+        combatFx.addCone(startX, startZ, castHeading, ability.range, ability.width, TEAMS.dawn.light, life);
+        reticles.show(ability, startX, startZ, targetX, targetZ, TEAMS.dawn.light);
       } else {
-        combatFx.addLine(startX, startZ, castHeading, ability.range, ability.width, TEAMS.anito.light, life);
-        reticles.show(ability, startX, startZ, targetX, targetZ, TEAMS.anito.light);
+        combatFx.addLine(startX, startZ, castHeading, ability.range, ability.width, TEAMS.dawn.light, life);
+        reticles.show(ability, startX, startZ, targetX, targetZ, TEAMS.dawn.light);
       }
 
       windups.push({
@@ -838,7 +838,7 @@ export default function Arena3D({
         ready.potion = clock + 35;
         sound.playPotion();
         haptics.tick();
-        grantBuff('bulul_blessing', 'Agimat Potion Regen', 5.0);
+        grantBuff('idol_blessing', 'Talisman Potion Regen', 5.0);
         playerHealth = Math.min(activeStats.maxHp, playerHealth + 250);
         setPlayerHp(playerHealth);
         damageNumbers.spawn(px, terrainHeight(px, pz) + 1.2, pz, 250, 'heal');
@@ -945,7 +945,7 @@ export default function Arena3D({
           } else if (targetOverride?.x !== undefined && targetOverride?.z !== undefined) {
             castHeading = Math.atan2(targetOverride.x - px, targetOverride.z - pz);
           } else {
-            // Auto-lock onto nearest enemy bot hero or Kapre if in range
+            // Auto-lock onto nearest enemy bot hero or Treant if in range
             let nearestDist = Infinity;
             let targetX = px;
             let targetZ = pz;
@@ -984,8 +984,8 @@ export default function Arena3D({
         heading = castHeading;
         sound.playMeleeHit();
         haptics.tick();
-        combatFx.addLine(px, pz, castHeading, currentHero.attackRange, BASIC_WIDTH, TEAMS.anito.light, 0.16);
-        combatFx.addSlashArc(px, pz, castHeading, Math.max(1.8, currentHero.attackRange * 0.85), TEAMS.anito.light, 0.22);
+        combatFx.addLine(px, pz, castHeading, currentHero.attackRange, BASIC_WIDTH, TEAMS.dawn.light, 0.16);
+        combatFx.addSlashArc(px, pz, castHeading, Math.max(1.8, currentHero.attackRange * 0.85), TEAMS.dawn.light, 0.22);
         const landed = resolveHit('Strike', activeStats.attack, (tx, tz, r) =>
           lineHitsPoint(px, pz, castHeading, currentHero.attackRange, BASIC_WIDTH, tx, tz, r)
         );
@@ -1004,7 +1004,7 @@ export default function Arena3D({
       const targetZ = cast.z + dir.z * cast.ability.range;
 
       if (cast.ability.shape === 'projectile') {
-        const object = combatFx.makeProjectile(TEAMS.anito.light);
+        const object = combatFx.makeProjectile(TEAMS.dawn.light);
         object.position.set(cast.x + dir.x * 1.2, combatGroundY(cast.x, cast.z) + 1.1, cast.z + dir.z * 1.2);
         projectiles.push({
           ability: cast.ability,
@@ -1035,7 +1035,7 @@ export default function Arena3D({
       }
 
       if (cast.ability.shape === 'cone') {
-        combatFx.addCone(cast.x, cast.z, cast.heading, cast.ability.range, cast.ability.width, TEAMS.anito.light, 0.18);
+        combatFx.addCone(cast.x, cast.z, cast.heading, cast.ability.range, cast.ability.width, TEAMS.dawn.light, 0.18);
         const landed = resolveHit(cast.ability.name, effectiveDmg, (tx, tz, r) =>
           coneHitsPoint(cast.x, cast.z, cast.heading, cast.ability.range, cast.ability.width, tx, tz, r)
         );
@@ -1144,11 +1144,11 @@ export default function Arena3D({
         const inRiver = onCrossing(px, pz);
         const isDaylight = clock % 600 < 420;
         let territorySpeedMult = 1.0;
-        if (territory.id === 'kaluwalhatian' && isDaylight && !hiddenSeen) {
+        if (territory.id === 'skyhold' && isDaylight && !hiddenSeen) {
           territorySpeedMult *= 1.10;
         } else if (territory.id === 'van_long_uyen' && inRiver) {
           territorySpeedMult *= 1.15;
-        } else if (territory.id === 'gubat_anito' && hiddenSeen) {
+        } else if (territory.id === 'gubat_dawn' && hiddenSeen) {
           territorySpeedMult *= 1.20;
         }
         const speedMult = (hasWindStride ? 1.35 : 1.0) * riverSpeed(px, pz) * territorySpeedMult;
@@ -1168,7 +1168,7 @@ export default function Arena3D({
 
       // Passive health regeneration & Territory blessings
       let extraRegen = 0;
-      if (territory.id === 'gubat_anito' && inBrush) {
+      if (territory.id === 'gubat_dawn' && inBrush) {
         extraRegen += 2.5;
       }
       if (playerHealth > 0 && playerHealth < activeStats.maxHp) {
@@ -1179,18 +1179,18 @@ export default function Arena3D({
       // Van Long Uyen: Jade Dragon Ward (+200 HP shield when entering combat)
       if (territory.id === 'van_long_uyen' && clock >= jadeShieldCooldown && playerHealth > 0) {
         jadeShieldCooldown = clock + 40;
-        grantBuff('bulul_blessing', 'Jade Dragon Ward (+200 HP)', 8.0);
+        grantBuff('idol_blessing', 'Jade Dragon Ward (+200 HP)', 8.0);
         playerHealth = Math.min(activeStats.maxHp + 200, playerHealth + 200);
         combatFx.addBlessingBurst(px, pz, 0x10b981);
         damageNumbers.spawn(px, terrainHeight(px, pz) + 1.4, pz, 200, 'heal');
       }
 
-      // Expired buffs cleanup & Bulul Blessing health regeneration
+      // Expired buffs cleanup & Idol Blessing health regeneration
       for (let i = liveBuffs.length - 1; i >= 0; i--) {
         if (clock >= liveBuffs[i].expiresAt) liveBuffs.splice(i, 1);
       }
-      const hasBululBlessing = liveBuffs.some((b) => b.type === 'bulul_blessing' && clock < b.expiresAt);
-      if (hasBululBlessing && playerHealth < activeStats.maxHp && playerHealth > 0) {
+      const hasIdolBlessing = liveBuffs.some((b) => b.type === 'idol_blessing' && clock < b.expiresAt);
+      if (hasIdolBlessing && playerHealth < activeStats.maxHp && playerHealth > 0) {
         playerHealth = Math.min(activeStats.maxHp, playerHealth + 35 * dt);
         setPlayerHp(playerHealth);
       }
@@ -1237,7 +1237,7 @@ export default function Arena3D({
           playerHidden: hiddenSeen,
         });
         if (tick.returned) {
-          setKapreHp(brute.health);
+          setTreantHp(brute.health);
           foe.object.visible = true;
           setCombatLine(`The ${KAPRE.name} gathers itself again at the river bend.`);
         }
@@ -1261,7 +1261,7 @@ export default function Arena3D({
         playerHealth,
         activeStats.maxHp,
         heroRef.current,
-        'anito',
+        'dawn',
         minionManager.minions,
         objectives,
         activePingRef.current
@@ -1284,7 +1284,7 @@ export default function Arena3D({
           if (action?.type === 'attack') {
             const teamColor = TEAMS[bot.team].light;
             combatFx.addLine(bot.x, bot.z, bot.heading, bot.hero.attackRange, BASIC_WIDTH, teamColor, 0.16);
-            if (bot.team === 'malakas') {
+            if (bot.team === 'dusk') {
               if (Math.hypot(px - bot.x, pz - bot.z) <= bot.hero.attackRange + 1.1) {
                 hurtPlayer(bot.attack, bot.hero.name);
                 sound.playMeleeHit();
@@ -1304,7 +1304,7 @@ export default function Arena3D({
               } else {
                 combatFx.addLine(bot.x, bot.z, bot.heading, botAbility.range, botAbility.width, teamColor, 0.22);
               }
-              if (bot.team === 'malakas') {
+              if (bot.team === 'dusk') {
                 if (Math.hypot(px - bot.x, pz - bot.z) <= botAbility.range) {
                   hurtPlayer(botAbility.damage, `${bot.hero.name}'s ${botAbility.name}`);
                   sound.playSpellImpact();
@@ -1334,7 +1334,7 @@ export default function Arena3D({
       }
       creepRender.update(creepManager.creeps, clock);
 
-      // ── Epic Bosses (Bakunawa & Kapre) Simulation ─────────────────────────
+      // ── Epic Bosses (Maw & Treant) Simulation ─────────────────────────
       const bossTick = bossManager.update(
         dt,
         clock,
@@ -1351,7 +1351,7 @@ export default function Arena3D({
       }
       if (bossTick.announcement) {
         setCombatLine(bossTick.announcement);
-        if (bossTick.announcement.includes('Bakunawa') || bossTick.announcement.includes('Kapre')) {
+        if (bossTick.announcement.includes('Maw') || bossTick.announcement.includes('Treant')) {
           stage.addCameraShake(0.75);
         }
       }
@@ -1372,18 +1372,18 @@ export default function Arena3D({
           stage.addCameraShake(0.4);
         }
       }
-      bossRender.update(bossManager.bakunawa, bossManager.kapre, bossManager.pushingKapre, clock);
+      bossRender.update(bossManager.maw, bossManager.treant, bossManager.pushingTreant, clock);
 
-      const distBakunawa = Math.hypot(px - bossManager.bakunawa.x, pz - bossManager.bakunawa.z);
-      const distKapre = Math.hypot(px - bossManager.kapre.x, pz - bossManager.kapre.z);
-      if (bossManager.bakunawa.alive && (distBakunawa <= 32 || bossManager.bakunawa.inCombat)) {
-        setBossName('Bakunawa — The Moon-Eater');
-        setBossHp(bossManager.bakunawa.health);
-        setBossMaxHp(bossManager.bakunawa.maxHealth);
-      } else if (bossManager.kapre.alive && (distKapre <= 32 || bossManager.kapre.inCombat)) {
-        setBossName('Kapre — Giant Tree Warden');
-        setBossHp(bossManager.kapre.health);
-        setBossMaxHp(bossManager.kapre.maxHealth);
+      const distMaw = Math.hypot(px - bossManager.maw.x, pz - bossManager.maw.z);
+      const distTreant = Math.hypot(px - bossManager.treant.x, pz - bossManager.treant.z);
+      if (bossManager.maw.alive && (distMaw <= 32 || bossManager.maw.inCombat)) {
+        setBossName('Maw — The Moon-Eater');
+        setBossHp(bossManager.maw.health);
+        setBossMaxHp(bossManager.maw.maxHealth);
+      } else if (bossManager.treant.alive && (distTreant <= 32 || bossManager.treant.inCombat)) {
+        setBossName('Treant — Giant Tree Warden');
+        setBossHp(bossManager.treant.health);
+        setBossMaxHp(bossManager.treant.maxHealth);
       } else {
         setBossName(undefined);
         setBossHp(0);
@@ -1391,7 +1391,7 @@ export default function Arena3D({
 
       // Minion simulation and combat
       minionManager.update(dt, clock, objectives, (from, tx, tz, isRanged) => {
-        const teamColour = from.team === 'anito' ? TEAMS.anito.light : TEAMS.malakas.light;
+        const teamColour = from.team === 'dawn' ? TEAMS.dawn.light : TEAMS.dusk.light;
         if (isRanged) {
           const gap = Math.hypot(tx - from.x, tz - from.z);
           const angle = Math.atan2(tx - from.x, tz - from.z);
@@ -1402,10 +1402,10 @@ export default function Arena3D({
       });
       minionRender.update(minionManager.minions, clock);
 
-      // Bulul jungle camp boons
+      // Idol jungle camp boons
       const camp = campAt(px, pz);
       if (camp) {
-        if (camp.id.startsWith('bulul-nw') || camp.id.startsWith('bulul-se')) {
+        if (camp.id.startsWith('idol-nw') || camp.id.startsWith('idol-se')) {
           if (playerHealth < activeStats.maxHp && playerHealth > 0) {
             playerHealth = Math.min(activeStats.maxHp, playerHealth + 36 * dt);
             setPlayerHp(playerHealth);
@@ -1456,9 +1456,9 @@ export default function Arena3D({
       jungle.update(clock);
       river.update(clock);
       backdrop.update(clock);
-      santelmo.update(clock);
+      wisp.update(clock);
       combatFx.update(dt);
-      stage.update(dt, clock, bossManager.bakunawa.inCombat);
+      stage.update(dt, clock, bossManager.maw.inCombat);
       
       // Smooth dynamic camera aim lead and minimap drag scouting for mobile
       const scoutTarget = scoutMapTargetRef.current;
@@ -1516,13 +1516,13 @@ export default function Arena3D({
       }
 
       // Check Victory & Defeat Conditions
-      const anitoCore = objectives.core('anito');
-      if (anitoCore && anitoCore.health <= 0 && !won && !defeated) {
+      const wardstone = objectives.core('dawn');
+      if (wardstone && wardstone.health <= 0 && !won && !defeated) {
         setDefeated(true);
         sound.playDefeat();
         haptics.damage();
         stage.addCameraShake(1.2);
-        setCombatLine('💀 The Anito Sanctuary Core has fallen! Defeat.');
+        setCombatLine('💀 The Dawn Sanctuary Core has fallen! Defeat.');
         if (!matchOutcomeProcessed) {
           matchOutcomeProcessed = true;
           const reward = recordMatchOutcome({
@@ -1540,13 +1540,13 @@ export default function Arena3D({
           setMatchReward(reward);
         }
       }
-      const malakasCore = objectives.core('malakas');
-      if (malakasCore && malakasCore.health <= 0 && !won && !defeated) {
+      const duskCore = objectives.core('dusk');
+      if (duskCore && duskCore.health <= 0 && !won && !defeated) {
         setWon(true);
         sound.playVictory();
         haptics.victory();
         stage.addCameraShake(1.5);
-        setCombatLine('🏆 The Malakas Realm Core has been shattered! VICTORY!');
+        setCombatLine('🏆 The Dusk Core has been shattered! VICTORY!');
         if (!matchOutcomeProcessed) {
           matchOutcomeProcessed = true;
           const reward = recordMatchOutcome({
@@ -1699,7 +1699,7 @@ export default function Arena3D({
       jungle.dispose();
       river.dispose();
       backdrop.dispose();
-      santelmo.dispose();
+      wisp.dispose();
       combatFx.dispose();
       reticles.dispose();
       damageNumbers.clear();
@@ -1737,7 +1737,7 @@ export default function Arena3D({
         playerPos={playerPos}
         playerScreenPos={playerScreenPos}
         foeName={KAPRE.name}
-        foeHp={kapreHp}
+        foeHp={treantHp}
         foeMaxHp={KAPRE.health}
         foePos={foePos}
         foeScreenPos={foeScreenPos}

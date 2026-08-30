@@ -1,7 +1,7 @@
-// Agimat Shop Item Catalogue
+// Talisman Shop Item Catalogue
 //
 // ── ITEMS & MYTHIC ARTIFACTS ────────────────────────────────────────────────
-// Weapons, armor, boots, and charms derived from Philippine folklore.
+// Weapons, armor, boots, and charms derived from old legend.
 
 export interface ItemAttributes {
   flatHp?: number;
@@ -14,7 +14,7 @@ export interface ItemAttributes {
   lifestealPct?: number;
 }
 
-export interface AgimatItem {
+export interface TalismanItem {
   id: string;
   name: string;
   category: 'weapon' | 'armor' | 'boots' | 'charm';
@@ -25,15 +25,15 @@ export interface AgimatItem {
   stats: ItemAttributes;
 }
 
-export const AGIMAT_ITEMS: AgimatItem[] = [
+export const AGIMAT_ITEMS: TalismanItem[] = [
   {
-    id: 'kampilan-fire',
-    name: 'Kampilan of Searing Fire',
+    id: 'blade-fire',
+    name: 'Blade of Searing Fire',
     category: 'weapon',
     cost: 1200,
     emoji: '🗡️',
     blurb: '+45 ATK · +15% Attack Speed · Searing Edge',
-    lore: 'Forged in the volcanic embers of Mayon. Its single-edged blade leaves a burning wound that never stops smoking.',
+    lore: 'Forged in the volcanic embers of the Fire Peak. Its single-edged blade leaves a burning wound that never stops smoking.',
     stats: {
       flatAttack: 45,
       attackSpeedPct: 0.15,
@@ -41,8 +41,8 @@ export const AGIMAT_ITEMS: AgimatItem[] = [
     },
   },
   {
-    id: 'agimat-bathala',
-    name: 'Agimat of Bathala',
+    id: 'talisman-bathala',
+    name: 'Talisman of the Maker',
     category: 'armor',
     cost: 1600,
     emoji: '🧿',
@@ -68,8 +68,8 @@ export const AGIMAT_ITEMS: AgimatItem[] = [
     },
   },
   {
-    id: 'mayari-relic',
-    name: "Mayari's Lunar Crescent",
+    id: 'argent-relic',
+    name: "Argent's Lunar Crescent",
     category: 'weapon',
     cost: 1400,
     emoji: '🌙',
@@ -94,8 +94,8 @@ export const AGIMAT_ITEMS: AgimatItem[] = [
     },
   },
   {
-    id: 'bulul-heart',
-    name: 'Bulul Heart Totem',
+    id: 'idol-heart',
+    name: 'Idol Heart Totem',
     category: 'charm',
     cost: 1500,
     emoji: '🗿',
@@ -109,12 +109,12 @@ export const AGIMAT_ITEMS: AgimatItem[] = [
   },
   {
     id: 'mutya-pearl',
-    name: 'Mutya of the Pasig',
+    name: 'Mutya of the the Sacred River',
     category: 'charm',
     cost: 950,
     emoji: '🔮',
     blurb: '+220 HP · +25 ATK · +0.6 Move Speed',
-    lore: 'A glowing pearl harvested from the sacred depths of the Pasig riverbed before the age of iron.',
+    lore: 'A glowing pearl harvested from the sacred depths of the the Sacred River riverbed before the age of iron.',
     stats: {
       flatHp: 220,
       flatAttack: 25,
@@ -123,5 +123,5 @@ export const AGIMAT_ITEMS: AgimatItem[] = [
   },
 ];
 
-export const itemById = (id: string): AgimatItem | undefined =>
+export const itemById = (id: string): TalismanItem | undefined =>
   AGIMAT_ITEMS.find((item) => item.id === id);

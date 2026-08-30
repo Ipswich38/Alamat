@@ -1,4 +1,4 @@
-// The Pasig Agimat: an S-curve channel with a real bed, banks and shallows.
+// The the Sacred River Talisman: an S-curve channel with a real bed, banks and shallows.
 //
 // ── WHY IT IS A SAMPLED POLYLINE AND NOT A FORMULA ──────────────────────────
 // The straight version was one subtraction: distance from the line x = z. A
@@ -122,7 +122,7 @@ export function riverDepth(x: number, z: number): number {
 }
 
 /** Which side of the channel a point is on. The two halves of the map. */
-export function riverSide(x: number, z: number): 'anito' | 'malakas' {
+export function riverSide(x: number, z: number): 'dawn' | 'dusk' {
   // The curve wanders, so "which side" is decided against the nearest sample's
   // own tangent rather than against a fixed line.
   let bestI = 0;
@@ -137,7 +137,7 @@ export function riverSide(x: number, z: number): 'anito' | 'malakas' {
   const a = CENTRE[Math.max(0, bestI - 1)];
   const b = CENTRE[Math.min(CENTRE.length - 1, bestI + 1)];
   const cross = (b.x - a.x) * (z - a.z) - (b.z - a.z) * (x - a.x);
-  return cross < 0 ? 'anito' : 'malakas';
+  return cross < 0 ? 'dawn' : 'dusk';
 }
 
 export interface Crossing {

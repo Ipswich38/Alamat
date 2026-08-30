@@ -1,15 +1,15 @@
-// Lane minion waves: Mandirigma (Melee), Mapanahong (Ranged), and Bagani (Siege).
+// Lane minion waves: Spear (Melee), Archer (Ranged), and Ram (Siege).
 //
 // ── THE THREE PANGKAT (DIVISIONS) ───────────────────────────────────────────
-// 1. Mandirigma (Melee): Pre-colonial warriors with Kalasag shield & Kampilan short sword. High HP frontline.
-// 2. Mapanahong (Ranged): Village hunters with bamboo bow / Sumpit blowgun. Ranged poison dart / spirit arrow fire.
-// 3. Bagani (Siege): Armored battering ram vanguard dealing 2.5x bonus damage against turrets & palisade gates.
+// 1. Spear (Melee): Pre-colonial warriors with Kalasag shield & Blade short sword. High HP frontline.
+// 2. Archer (Ranged): Village hunters with bamboo bow / Dart blowgun. Ranged poison dart / spirit arrow fire.
+// 3. Ram (Siege): Armored battering ram vanguard dealing 2.5x bonus damage against turrets & palisade gates.
 
 import { LANES, type LaneId } from '@/game/arena/lanes';
 import type { TeamId } from '@/game/arena/nexus';
 import type { Objectives } from './objectives';
 
-export type MinionKind = 'mandirigma' | 'mapanahong' | 'bagani';
+export type MinionKind = 'spear' | 'archer' | 'ram';
 
 export interface Minion {
   id: string;
@@ -84,8 +84,8 @@ export const MINION_STATS: Record<
     structureMultiplier: number;
   }
 > = {
-  mandirigma: {
-    name: 'Pangkat Mandirigma',
+  spear: {
+    name: 'Pangkat Spear',
     health: 520,
     damage: 28,
     range: 2.2,
@@ -93,8 +93,8 @@ export const MINION_STATS: Record<
     radius: 0.9,
     structureMultiplier: 1.0,
   },
-  mapanahong: {
-    name: 'Pangkat Mapanahong',
+  archer: {
+    name: 'Pangkat Archer',
     health: 280,
     damage: 22,
     range: 7.5,
@@ -102,8 +102,8 @@ export const MINION_STATS: Record<
     radius: 0.75,
     structureMultiplier: 1.0,
   },
-  bagani: {
-    name: 'Pangkat Bagani',
+  ram: {
+    name: 'Pangkat Ram',
     health: 820,
     damage: 45,
     range: 2.5,
@@ -173,26 +173,26 @@ export function createMinionManager(): MinionManager {
     waveId++;
     for (const lane of LANES) {
       // Formation:
-      // Row 1 (Front): 3 Melee Mandirigma (left, center, right)
-      // Row 2 (Mid): 2 Ranged Mapanahong (left, right)
-      // Row 3 (Rear): 1 Siege Bagani (center)
+      // Row 1 (Front): 3 Melee Spear (left, center, right)
+      // Row 2 (Mid): 2 Ranged Archer (left, right)
+      // Row 3 (Rear): 1 Siege Ram (center)
       const waveUnits: { kind: MinionKind; progressOffset: number; lateralOffset: number }[] = [
-        // Frontline Mandirigma
-        { kind: 'mandirigma', progressOffset: 0.0, lateralOffset: -1.8 },
-        { kind: 'mandirigma', progressOffset: 0.0, lateralOffset: 0.0 },
-        { kind: 'mandirigma', progressOffset: 0.0, lateralOffset: 1.8 },
-        // Ranged Mapanahong
-        { kind: 'mapanahong', progressOffset: -0.015, lateralOffset: -1.2 },
-        { kind: 'mapanahong', progressOffset: -0.015, lateralOffset: 1.2 },
-        // Siege Bagani
-        { kind: 'bagani', progressOffset: -0.03, lateralOffset: 0.0 },
+        // Frontline Spear
+        { kind: 'spear', progressOffset: 0.0, lateralOffset: -1.8 },
+        { kind: 'spear', progressOffset: 0.0, lateralOffset: 0.0 },
+        { kind: 'spear', progressOffset: 0.0, lateralOffset: 1.8 },
+        // Ranged Archer
+        { kind: 'archer', progressOffset: -0.015, lateralOffset: -1.2 },
+        { kind: 'archer', progressOffset: -0.015, lateralOffset: 1.2 },
+        // Siege Ram
+        { kind: 'ram', progressOffset: -0.03, lateralOffset: 0.0 },
       ];
 
       for (let i = 0; i < waveUnits.length; i++) {
         const u = waveUnits[i];
         const stat = MINION_STATS[u.kind];
 
-        // Anito minion (starts near 0, marching towards 1)
+        // Dawn minion (starts near 0, marching towards 1)
         const aProg = Math.max(0, 0.005 - u.progressOffset);
         const aSample = alongWithTangent(lane.path, aProg);
         // Perpendicular normal (-tz, tx)
@@ -203,8 +203,8 @@ export function createMinionManager(): MinionManager {
         const aHeading = Math.atan2(aSample.tx, aSample.tz);
 
         minions.push({
-          id: `anito-${lane.id}-w${waveId}-${i}`,
-          team: 'anito',
+          id: `dawn-${lane.id}-w${waveId}-${i}`,
+          team: 'dawn',
           lane: lane.id,
           kind: u.kind,
           progress: aProg,
@@ -222,7 +222,7 @@ export function createMinionManager(): MinionManager {
           alive: true,
         });
 
-        // Malakas minion (starts near 1, marching towards 0)
+        // Dusk minion (starts near 1, marching towards 0)
         const mProg = Math.min(1, 0.995 + u.progressOffset);
         const mSample = alongWithTangent(lane.path, mProg);
         const mPx = -mSample.tz;
@@ -232,8 +232,8 @@ export function createMinionManager(): MinionManager {
         const mHeading = Math.atan2(-mSample.tx, -mSample.tz);
 
         minions.push({
-          id: `malakas-${lane.id}-w${waveId}-${i}`,
-          team: 'malakas',
+          id: `dusk-${lane.id}-w${waveId}-${i}`,
+          team: 'dusk',
           lane: lane.id,
           kind: u.kind,
           progress: mProg,
@@ -308,7 +308,7 @@ export function createMinionManager(): MinionManager {
         const lane = LANES.find((l) => l.id === m.lane)!;
         const len = laneLengths.get(m.lane) ?? 200;
         const stepFrac = (MINION_SPEED * dt) / len;
-        const enemyTeam = m.team === 'anito' ? 'malakas' : 'anito';
+        const enemyTeam = m.team === 'dawn' ? 'dusk' : 'dawn';
 
         // 1. Check for opposing minions in range
         let targetMinion: Minion | null = null;
@@ -344,7 +344,7 @@ export function createMinionManager(): MinionManager {
             attackTimers.set(m.id, clock + m.attackCooldown);
             targetMinion.health = Math.max(0, targetMinion.health - m.damage);
             if (targetMinion.health <= 0) targetMinion.alive = false;
-            onMinionAttack?.(m, targetMinion.x, targetMinion.z, m.kind === 'mapanahong');
+            onMinionAttack?.(m, targetMinion.x, targetMinion.z, m.kind === 'archer');
           }
         } else if (targetStructure) {
           m.facing = Math.atan2(targetStructure.x - m.x, targetStructure.z - m.z);
@@ -353,11 +353,11 @@ export function createMinionManager(): MinionManager {
             attackTimers.set(m.id, clock + m.attackCooldown);
             const appliedDamage = m.damage * m.structureMultiplier;
             targetStructure.health = Math.max(0, targetStructure.health - appliedDamage);
-            onMinionAttack?.(m, targetStructure.x, targetStructure.z, m.kind === 'mapanahong');
+            onMinionAttack?.(m, targetStructure.x, targetStructure.z, m.kind === 'archer');
           }
         } else {
           // Advance along lane spline keeping lateral formation offset
-          const dir = m.team === 'anito' ? 1 : -1;
+          const dir = m.team === 'dawn' ? 1 : -1;
           const nextProg = Math.max(0, Math.min(1, m.progress + dir * stepFrac));
           m.progress = nextProg;
           const sample = alongWithTangent(lane.path, m.progress);

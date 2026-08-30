@@ -37,11 +37,11 @@ export const SPAWNS = {
  * still has a shape rather than being a bare circle.
  */
 export const OBSTACLES: Obstacle[] = [
-  // The balete at the centre. The one piece of cover both players want, which
+  // The banyan at the centre. The one piece of cover both players want, which
   // is what makes the middle worth contesting instead of avoiding.
   { x: 0, z: 0, radius: 2.4, tall: true },
 
-  // Anito shrines, in mirrored pairs.
+  // Dawn shrines, in mirrored pairs.
   { x: -7, z: 2, radius: 1.1, tall: true },
   { x: 7, z: -2, radius: 1.1, tall: true },
   { x: -2, z: -7, radius: 1.1, tall: true },

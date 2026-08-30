@@ -1,7 +1,7 @@
 // Mobile Haptic Feedback Vibration Engine
 //
 // ── PURPOSE ─────────────────────────────────────────────────────────────────
-// Visceral tactile feedback for mobile devices running Alamat.
+// Visceral tactile feedback for mobile devices running Talisman.
 // Adapts dynamically to user preferences (on/off) and browser capability.
 
 class HapticEngine {
@@ -10,7 +10,7 @@ class HapticEngine {
   constructor() {
     if (typeof window !== 'undefined') {
       try {
-        const raw = localStorage.getItem('alamat_player_profile_v2');
+        const raw = localStorage.getItem('talisman_player_profile_v2');
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed?.settings?.hapticsEnabled !== undefined) {

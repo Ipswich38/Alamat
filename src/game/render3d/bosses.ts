@@ -1,4 +1,4 @@
-// The 3D render layer for Epic Bosses: Bakunawa and Kapre (Monster Hunter Primal Upgrade).
+// The 3D render layer for Epic Bosses: Maw and Treant (Monster Hunter Primal Upgrade).
 //
 // ── BAKUNAWA (The Moon-Eater) ──────────────────────────────────────────────
 // 1.8x scaled giant sea serpent: Iridescent bioluminescent scales, exposed spiny dorsal fins,
@@ -12,13 +12,13 @@
 
 import * as THREE from 'three';
 import { onCrossing, DECK_HEIGHT } from '@/game/arena/river';
-import type { EpicBoss, PushingKapreUnit } from '@/game/combat/bosses';
+import type { EpicBoss, PushingTreantUnit } from '@/game/combat/bosses';
 import { surfaceMaterial } from './stage';
 import { terrainHeight } from './terrain';
 
 export interface BossRender {
   group: THREE.Group;
-  update(bakunawa: EpicBoss, kapre: EpicBoss, pushingKapre: PushingKapreUnit | null, clock: number): void;
+  update(maw: EpicBoss, treant: EpicBoss, pushingTreant: PushingTreantUnit | null, clock: number): void;
   dispose(): void;
 }
 
@@ -30,7 +30,7 @@ export function createBossRender(): BossRender {
   // 1. BAKUNAWA (1.8x Scale Primal Sea Serpent)
   // ═════════════════════════════════════════════════════════════════════════
   const bGroup = new THREE.Group();
-  bGroup.name = 'bakunawa-monster-hunter';
+  bGroup.name = 'maw-monster-hunter';
   bGroup.scale.setScalar(1.8); // 1.8x Size & Presence Upgrade
 
   // Whirlpool Base
@@ -228,7 +228,7 @@ export function createBossRender(): BossRender {
   // 2. KAPRE (Primal Ape/Titan Stance & Silhouette)
   // ═════════════════════════════════════════════════════════════════════════
   const kGroup = new THREE.Group();
-  kGroup.name = 'kapre-monster-hunter';
+  kGroup.name = 'treant-monster-hunter';
 
   // Muscular Rugged Bark Ape Torso
   const barkMat = surfaceMaterial(0x2d1c10, { roughness: 0.98 });
@@ -329,7 +329,7 @@ export function createBossRender(): BossRender {
     kGroup.add(kneeBone);
   }
 
-  // Massive Primal Balete Root Club with stone studs
+  // Massive Primal Banyan Root Club with stone studs
   const club = new THREE.Group();
   const clubShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.75, 4.2, 7), barkMat);
   clubShaft.position.y = 1.9;
@@ -354,7 +354,7 @@ export function createBossRender(): BossRender {
   // 3. PUSHING ALLIED KAPRE SIEGE UNIT
   // ═════════════════════════════════════════════════════════════════════════
   const pGroup = new THREE.Group();
-  pGroup.name = 'pushing-kapre-siege';
+  pGroup.name = 'pushing-treant-siege';
   pGroup.visible = false;
 
   const pTorso = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.6, 2.9, 8), surfaceMaterial(0x244237, { roughness: 0.88 }));
@@ -364,7 +364,7 @@ export function createBossRender(): BossRender {
   const pHead = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.1), surfaceMaterial(0x1a332a, { roughness: 0.85 }));
   pHead.position.set(0, 3.4, 0.2);
 
-  // Bone Plates on Siege Kapre
+  // Bone Plates on Siege Treant
   const pPauldronL = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 1.0), boneMat);
   pPauldronL.position.set(1.6, 2.5, 0);
   const pPauldronR = pPauldronL.clone();
@@ -386,13 +386,13 @@ export function createBossRender(): BossRender {
 
   return {
     group,
-    update(bakunawa, kapre, pushingKapre, clock) {
-      // ── 1. Update Bakunawa ───────────────────────────────────────────────
-      bGroup.visible = bakunawa.alive;
-      if (bakunawa.alive) {
-        const y = onCrossing(bakunawa.x, bakunawa.z) ? DECK_HEIGHT : terrainHeight(bakunawa.x, bakunawa.z);
-        bGroup.position.set(bakunawa.x, y - 0.25, bakunawa.z);
-        bGroup.rotation.y = bakunawa.facing;
+    update(maw, treant, pushingTreant, clock) {
+      // ── 1. Update Maw ───────────────────────────────────────────────
+      bGroup.visible = maw.alive;
+      if (maw.alive) {
+        const y = onCrossing(maw.x, maw.z) ? DECK_HEIGHT : terrainHeight(maw.x, maw.z);
+        bGroup.position.set(maw.x, y - 0.25, maw.z);
+        bGroup.rotation.y = maw.facing;
 
         // Multi-frequency tail thrashing wave
         for (let i = 0; i < segments.length; i++) {
@@ -408,11 +408,11 @@ export function createBossRender(): BossRender {
         headGroup.rotation.z = Math.sin(clock * 2.8) * 0.16;
 
         // Throat glow pulses when in combat (charging breath attack)
-        const throatPulse = bakunawa.inCombat ? 1.6 + Math.sin(clock * 9.0) * 0.8 : 0.8 + Math.sin(clock * 3.0) * 0.3;
+        const throatPulse = maw.inCombat ? 1.6 + Math.sin(clock * 9.0) * 0.8 : 0.8 + Math.sin(clock * 3.0) * 0.3;
         throatCore.scale.setScalar(throatPulse);
 
         // Jaw opening during combat
-        lowerJaw.rotation.x = bakunawa.inCombat ? Math.sin(clock * 4.0) * 0.35 + 0.2 : 0.05;
+        lowerJaw.rotation.x = maw.inCombat ? Math.sin(clock * 4.0) * 0.35 + 0.2 : 0.05;
 
         // Whirlpool rotation & expanding ripple rings
         whirlpool.rotation.z = clock * 2.2;
@@ -437,13 +437,13 @@ export function createBossRender(): BossRender {
         dropMesh.instanceMatrix.needsUpdate = true;
       }
 
-      // ── 2. Update Kapre ──────────────────────────────────────────────────
-      kGroup.visible = kapre.alive;
-      if (kapre.alive) {
-        const y = onCrossing(kapre.x, kapre.z) ? DECK_HEIGHT : terrainHeight(kapre.x, kapre.z);
+      // ── 2. Update Treant ──────────────────────────────────────────────────
+      kGroup.visible = treant.alive;
+      if (treant.alive) {
+        const y = onCrossing(treant.x, treant.z) ? DECK_HEIGHT : terrainHeight(treant.x, treant.z);
         const bob = Math.sin(clock * 2.6) * 0.1;
-        kGroup.position.set(kapre.x, y + bob, kapre.z);
-        kGroup.rotation.y = kapre.facing;
+        kGroup.position.set(treant.x, y + bob, treant.z);
+        kGroup.rotation.y = treant.facing;
 
         // Pipe cherry pulse
         pipeCherry.scale.setScalar(0.9 + Math.sin(clock * 6.5) * 0.3);
@@ -467,13 +467,13 @@ export function createBossRender(): BossRender {
         smokeMesh.instanceMatrix.needsUpdate = true;
       }
 
-      // ── 3. Update Pushing Kapre ──────────────────────────────────────────
-      if (pushingKapre && pushingKapre.alive) {
+      // ── 3. Update Pushing Treant ──────────────────────────────────────────
+      if (pushingTreant && pushingTreant.alive) {
         pGroup.visible = true;
-        const y = onCrossing(pushingKapre.x, pushingKapre.z) ? DECK_HEIGHT : terrainHeight(pushingKapre.x, pushingKapre.z);
+        const y = onCrossing(pushingTreant.x, pushingTreant.z) ? DECK_HEIGHT : terrainHeight(pushingTreant.x, pushingTreant.z);
         const marchBob = Math.sin(clock * 6.5) * 0.16;
-        pGroup.position.set(pushingKapre.x, y + Math.max(0, marchBob), pushingKapre.z);
-        pGroup.rotation.y = pushingKapre.facing;
+        pGroup.position.set(pushingTreant.x, y + Math.max(0, marchBob), pushingTreant.z);
+        pGroup.rotation.y = pushingTreant.facing;
         halo.rotation.z = clock * 1.4;
         pClub.rotation.x = Math.PI / 4 + Math.sin(clock * 6.5) * 0.28;
       } else {

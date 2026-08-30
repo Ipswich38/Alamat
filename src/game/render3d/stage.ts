@@ -154,7 +154,7 @@ export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string):
    * Was 1.1 / 0.85 / 0.80, which is about double the usual working range for
    * UnrealBloom and smeared the whole scene rather than picking out the things
    * that should glow. The higher threshold means only genuinely bright pixels
-   * (ability effects, lanterns, the agimat stream) bloom at all; the tighter
+   * (ability effects, lanterns, the talisman stream) bloom at all; the tighter
    * radius keeps the glow near its source instead of hazing the terrain.
    *
    * If this ever needs to go back up, raise the threshold with it. Strength and

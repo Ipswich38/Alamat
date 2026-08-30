@@ -1,11 +1,11 @@
-// Dynamic Skybox & Time-of-Day System (10-Minute Game Loop + Bakunawa Solar Eclipse).
+// Dynamic Skybox & Time-of-Day System (10-Minute Game Loop + Maw Solar Eclipse).
 //
 // ── TIME-OF-DAY CYCLE (600s / 10-Minute Period) ──────────────────────────────
 // 1. Dawn (0:00 - 2:00, 0-120s): Warm golden-rose sky, low morning mist over river (-1.5u height fog).
 // 2. Midday (2:00 - 5:00, 120-300s): High-intensity tropical sunlight (#FFF4E0), crisp shadows, vibrant canopy saturation.
-// 3. Dusk (5:00 - 7:00, 300-420s): Deep amber/crimson sunset lighting Mayon Volcano's plume, casting long dramatic shadows.
+// 3. Dusk (5:00 - 7:00, 300-420s): Deep amber/crimson sunset lighting the Fire Peak Volcano's plume, casting long dramatic shadows.
 // 4. Night (7:00 - 10:00, 420-600s): Cool moonlight (#1A2B4C) with heavy bioluminescent emission (#00E5FF / #FFB300).
-// 5. Bakunawa Solar Eclipse: Darkens sky instantly into crimson-black void with Blood-Moon ring & drifting fiery ash.
+// 5. Maw Solar Eclipse: Darkens sky instantly into crimson-black void with Blood-Moon ring & drifting fiery ash.
 
 import * as THREE from 'three';
 
@@ -203,7 +203,7 @@ export function getTodLighting(clock: number, isEclipse: boolean, territoryTheme
   }
 
   // ── REGIONAL TERRITORY ATMOSPHERIC BLEND ──────────────────────────────────
-  if (territoryTheme === 'solar_golden' || territoryTheme === 'kaluwalhatian') {
+  if (territoryTheme === 'solar_golden' || territoryTheme === 'skyhold') {
     colors.sunColor.lerp(new THREE.Color('#FFE17D'), 0.35);
     colors.rimColor.lerp(new THREE.Color('#FFD700'), 0.45);
     colors.fogColor.lerp(new THREE.Color('#FDE68A'), 0.25);
@@ -212,15 +212,15 @@ export function getTodLighting(clock: number, isEclipse: boolean, territoryTheme
     colors.ambientColor.lerp(new THREE.Color('#6EE7B7'), 0.35);
     colors.rimColor.lerp(new THREE.Color('#10B981'), 0.4);
     colors.fogColor.lerp(new THREE.Color('#A7F3D0'), 0.3);
-  } else if (territoryTheme === 'volcanic_caldera' || territoryTheme === 'kasakitan') {
+  } else if (territoryTheme === 'volcanic_caldera' || territoryTheme === 'abyss') {
     colors.sunColor.lerp(new THREE.Color('#FF6B6B'), 0.3);
     colors.rimColor.lerp(new THREE.Color('#EF4444'), 0.4);
     colors.fogColor.lerp(new THREE.Color('#7F1D1D'), 0.25);
-  } else if (territoryTheme === 'golden_harvest' || territoryTheme === 'kapatagan') {
+  } else if (territoryTheme === 'golden_harvest' || territoryTheme === 'warding') {
     colors.sunColor.lerp(new THREE.Color('#FBBF24'), 0.3);
     colors.ambientColor.lerp(new THREE.Color('#FEF08A'), 0.25);
     colors.rimColor.lerp(new THREE.Color('#F59E0B'), 0.35);
-  } else if (territoryTheme === 'ancient_rainforest' || territoryTheme === 'gubat_anito') {
+  } else if (territoryTheme === 'ancient_rainforest' || territoryTheme === 'gubat_dawn') {
     colors.ambientColor.lerp(new THREE.Color('#34D399'), 0.35);
     colors.rimColor.lerp(new THREE.Color('#00E5FF'), 0.4);
     colors.fogColor.lerp(new THREE.Color('#6EE7B7'), 0.25);
@@ -279,7 +279,7 @@ export function createSky(renderer: THREE.WebGLRenderer, territoryTheme?: string
   dome.name = 'dynamic-sky-dome';
   dome.frustumCulled = false;
 
-  // ── Blood-Moon Solar Eclipse Ring (Framing Mayon Volcano) ─────────────────
+  // ── Blood-Moon Solar Eclipse Ring (Framing the Fire Peak Volcano) ─────────────────
   const eclipseGroup = new THREE.Group();
   eclipseGroup.name = 'eclipse-sky-phenomena';
   eclipseGroup.position.set(-145, 115, -145);

@@ -1,4 +1,4 @@
-// Alamat MOBA Progressive Service Worker
+// Talisman Progressive Service Worker
 //
 // ⚠ BUMP CACHE_NAME ON EVERY RELEASE. The activate handler deletes every cache
 // whose key is not the current one, so the version string is the ONLY thing
@@ -9,7 +9,7 @@
 // lives in the page bundle can never reach a client whose worker is serving the
 // old bundle: the fix is inside the thing being replaced. Anything that has to
 // undo a bad worker has to be written HERE.
-const CACHE_NAME = 'alamat-moba-cache-v4';
+const CACHE_NAME = 'talisman-moba-cache-v4';
 
 /*
  * On localhost, do not exist.

@@ -63,7 +63,7 @@ export interface HeroPassive {
 export interface Hero {
   id: string;
   name: string;
-  /** Mythological or ceremonial title in Filipino. */
+  /** Mythological or ceremonial title in ancient. */
   title?: string;
   /** Baybayin calligraphy glyph script. */
   baybayin?: string;
@@ -80,7 +80,7 @@ export interface Hero {
   /**
    * The roster card image: Meshy's 512px render of this hero's own model.
    *
-   * The roster used to draw `emoji` alone, so Tikbalang and Diwata both showed
+   * The roster used to draw `emoji` alone, so Veer and Willow both showed
    * a leaf and read as the same character on that page even after they had
    * distinct 3D models. The emoji stays as the fallback and for compact chips.
    */

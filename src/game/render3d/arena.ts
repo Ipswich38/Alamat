@@ -62,7 +62,7 @@ function rand(i: number, salt: number): number {
  *
  * ⚠ A TREE THAT HIDES THE PLAYER IS A BROKEN TREE. The camera looks down at a
  * shallow angle, so anything with a wide canopy sits directly between it and
- * whoever is standing beneath. The balete is at the centre of the arena, which
+ * whoever is standing beneath. The banyan is at the centre of the arena, which
  * is the one place both players are meant to contest, so this is not an edge
  * case: it is the most important ground on the map.
  *
@@ -102,7 +102,7 @@ export function buildArena(): THREE.Group {
 
   for (const o of OBSTACLES) {
     group.add(
-      o.radius > 2 ? balete(o.x, o.z, o.radius) : o.tall ? shrine(o.x, o.z, o.radius) : boulder(o.x, o.z, o.radius)
+      o.radius > 2 ? banyan(o.x, o.z, o.radius) : o.tall ? shrine(o.x, o.z, o.radius) : boulder(o.x, o.z, o.radius)
     );
   }
 
@@ -332,11 +332,11 @@ function treeline(): THREE.Group {
   return g;
 }
 
-/** The balete at the centre, with the hanging roots that make it a balete. */
-function balete(x: number, z: number, radius: number): THREE.Group {
+/** The banyan at the centre, with the hanging roots that make it a banyan. */
+function banyan(x: number, z: number, radius: number): THREE.Group {
   const g = new THREE.Group();
   // Named so a generated model can find and remove it on arrival.
-  g.name = 'balete-placeholder';
+  g.name = 'banyan-placeholder';
   g.position.set(x, 0, z);
 
   // Tall enough that the canopy clears the fight. The first version put a
@@ -397,7 +397,7 @@ function balete(x: number, z: number, radius: number): THREE.Group {
   return g;
 }
 
-/** A carved anito post. Tall enough to break line of sight. */
+/** A carved dawn post. Tall enough to break line of sight. */
 function shrine(x: number, z: number, radius: number): THREE.Group {
   const g = new THREE.Group();
   // Named so a generated tower can find and remove it on arrival.

@@ -5,7 +5,7 @@
 // returns a rigged but untextured body, and there is no way to marry the two
 // afterwards. The textured task carries its maps through the rig.
 //
-// ⚠ THE RIGGER NEEDS A HUMAN SKELETON TO FIND. It refused a Tikbalang built
+// ⚠ THE RIGGER NEEDS A HUMAN SKELETON TO FIND. It refused a Veer built
 // with anatomically correct digitigrade legs ("pose estimation failed") and
 // accepted the same character standing like a person. Anything non-humanoid
 // below the neck has to be described as a biped in the prompt, not fixed here.

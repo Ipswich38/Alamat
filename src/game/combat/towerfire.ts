@@ -52,7 +52,7 @@ const ACQUIRE = 0.6;
 export function createTowerFire(objectives: Objectives, defender: TeamId): TowerFire {
   const nextShot = new Map<string, number>();
   const lastSeen = new Map<string, number>();
-  const attackerTeam: TeamId = defender === 'anito' ? 'malakas' : 'anito';
+  const attackerTeam: TeamId = defender === 'dawn' ? 'dusk' : 'dawn';
 
   return {
     update(clock, heroX, heroZ, minionManager) {

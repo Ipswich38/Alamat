@@ -13,19 +13,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Alamat — Philippine Mythology 3D Action MOBA",
-  description: "Heroes of Philippine folklore in a duel arena where nothing locks on. Anito Seekers vs Malakas Realm.",
+  title: "Talisman — Old Legend 3D Action MOBA",
+  description: "Heroes of old legend in a duel arena where nothing locks on. Dawn vs Dusk.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Alamat MOBA",
+    title: "Talisman",
   },
   icons: {
     icon: "/icon.svg",
     apple: "/icon.svg",
   },
-  applicationName: "Alamat MOBA",
+  applicationName: "Talisman",
 };
 
 export const viewport: Viewport = {
@@ -70,7 +70,7 @@ export default function RootLayout({
               if (${JSON.stringify(process.env.NODE_ENV)} === 'production' && 'serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
                 window.addEventListener('load', function() {
                   navigator.serviceWorker.register('/sw.js').catch(function(err) {
-                    console.log('[alamat sw] registration failed: ', err);
+                    console.log('[talisman sw] registration failed: ', err);
                   });
                 });
               } else if ('serviceWorker' in navigator) {
@@ -81,7 +81,7 @@ export default function RootLayout({
                 });
                 if (window.caches) {
                   caches.keys().then(function (ks) {
-                    ks.forEach(function (k) { if (k.indexOf('alamat') === 0) caches.delete(k); });
+                    ks.forEach(function (k) { if (k.indexOf('talisman') === 0) caches.delete(k); });
                   });
                 }
               }

@@ -40,7 +40,7 @@ export function strikeLine(
   const felled = report.felled[0];
   if (felled) {
     return felled.kind === 'core'
-      ? 'The core shatters. The Diwata wakes and the sun comes back.'
+      ? 'The core shatters. The Willow wakes and the sun comes back.'
       : `The ${structureName(felled)} falls.`;
   }
 

@@ -41,7 +41,7 @@ function fit(root: THREE.Object3D, target: { width?: number; height?: number }):
   box.getCenter(centre);
 
   // Fit by HEIGHT for anything upright and by WIDTH for anything spread out.
-  // A balete measured 1.89 by 1.61 by 1.68, so fitting its width to the trunk's
+  // A banyan measured 1.89 by 1.61 by 1.68, so fitting its width to the trunk's
   // collision radius produced a tree shorter than it was wide: a bush.
   const scale = target.height
     ? target.height / Math.max(size.y, 0.0001)

@@ -1,8 +1,8 @@
-# Alamat
+# Talisman
 
 Heroes of Philippine folklore, in a duel arena where nothing locks on.
 
-`alamat` is Filipino for *legend*, which is both what the game is about and a
+`talisman` is Filipino for *legend*, which is both what the game is about and a
 name a foreign player can say out loud.
 
 ## What this is, honestly
@@ -10,12 +10,12 @@ name a foreign player can say out loud.
 A **playable vertical slice**. The full map is built: three lanes, twenty-two
 towers, base perimeters, jungle camps, and the Pasig Agimat Stream with three
 crossings. Five heroes as data, three with rigged meshes. Combat works: basic
-attacks and three ability shapes, minion waves, tower fire, a Kapre brute that
+attacks and three ability shapes, minion waves, tower fire, a Treant brute that
 dies and respawns, and a win condition that ends the match when a core breaks.
 
-What is missing is a second playable team, the Manananggal, the asynchronous
+What is missing is a second playable team, the Sever, the asynchronous
 opponents the design is built around, and audio. The melee heroes also still
-lose a straight fight with the Kapre, which is a tuning problem, not a bug.
+lose a straight fight with the Treant, which is a tuning problem, not a bug.
 
 Run `smoke-run.mjs` before trusting any status written here or in
 `docs/canon.md`. Both have been wrong before.
@@ -86,4 +86,4 @@ points at the system one.
 
 `/play` takes two debug params that make a probe repeatable:
 `?at=x,z` spawns the hero at a world position, and `?zoom=n` sets the starting
-camera distance. `?at=6,6` puts you next to the Kapre at the origin.
+camera distance. `?at=6,6` puts you next to the Treant at the origin.

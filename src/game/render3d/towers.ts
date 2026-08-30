@@ -1,9 +1,9 @@
-// The defensive turrets (watchtowers): pre-colonial Philippine architecture.
+// The defensive turrets (watchtowers): pre-colonial ancient architecture.
 //
 // ── ARCHITECTURE SPECIFICATION ──────────────────────────────────────────────
 // - Tier 1, 2, and 3 Tower Models:
 //   * Asset Base: Multi-tiered bamboo and hardwood watchtowers with woven thatched roofs (Nipa/Cogon style).
-//   * Top Structure: Carved tribal spirit mask mounted at the apex. Mask eyes glow with the controlling team's color (Gold for SW Anito, Cyan for NE Malakas).
+//   * Top Structure: Carved tribal spirit mask mounted at the apex. Mask eyes glow with the controlling team's color (Gold for SW Dawn, Cyan for NE Dusk).
 // - Turret Attack VFX & Aggro Indicators:
 //   * Subtle, low-opacity team-colored ground etch decal (Opacity: 0.12).
 //   * Turret Projectile: Glowing energy orb firing from the spirit mask mouth towards target colliders.
@@ -113,7 +113,7 @@ export function createTowers(): Towers {
 
 function buildWatchtowerModel(
   tier: number,
-  teamId: 'anito' | 'malakas',
+  teamId: 'dawn' | 'dusk',
   onEyeCreated: (eye: THREE.Mesh) => void
 ): THREE.Group {
   const g = new THREE.Group();
@@ -123,7 +123,7 @@ function buildWatchtowerModel(
   const thatchMat = surfaceMaterial(0x8f784b, { roughness: 0.96 });
   const stoneMat = surfaceMaterial(0x50483c, { roughness: 0.94 });
 
-  const teamColor = teamId === 'anito' ? 0xffb300 : 0x00e5ff;
+  const teamColor = teamId === 'dawn' ? 0xffb300 : 0x00e5ff;
   const eyeMat = new THREE.MeshBasicMaterial({
     color: teamColor,
     toneMapped: false,

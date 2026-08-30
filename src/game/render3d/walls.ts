@@ -41,13 +41,13 @@ export function createWalls(): Walls {
       const z = team.z + Math.cos(a) * WALL_RADIUS;
       const y = terrainHeight(x, z);
 
-      if (span.team === 'anito') {
-        const wallSection = buildAnitoPalisadeSection();
+      if (span.team === 'dawn') {
+        const wallSection = buildDawnPalisadeSection();
         wallSection.position.set(x, y, z);
         wallSection.rotation.y = a;
         group.add(wallSection);
       } else {
-        const wallSection = buildMalakasFortressSection(i % 3 === 0);
+        const wallSection = buildDuskFortressSection(i % 3 === 0);
         wallSection.position.set(x, y, z);
         wallSection.rotation.y = a;
         group.add(wallSection);
@@ -86,7 +86,7 @@ export function createWalls(): Walls {
 // ANITO SENTINELS: BAMBOO & DARK TIMBER PALISADE
 // ────────────────────────────────────────────────────────────────────────────
 
-function buildAnitoPalisadeSection(): THREE.Group {
+function buildDawnPalisadeSection(): THREE.Group {
   const g = new THREE.Group();
 
   const timberMat = surfaceMaterial(0x3e2c1c, { roughness: 0.88 });
@@ -146,7 +146,7 @@ function buildAnitoPalisadeSection(): THREE.Group {
 // MALAKAS CLAN: STONE & LOG FORTRESS WALL
 // ────────────────────────────────────────────────────────────────────────────
 
-function buildMalakasFortressSection(hasDecor: boolean): THREE.Group {
+function buildDuskFortressSection(hasDecor: boolean): THREE.Group {
   const g = new THREE.Group();
 
   const slateMat = surfaceMaterial(0x2d3b42, { roughness: 0.92 });
@@ -197,7 +197,7 @@ function buildMalakasFortressSection(hasDecor: boolean): THREE.Group {
 }
 
 /**
- * Decorative War Drum (Gandang) and Sibat tribal spears along Malakas ramparts.
+ * Decorative War Drum (Gandang) and Sibat tribal spears along Dusk ramparts.
  */
 function buildRampartDecor(): THREE.Group {
   const g = new THREE.Group();
@@ -265,7 +265,7 @@ function buildBaseEntryGate(gate: Gate): THREE.Group {
   g.add(leftTotem, rightTotem);
 
   // 2. Gate Header Architecture
-  if (gate.team === 'anito') {
+  if (gate.team === 'dawn') {
     // Torogan-style Panolong swept wing carved beam
     const panolongBeam = buildToroganPanolongHeader(halfWidth * 2);
     panolongBeam.position.set(0, 5.2, 0);
@@ -285,10 +285,10 @@ function buildBaseEntryGate(gate: Gate): THREE.Group {
  */
 function buildLasoTotemPost(teamId: TeamId): THREE.Group {
   const g = new THREE.Group();
-  const woodMat = surfaceMaterial(teamId === 'anito' ? 0x4a321f : 0x2b221a, { roughness: 0.85 });
+  const woodMat = surfaceMaterial(teamId === 'dawn' ? 0x4a321f : 0x2b221a, { roughness: 0.85 });
   const runeMat = new THREE.MeshStandardMaterial({
     color: 0x111111,
-    emissive: new THREE.Color(teamId === 'anito' ? 0xffb300 : 0x00e5ff),
+    emissive: new THREE.Color(teamId === 'dawn' ? 0xffb300 : 0x00e5ff),
     emissiveIntensity: 1.6,
     roughness: 0.3,
     toneMapped: false,
@@ -386,7 +386,7 @@ function buildPanolongWing(isRight: boolean): THREE.Group {
 }
 
 /**
- * Malakas Fortified Log Gate Header with Sibat spears and war drums.
+ * Dusk Fortified Log Gate Header with Sibat spears and war drums.
  */
 function buildFortressGateHeader(spanWidth: number): THREE.Group {
   const g = new THREE.Group();

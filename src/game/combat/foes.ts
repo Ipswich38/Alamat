@@ -1,13 +1,13 @@
 // The things on the other side.
 //
-// From the canon: the Aswang Lair fields a Kapre brute and a Manananggal
-// assassin. This is the Kapre, and it is the first thing in this game that is
+// From the canon: the Hollow Lair fields a Treant brute and a Sever
+// assassin. This is the Treant, and it is the first thing in this game that is
 // not the player.
 //
 // ⚠ IT IS NOT A HERO AND MUST NOT BECOME ONE. Heroes are picked, balanced
 // against each other and owned by a player. A foe is placed, tuned against the
 // player's power alone, and belongs to the map. Keeping them in separate files
-// is what stops the enemy Kapre and a future playable Kapre becoming the same
+// is what stops the enemy Treant and a future playable Treant becoming the same
 // record with a flag on it.
 
 import { heroHeight } from '@/game/heroes';
@@ -30,22 +30,22 @@ export interface Foe {
 }
 
 export const KAPRE: Foe = {
-  id: 'kapre',
-  name: 'Kapre',
+  id: 'treant',
+  name: 'Treant',
   blurb: 'The tree giant. It was here first, it is smoking, and it has noticed you.',
   model: {
-    rigged: '/models/creatures/kapre-rigged.glb',
-    walk: '/models/creatures/kapre-walk.glb',
+    rigged: '/models/creatures/treant-rigged.glb',
+    walk: '/models/creatures/treant-walk.glb',
     // ⚠ EXPRESSED AS A MULTIPLE OF A HERO, not as an absolute. The whole point
-    // of a Kapre is that it towers over you, and an absolute height silently
+    // of a Treant is that it towers over you, and an absolute height silently
     // turns a giant into a dwarf the moment heroes are rescaled.
     height: heroHeight() * 1.6,
   },
   health: 1800,
   speed: 3.4,
   // ⚠ THIS MUST STAY BELOW THE SHORTEST MELEE attackRange IN THE ROSTER.
-  // It was 3.2 while the melee heroes reach 2.2 (Tikbalang) and 2.0 (Aswang),
-  // so the Kapre parked outside both of them and swung. A melee hero could not
+  // It was 3.2 while the melee heroes reach 2.2 (Veer) and 2.0 (Hollow),
+  // so the Treant parked outside both of them and swung. A melee hero could not
   // land a basic attack on it at all: measured over forty swings from every
   // facing, it took zero damage while dealing ninety-five a swing. The bug was
   // invisible because nothing errors, the strike just reports empty air.

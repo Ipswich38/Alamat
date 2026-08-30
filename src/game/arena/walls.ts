@@ -47,10 +47,10 @@ export function buildGates(): Gate[] {
   const out: Gate[] = [];
   for (const team of Object.values(TEAMS)) {
     for (const lane of LANES) {
-      // The lane's path runs Anito to Malakas, so Anito reads the second point
-      // and Malakas reads the second from last: both are asking "which way does
+      // The lane's path runs Dawn to Dusk, so Dawn reads the second point
+      // and Dusk reads the second from last: both are asking "which way does
       // this road go when it leaves MY door".
-      const next = team.id === 'anito' ? lane.path[1] : lane.path[lane.path.length - 2];
+      const next = team.id === 'dawn' ? lane.path[1] : lane.path[lane.path.length - 2];
       out.push({
         team: team.id,
         lane: lane.id,

@@ -269,7 +269,7 @@ export function createCombatFx(): CombatFx {
     );
     outerRing.rotation.x = -Math.PI / 2;
 
-    // Inner 8-ray Sunburst / Agimat Star
+    // Inner 8-ray Sunburst / Talisman Star
     const star = new THREE.Mesh(
       new THREE.RingGeometry(radius * 0.45, radius * 0.55, 8),
       new THREE.MeshBasicMaterial({

@@ -1,4 +1,4 @@
-// Santelmo: the ball lightning that drifts through a forest at night.
+// Wisp: the ball lightning that drifts through a forest at night.
 //
 // ── WHY THESE ARE WORTH A WHOLE FILE ────────────────────────────────────────
 // They are the accent light, and accent light is what separates the reference
@@ -7,8 +7,8 @@
 // lights punched through it. The eye goes to them, they give the fog something
 // to catch on, and they are the only reason bloom has anything to do.
 //
-// They are also folklore rather than decoration. Santelmo are the wandering
-// souls people report seeing over water and along tree lines, and Diwata's
+// They are also folklore rather than decoration. Wisp are the wandering
+// souls people report seeing over water and along tree lines, and Willow's
 // healing ability is named after them.
 //
 // ── THE COST DECISION ───────────────────────────────────────────────────────
@@ -23,15 +23,15 @@ import * as THREE from 'three';
 const COUNT = 7;
 const COLOUR = 0x9dffe4;
 
-export interface Santelmo {
+export interface Wisp {
   group: THREE.Group;
   update(t: number): void;
   dispose(): void;
 }
 
-export function createSantelmo(): Santelmo {
+export function createWisp(): Wisp {
   const group = new THREE.Group();
-  group.name = 'santelmo';
+  group.name = 'wisp';
 
   const geo = new THREE.IcosahedronGeometry(0.34, 2);
   // Basic, not Standard: these ARE light, so shading them would be wrong. The

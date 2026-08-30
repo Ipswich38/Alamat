@@ -1,5 +1,5 @@
 // The jungle, drawn: tree lines that stop you, canopies that hide you,
-// and charred, ember-glowing trees with obsidian rock spires in the North-West Mayon volcanic zone.
+// and charred, ember-glowing trees with obsidian rock spires in the North-West the Fire Peak volcanic zone.
 
 import * as THREE from 'three';
 import { BARRIERS, BRUSH } from '@/game/arena/jungle';
@@ -9,7 +9,7 @@ import { terrainHeight } from './terrain';
 
 /** Spacing between trees along a barrier, in world units. */
 const TREE_STEP = 3.5;
-/** How tall a balete stands. */
+/** How tall a banyan stands. */
 const TREE_HEIGHT = 13;
 
 export interface Jungle {
@@ -107,8 +107,8 @@ export function createJungle(): Jungle {
   const spires = buildObsidianSpires();
   group.add(spires);
 
-  // 3. Loaded balete model with volcanic styling
-  loadModel('/models/nature/balete.glb', { height: TREE_HEIGHT }).then((model) => {
+  // 3. Loaded banyan model with volcanic styling
+  loadModel('/models/nature/banyan.glb', { height: TREE_HEIGHT }).then((model) => {
     if (!model) return;
     for (const s of slots) {
       const tree = model.clone(true);

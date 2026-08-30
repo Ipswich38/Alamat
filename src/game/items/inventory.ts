@@ -5,7 +5,7 @@
 // mathematical modifiers onto base hero stats.
 
 import type { Hero } from '@/game/heroes';
-import { type AgimatItem, type ItemAttributes, itemById } from './catalogue';
+import { type TalismanItem, type ItemAttributes, itemById } from './catalogue';
 import { getScaledAttack, getScaledMaxHp, getScaledArmor } from '@/game/combat/progression';
 
 export const MAX_INVENTORY_SLOTS = 6;
@@ -22,31 +22,31 @@ export interface EffectiveHeroStats {
 }
 
 export interface InventoryManager {
-  items: (AgimatItem | null)[];
-  addItem: (item: AgimatItem) => boolean;
-  removeItem: (slotIndex: number) => AgimatItem | null;
+  items: (TalismanItem | null)[];
+  addItem: (item: TalismanItem) => boolean;
+  removeItem: (slotIndex: number) => TalismanItem | null;
   getCombinedStats: () => ItemAttributes;
   getEffectiveStats: (baseHero: Hero, level: number) => EffectiveHeroStats;
-  getItemList: () => AgimatItem[];
+  getItemList: () => TalismanItem[];
   isFull: () => boolean;
 }
 
 export function createInventoryManager(initialItemIds: string[] = []): InventoryManager {
-  const slots: (AgimatItem | null)[] = new Array(MAX_INVENTORY_SLOTS).fill(null);
+  const slots: (TalismanItem | null)[] = new Array(MAX_INVENTORY_SLOTS).fill(null);
 
   initialItemIds.slice(0, MAX_INVENTORY_SLOTS).forEach((id, idx) => {
     const item = itemById(id);
     if (item) slots[idx] = item;
   });
 
-  const addItem = (item: AgimatItem): boolean => {
+  const addItem = (item: TalismanItem): boolean => {
     const emptyIndex = slots.findIndex((s) => s === null);
     if (emptyIndex === -1) return false;
     slots[emptyIndex] = item;
     return true;
   };
 
-  const removeItem = (slotIndex: number): AgimatItem | null => {
+  const removeItem = (slotIndex: number): TalismanItem | null => {
     if (slotIndex < 0 || slotIndex >= MAX_INVENTORY_SLOTS) return null;
     const removed = slots[slotIndex];
     slots[slotIndex] = null;
@@ -110,7 +110,7 @@ export function createInventoryManager(initialItemIds: string[] = []): Inventory
     };
   };
 
-  const getItemList = (): AgimatItem[] => slots.filter((s): s is AgimatItem => s !== null);
+  const getItemList = (): TalismanItem[] => slots.filter((s): s is TalismanItem => s !== null);
 
   return {
     items: slots,

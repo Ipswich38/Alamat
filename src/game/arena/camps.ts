@@ -40,10 +40,10 @@ const POCKET = 5;
  * months to notice and one line to introduce.
  */
 export const CAMPS: Camp[] = [
-  // ── Small Camp A: Tikbalang Tricksters (Mob Camp) ──────────────────────────
+  // ── Small Camp A: Veer Tricksters (Mob Camp) ──────────────────────────
   {
-    id: 'tikbalang-nw',
-    name: 'Tikbalang Tricksters',
+    id: 'veer-nw',
+    name: 'Veer Tricksters',
     boon: 'Wind Stride: +35% movement speed for 60s.',
     x: -46,
     z: -14,
@@ -51,8 +51,8 @@ export const CAMPS: Camp[] = [
     light: 0x50e3c2, // Emerald wind teal
   },
   {
-    id: 'tikbalang-se',
-    name: 'Tikbalang Tricksters',
+    id: 'veer-se',
+    name: 'Veer Tricksters',
     boon: 'Wind Stride: +35% movement speed for 60s.',
     x: 46,
     z: 14,
@@ -60,10 +60,10 @@ export const CAMPS: Camp[] = [
     light: 0x50e3c2,
   },
 
-  // ── Small Camp B: Aswang Stalkers (Agile Camp) ─────────────────────────────
+  // ── Small Camp B: Hollow Stalkers (Agile Camp) ─────────────────────────────
   {
-    id: 'aswang-ne',
-    name: 'Aswang Stalkers',
+    id: 'hollow-ne',
+    name: 'Hollow Stalkers',
     boon: 'Blood Thirst: +20% lifesteal & +30% attack speed for 60s.',
     x: 14,
     z: -46,
@@ -71,8 +71,8 @@ export const CAMPS: Camp[] = [
     light: 0xff3366, // Crimson blood pink
   },
   {
-    id: 'aswang-sw',
-    name: 'Aswang Stalkers',
+    id: 'hollow-sw',
+    name: 'Hollow Stalkers',
     boon: 'Blood Thirst: +20% lifesteal & +30% attack speed for 60s.',
     x: -14,
     z: 46,
@@ -80,20 +80,20 @@ export const CAMPS: Camp[] = [
     light: 0xff3366,
   },
 
-  // ── Medium Camp: Bulul Guardian (Buff Objective) ───────────────────────────
+  // ── Medium Camp: Idol Guardian (Buff Objective) ───────────────────────────
   {
-    id: 'bulul-nw',
-    name: 'The Bulul Guardian',
-    boon: 'Bulul Blessing: Rapid health regeneration & CDR for 90s.',
+    id: 'idol-nw',
+    name: 'The Idol Guardian',
+    boon: 'Idol Blessing: Rapid health regeneration & CDR for 90s.',
     x: -52,
     z: -52,
     radius: POCKET,
     light: 0xffd06f, // Solar gold
   },
   {
-    id: 'bulul-se',
-    name: 'The Bulul Guardian',
-    boon: 'Bulul Blessing: Rapid health regeneration & CDR for 90s.',
+    id: 'idol-se',
+    name: 'The Idol Guardian',
+    boon: 'Idol Blessing: Rapid health regeneration & CDR for 90s.',
     x: 52,
     z: 52,
     radius: POCKET,
@@ -102,8 +102,8 @@ export const CAMPS: Camp[] = [
 
   // ── Major Boss Camps (The Epic Objectives) ────────────────────────────────
   {
-    id: 'bakunawa-pit',
-    name: 'Bakunawa (The Moon-Eater)',
+    id: 'maw-pit',
+    name: 'Maw (The Moon-Eater)',
     boon: "Moon's Eclipse: +20% damage to structures & true damage for 3 mins.",
     x: 36,
     z: -14,
@@ -111,13 +111,13 @@ export const CAMPS: Camp[] = [
     light: 0x7852ff, // Celestial violet
   },
   {
-    id: 'kapre-lair',
-    name: 'Kapre (The Giant Tree Warden)',
-    boon: 'Balete Giant: Spawns allied pushing siege giant in nearest lane.',
+    id: 'treant-lair',
+    name: 'Treant (The Giant Tree Warden)',
+    boon: 'Banyan Giant: Spawns allied pushing siege giant in nearest lane.',
     x: -36,
     z: 14,
     radius: 6.2,
-    light: 0xff7a36, // Balete ember amber
+    light: 0xff7a36, // Banyan ember amber
   },
 ];
 

@@ -1,11 +1,11 @@
-// Territory and Cultural Lore Types (Alamat MOBA).
+// Territory and Cultural Lore Types (Talisman).
 //
-// ── THE 5 MYTHOLOGICAL TERRITORIES OF THE PHILIPPINES ───────────────────────
-// 1. Kaluwalhatian (The Celestial Sky Citadel & Solar Highlands - Luzon)
-// 2. Kasakitan & Abyssal Depths (The Leviathan Ocean & Mayon Volcano - Visayas/Bicol)
-// 3. Gubat ng mga Diwata (The Enchanted Rainforest & Sacred Balete Groves - Mindanao)
-// 4. Biringan & Kasamaan (The Phantom City & Shadow Underworld - Samar/Capiz)
-// 5. Kapatagan ng Agimat (The Pasig River Heartland & Barangay Stronghold)
+// ── THE MYTHIC TERRITORIES ───────────────────────
+// 1. Skyhold (The Celestial Sky Citadel & Solar Highlands - Luzon)
+// 2. Kasakitan & Abyssal Depths (The Leviathan Ocean & the Fire Peak Volcano - the Middle Isles/Bicol)
+// 3. Gubat ng mga Willow (The Enchanted Rainforest & Sacred Banyan Groves - Mindanao)
+// 4. The Unseen City (The Phantom City & Shadow Underworld - the eastern wilds/Capiz)
+// 5. The Warding Plain (The the Sacred River Heartland & Barangay Stronghold)
 
 export interface TerritoryStoryBeat {
   chapter: number;

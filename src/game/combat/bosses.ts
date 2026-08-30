@@ -1,4 +1,4 @@
-// Major Boss Camps (Epic Objectives): Bakunawa and Kapre.
+// Major Boss Camps (Epic Objectives): Maw and Treant.
 //
 // ── EPIC BOSS 1: BAKUNAWA (The Moon-Eater) ──────────────────────────────────
 // Sunken river basin pit (East river bend). Giant aquatic dragon/sea serpent emerging
@@ -7,15 +7,15 @@
 // Reward: "Moon's Eclipse" Team Buff (+20% damage to structures & true damage for 3 mins).
 //
 // ── EPIC BOSS 2: KAPRE (The Giant Tree Warden) ──────────────────────────────
-// Ancient Balete Tree lair (West jungle pit). Massive dark-furred giant holding
+// Ancient Banyan Tree lair (West jungle pit). Massive dark-furred giant holding
 // a glowing tobacco pipe (Tabako).
 // Attacks: Heavy Ground Stomp (Stun/Slow), Smoke Ring Debuff (blinds & slows attack).
-// Reward: Spawns an allied Pushing Kapre Siege Giant in the nearest lane to smash turrets.
+// Reward: Spawns an allied Pushing Treant Siege Giant in the nearest lane to smash turrets.
 
 import { type LaneId } from '@/game/arena/lanes';
 import type { Objectives } from './objectives';
 
-export type BossKind = 'bakunawa' | 'kapre';
+export type BossKind = 'maw' | 'treant';
 
 export interface EpicBoss {
   id: string;
@@ -35,7 +35,7 @@ export interface EpicBoss {
   respawnAt: number;
 }
 
-export interface PushingKapreUnit {
+export interface PushingTreantUnit {
   id: string;
   name: string;
   lane: LaneId;
@@ -61,7 +61,7 @@ export interface BossTickResult {
     duration: number;
     description: string;
   };
-  kapreSummoned?: boolean;
+  treantSummoned?: boolean;
   announcement?: string;
   telegraphs: {
     type: 'circle' | 'cone' | 'ring';
@@ -76,20 +76,20 @@ export interface BossTickResult {
 }
 
 export interface BossStrikeReport {
-  hits: (EpicBoss | PushingKapreUnit)[];
-  felled: (EpicBoss | PushingKapreUnit)[];
+  hits: (EpicBoss | PushingTreantUnit)[];
+  felled: (EpicBoss | PushingTreantUnit)[];
 }
 
 export interface BossManager {
-  readonly bakunawa: EpicBoss;
-  readonly kapre: EpicBoss;
-  readonly pushingKapre: PushingKapreUnit | null;
+  readonly maw: EpicBoss;
+  readonly treant: EpicBoss;
+  readonly pushingTreant: PushingTreantUnit | null;
   update(
     dt: number,
     clock: number,
     player: { x: number; z: number; radius: number; hidden: boolean },
     objectives: Objectives,
-    onPushingKapreAttack?: (k: PushingKapreUnit, tx: number, tz: number) => void
+    onPushingTreantAttack?: (k: PushingTreantUnit, tx: number, tz: number) => void
   ): BossTickResult;
   strike(
     covers: (x: number, z: number, radius: number) => boolean,
@@ -104,10 +104,10 @@ const LEASH_RADIUS = 10.5;
 const AWARENESS_RADIUS = 9.5;
 
 export function createBossManager(): BossManager {
-  const bakunawa: EpicBoss = {
-    id: 'boss-bakunawa',
-    kind: 'bakunawa',
-    name: 'Bakunawa',
+  const maw: EpicBoss = {
+    id: 'boss-maw',
+    kind: 'maw',
+    name: 'Maw',
     title: 'The Moon-Eater',
     spawnX: 36,
     spawnZ: -14,
@@ -122,10 +122,10 @@ export function createBossManager(): BossManager {
     respawnAt: 0,
   };
 
-  const kapre: EpicBoss = {
-    id: 'boss-kapre',
-    kind: 'kapre',
-    name: 'Kapre',
+  const treant: EpicBoss = {
+    id: 'boss-treant',
+    kind: 'treant',
+    name: 'Treant',
     title: 'Giant Tree Warden',
     spawnX: -36,
     spawnZ: 14,
@@ -140,7 +140,7 @@ export function createBossManager(): BossManager {
     respawnAt: 0,
   };
 
-  let pushingKapre: PushingKapreUnit | null = null;
+  let pushingTreant: PushingTreantUnit | null = null;
 
   // Attack timers
   let bNextStrike = 0;
@@ -150,12 +150,12 @@ export function createBossManager(): BossManager {
   let kNextStrike = 0;
   let kNextStomp = 0;
   let kNextSmoke = 0;
-  let pKapreNextAtk = 0;
+  let pTreantNextAtk = 0;
 
-  function summonPushingKapre(laneId: LaneId = 'mid') {
-    pushingKapre = {
-      id: 'allied-kapre-siege',
-      name: 'Pushing Kapre',
+  function summonPushingTreant(laneId: LaneId = 'mid') {
+    pushingTreant = {
+      id: 'allied-treant-siege',
+      name: 'Pushing Treant',
       lane: laneId,
       progress: 0.12,
       x: -30,
@@ -172,19 +172,19 @@ export function createBossManager(): BossManager {
   }
 
   return {
-    get bakunawa() {
-      return bakunawa;
+    get maw() {
+      return maw;
     },
-    get kapre() {
-      return kapre;
+    get treant() {
+      return treant;
     },
-    get pushingKapre() {
-      return pushingKapre && pushingKapre.alive ? pushingKapre : null;
+    get pushingTreant() {
+      return pushingTreant && pushingTreant.alive ? pushingTreant : null;
     },
 
     findTargetNear(x, z, maxRange) {
-      if (bakunawa.alive && Math.hypot(bakunawa.x - x, bakunawa.z - z) <= maxRange) return bakunawa;
-      if (kapre.alive && Math.hypot(kapre.x - x, kapre.z - z) <= maxRange) return kapre;
+      if (maw.alive && Math.hypot(maw.x - x, maw.z - z) <= maxRange) return maw;
+      if (treant.alive && Math.hypot(treant.x - x, treant.z - z) <= maxRange) return treant;
       return null;
     },
 
@@ -192,66 +192,66 @@ export function createBossManager(): BossManager {
       const report: BossStrikeReport = { hits: [], felled: [] };
       if (amount <= 0) return report;
 
-      // Bakunawa
-      if (bakunawa.alive && covers(bakunawa.x, bakunawa.z, bakunawa.radius)) {
-        bakunawa.health = Math.max(0, bakunawa.health - amount);
-        bakunawa.inCombat = true;
-        report.hits.push(bakunawa);
-        if (bakunawa.health <= 0) {
-          bakunawa.alive = false;
-          bakunawa.inCombat = false;
-          bakunawa.respawnAt = clock + BOSS_RESPAWN;
-          report.felled.push(bakunawa);
+      // Maw
+      if (maw.alive && covers(maw.x, maw.z, maw.radius)) {
+        maw.health = Math.max(0, maw.health - amount);
+        maw.inCombat = true;
+        report.hits.push(maw);
+        if (maw.health <= 0) {
+          maw.alive = false;
+          maw.inCombat = false;
+          maw.respawnAt = clock + BOSS_RESPAWN;
+          report.felled.push(maw);
         }
       }
 
-      // Kapre Boss
-      if (kapre.alive && covers(kapre.x, kapre.z, kapre.radius)) {
-        kapre.health = Math.max(0, kapre.health - amount);
-        kapre.inCombat = true;
-        report.hits.push(kapre);
-        if (kapre.health <= 0) {
-          kapre.alive = false;
-          kapre.inCombat = false;
-          kapre.respawnAt = clock + BOSS_RESPAWN;
-          report.felled.push(kapre);
+      // Treant Boss
+      if (treant.alive && covers(treant.x, treant.z, treant.radius)) {
+        treant.health = Math.max(0, treant.health - amount);
+        treant.inCombat = true;
+        report.hits.push(treant);
+        if (treant.health <= 0) {
+          treant.alive = false;
+          treant.inCombat = false;
+          treant.respawnAt = clock + BOSS_RESPAWN;
+          report.felled.push(treant);
         }
       }
 
       return report;
     },
 
-    update(dt, clock, player, objectives, onPushingKapreAttack) {
+    update(dt, clock, player, objectives, onPushingTreantAttack) {
       let totalDamage = 0;
       let eclipseActive = false;
       let buffGranted: BossTickResult['buffGranted'] = undefined;
-      let kapreSummoned = false;
+      let treantSummoned = false;
       let announcement: string | undefined = undefined;
       const telegraphs: BossTickResult['telegraphs'] = [];
 
       // ── 1. BAKUNAWA AI ───────────────────────────────────────────────────
-      if (!bakunawa.alive) {
-        if (clock >= bakunawa.respawnAt) {
-          bakunawa.health = bakunawa.maxHealth;
-          bakunawa.alive = true;
-          bakunawa.inCombat = false;
-          announcement = 'Bakunawa has risen from the river whirlpool!';
+      if (!maw.alive) {
+        if (clock >= maw.respawnAt) {
+          maw.health = maw.maxHealth;
+          maw.alive = true;
+          maw.inCombat = false;
+          announcement = 'Maw has risen from the river whirlpool!';
         }
       } else {
-        const distToPlayer = Math.hypot(bakunawa.x - player.x, bakunawa.z - player.z);
-        const distToAnchor = Math.hypot(bakunawa.x - bakunawa.spawnX, bakunawa.z - bakunawa.spawnZ);
+        const distToPlayer = Math.hypot(maw.x - player.x, maw.z - player.z);
+        const distToAnchor = Math.hypot(maw.x - maw.spawnX, maw.z - maw.spawnZ);
 
-        if (distToPlayer <= AWARENESS_RADIUS || bakunawa.inCombat) {
+        if (distToPlayer <= AWARENESS_RADIUS || maw.inCombat) {
           if (distToPlayer > LEASH_RADIUS || distToAnchor > LEASH_RADIUS) {
             // Leash return & regenerate
-            bakunawa.inCombat = false;
-            bakunawa.health = Math.min(bakunawa.maxHealth, bakunawa.health + bakunawa.maxHealth * 0.2 * dt);
+            maw.inCombat = false;
+            maw.health = Math.min(maw.maxHealth, maw.health + maw.maxHealth * 0.2 * dt);
           } else {
-            bakunawa.inCombat = true;
+            maw.inCombat = true;
             eclipseActive = true; // Darkens skybox during battle
-            const dx = player.x - bakunawa.x;
-            const dz = player.z - bakunawa.z;
-            bakunawa.facing = Math.atan2(dx, dz);
+            const dx = player.x - maw.x;
+            const dz = player.z - maw.z;
+            maw.facing = Math.atan2(dx, dz);
 
             // Basic Serpent Strike
             if (clock >= bNextStrike) {
@@ -266,8 +266,8 @@ export function createBossManager(): BossManager {
               bNextSweep = clock + 8.5;
               telegraphs.push({
                 type: 'circle',
-                x: bakunawa.x,
-                z: bakunawa.z,
+                x: maw.x,
+                z: maw.z,
                 radius: 6.5,
                 colour: 0x4ad8ff,
               });
@@ -281,16 +281,16 @@ export function createBossManager(): BossManager {
               bNextWaterJet = clock + 12.0;
               telegraphs.push({
                 type: 'cone',
-                x: bakunawa.x,
-                z: bakunawa.z,
-                heading: bakunawa.facing,
+                x: maw.x,
+                z: maw.z,
+                heading: maw.facing,
                 range: 9.0,
                 halfAngle: Math.PI / 6,
                 colour: 0x2e8b9a,
               });
               if (distToPlayer <= 9.0 + player.radius) {
                 const angleToPlayer = Math.atan2(dx, dz);
-                let diff = Math.abs(angleToPlayer - bakunawa.facing);
+                let diff = Math.abs(angleToPlayer - maw.facing);
                 if (diff > Math.PI) diff = Math.PI * 2 - diff;
                 if (diff <= Math.PI / 6) {
                   totalDamage += 220;
@@ -301,38 +301,38 @@ export function createBossManager(): BossManager {
         }
       }
 
-      // Check if Bakunawa died this frame for reward
-      if (!bakunawa.alive && bakunawa.respawnAt === clock + BOSS_RESPAWN) {
+      // Check if Maw died this frame for reward
+      if (!maw.alive && maw.respawnAt === clock + BOSS_RESPAWN) {
         buffGranted = {
           type: 'moons_eclipse',
           name: "Moon's Eclipse",
           duration: 180,
           description: '+20% Damage to Structures & True Damage for 3 mins',
         };
-        announcement = "Bakunawa slain! The Moon's Eclipse empowers the seekers!";
+        announcement = "Maw slain! The Moon's Eclipse empowers the seekers!";
       }
 
       // ── 2. KAPRE AI ──────────────────────────────────────────────────────
-      if (!kapre.alive) {
-        if (clock >= kapre.respawnAt) {
-          kapre.health = kapre.maxHealth;
-          kapre.alive = true;
-          kapre.inCombat = false;
-          announcement = 'Kapre has reawakened in the Balete tree!';
+      if (!treant.alive) {
+        if (clock >= treant.respawnAt) {
+          treant.health = treant.maxHealth;
+          treant.alive = true;
+          treant.inCombat = false;
+          announcement = 'Treant has reawakened in the Banyan tree!';
         }
       } else {
-        const distToPlayer = Math.hypot(kapre.x - player.x, kapre.z - player.z);
-        const distToAnchor = Math.hypot(kapre.x - kapre.spawnX, kapre.z - kapre.spawnZ);
+        const distToPlayer = Math.hypot(treant.x - player.x, treant.z - player.z);
+        const distToAnchor = Math.hypot(treant.x - treant.spawnX, treant.z - treant.spawnZ);
 
-        if (distToPlayer <= AWARENESS_RADIUS || kapre.inCombat) {
+        if (distToPlayer <= AWARENESS_RADIUS || treant.inCombat) {
           if (distToPlayer > LEASH_RADIUS || distToAnchor > LEASH_RADIUS) {
-            kapre.inCombat = false;
-            kapre.health = Math.min(kapre.maxHealth, kapre.health + kapre.maxHealth * 0.2 * dt);
+            treant.inCombat = false;
+            treant.health = Math.min(treant.maxHealth, treant.health + treant.maxHealth * 0.2 * dt);
           } else {
-            kapre.inCombat = true;
-            const dx = player.x - kapre.x;
-            const dz = player.z - kapre.z;
-            kapre.facing = Math.atan2(dx, dz);
+            treant.inCombat = true;
+            const dx = player.x - treant.x;
+            const dz = player.z - treant.z;
+            treant.facing = Math.atan2(dx, dz);
 
             // Basic Club Slam
             if (clock >= kNextStrike) {
@@ -347,8 +347,8 @@ export function createBossManager(): BossManager {
               kNextStomp = clock + 9.0;
               telegraphs.push({
                 type: 'circle',
-                x: kapre.x,
-                z: kapre.z,
+                x: treant.x,
+                z: treant.z,
                 radius: 5.5,
                 colour: 0xff7a36,
               });
@@ -362,9 +362,9 @@ export function createBossManager(): BossManager {
               kNextSmoke = clock + 13.0;
               telegraphs.push({
                 type: 'cone',
-                x: kapre.x,
-                z: kapre.z,
-                heading: kapre.facing,
+                x: treant.x,
+                z: treant.z,
+                heading: treant.facing,
                 range: 7.5,
                 halfAngle: Math.PI / 4,
                 colour: 0x8c6239,
@@ -377,22 +377,22 @@ export function createBossManager(): BossManager {
         }
       }
 
-      // Check if Kapre died this frame for reward
-      if (!kapre.alive && kapre.respawnAt === clock + BOSS_RESPAWN) {
-        summonPushingKapre('mid');
-        kapreSummoned = true;
-        announcement = 'Kapre tamed! The Balete Giant marches to crush enemy towers!';
+      // Check if Treant died this frame for reward
+      if (!treant.alive && treant.respawnAt === clock + BOSS_RESPAWN) {
+        summonPushingTreant('mid');
+        treantSummoned = true;
+        announcement = 'Treant tamed! The Banyan Giant marches to crush enemy towers!';
       }
 
       // ── 3. PUSHING KAPRE SIEGE MARCH ─────────────────────────────────────
-      const pk = pushingKapre;
+      const pk = pushingTreant;
       if (pk && pk.alive) {
         const stepFrac = (3.6 * dt) / 200;
 
         // Target enemy structures in range
         let targetStructure = null;
         for (const s of objectives.all) {
-          if (s.team === 'malakas' && objectives.alive(s) && objectives.vulnerable(s)) {
+          if (s.team === 'dusk' && objectives.alive(s) && objectives.vulnerable(s)) {
             const gap = Math.hypot(s.x - pk.x, s.z - pk.z);
             if (gap <= 3.6 + s.radius) {
               targetStructure = s;
@@ -406,14 +406,14 @@ export function createBossManager(): BossManager {
             targetStructure.x - pk.x,
             targetStructure.z - pk.z
           );
-          if (clock >= pKapreNextAtk) {
-            pKapreNextAtk = clock + pk.attackCooldown;
+          if (clock >= pTreantNextAtk) {
+            pTreantNextAtk = clock + pk.attackCooldown;
             const applied = pk.damage * pk.structureMultiplier;
             targetStructure.health = Math.max(0, targetStructure.health - applied);
-            onPushingKapreAttack?.(pk, targetStructure.x, targetStructure.z);
+            onPushingTreantAttack?.(pk, targetStructure.x, targetStructure.z);
           }
         } else {
-          // March toward Malakas base along mid lane
+          // March toward Dusk base along mid lane
           pk.progress = Math.min(0.95, pk.progress + stepFrac);
           const t = pk.progress;
           // Approximate spline position along mid lane
@@ -429,7 +429,7 @@ export function createBossManager(): BossManager {
         damageToPlayer: totalDamage,
         eclipseActive,
         buffGranted,
-        kapreSummoned,
+        treantSummoned,
         announcement,
         telegraphs,
       };

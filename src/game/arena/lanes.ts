@@ -22,12 +22,12 @@ export type LaneId = 'top' | 'mid' | 'bottom';
 export interface Lane {
   id: LaneId;
   name: string;
-  /** From the Anito base to the Malakas base. */
+  /** From the Dawn base to the Dusk base. */
   path: [number, number][];
 }
 
-const A = TEAMS.anito;
-const M = TEAMS.malakas;
+const A = TEAMS.dawn;
+const M = TEAMS.dusk;
 /** How far from the map edge the outer lanes run. */
 const EDGE = HALF - 14;
 
@@ -127,12 +127,12 @@ export function buildTowers(): TowerNode[] {
     // 0.5 is the middle of the lane and belongs to nobody, so the tiers sit
     // either side of it, tier 1 nearest the middle.
     for (const [frac, team, tier] of [
-      [0.2, 'anito', 3],
-      [0.31, 'anito', 2],
-      [0.42, 'anito', 1],
-      [0.58, 'malakas', 1],
-      [0.69, 'malakas', 2],
-      [0.8, 'malakas', 3],
+      [0.2, 'dawn', 3],
+      [0.31, 'dawn', 2],
+      [0.42, 'dawn', 1],
+      [0.58, 'dusk', 1],
+      [0.69, 'dusk', 2],
+      [0.8, 'dusk', 3],
     ] as [number, TeamId, Tier][]) {
       const [x, z] = along(lane.path, frac);
       out.push({

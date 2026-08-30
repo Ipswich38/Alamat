@@ -33,10 +33,10 @@ export function createCamps(): Camps {
   }
 
   // Distinct 3D cultural props for each jungle camp category:
-  // 1. Bulul Idols for Bulul Guardian camps (NW & SE)
-  loadModel('/models/props/bulul.glb', { height: 3.4 }).then((model) => {
+  // 1. Idol Idols for Idol Guardian camps (NW & SE)
+  loadModel('/models/props/idol.glb', { height: 3.4 }).then((model) => {
     if (!model) return;
-    for (const camp of CAMPS.filter((c) => c.id.startsWith('bulul'))) {
+    for (const camp of CAMPS.filter((c) => c.id.startsWith('idol'))) {
       const idol = model.clone(true);
       idol.position.set(camp.x, terrainHeight(camp.x, camp.z), camp.z);
       idol.rotation.y = Math.atan2(-camp.x, -camp.z);
@@ -44,10 +44,10 @@ export function createCamps(): Camps {
     }
   });
 
-  // 2. Ancient Dong Son Sunburst Drums for Tikbalang Trickster camps (NW & SE)
+  // 2. Ancient Dong Son Sunburst Drums for Veer Trickster camps (NW & SE)
   loadModel('/models/props/dongSonDrum.glb', { height: 2.6 }).then((model) => {
     if (!model) return;
-    for (const camp of CAMPS.filter((c) => c.id.startsWith('tikbalang'))) {
+    for (const camp of CAMPS.filter((c) => c.id.startsWith('veer'))) {
       const drum = model.clone(true);
       drum.position.set(camp.x, terrainHeight(camp.x, camp.z), camp.z);
       drum.rotation.y = Math.atan2(-camp.x, -camp.z);
@@ -55,10 +55,10 @@ export function createCamps(): Camps {
     }
   });
 
-  // 3. Sacred Kim Quy Turtle Altars for Aswang Stalker camps (NE & SW)
+  // 3. Sacred Kim Quy Turtle Altars for Hollow Stalker camps (NE & SW)
   loadModel('/models/props/kimQuyAltar.glb', { height: 3.0 }).then((model) => {
     if (!model) return;
-    for (const camp of CAMPS.filter((c) => c.id.startsWith('aswang'))) {
+    for (const camp of CAMPS.filter((c) => c.id.startsWith('hollow'))) {
       const altar = model.clone(true);
       altar.position.set(camp.x, terrainHeight(camp.x, camp.z), camp.z);
       altar.rotation.y = Math.atan2(-camp.x, -camp.z);
