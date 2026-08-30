@@ -109,12 +109,12 @@ export const AGIMAT_ITEMS: TalismanItem[] = [
   },
   {
     id: 'mutya-pearl',
-    name: 'Mutya of the the Sacred River',
+    name: 'Pearl of the Sacred River',
     category: 'charm',
     cost: 950,
     emoji: '🔮',
     blurb: '+220 HP · +25 ATK · +0.6 Move Speed',
-    lore: 'A glowing pearl harvested from the sacred depths of the the Sacred River riverbed before the age of iron.',
+    lore: 'A glowing pearl harvested from the sacred depths of the Sacred River riverbed before the age of iron.',
     stats: {
       flatHp: 220,
       flatAttack: 25,

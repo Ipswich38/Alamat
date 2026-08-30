@@ -357,7 +357,7 @@ function buildChokepointBanyanRoots(): THREE.Group {
 }
 
 /**
- * Animated waterfall cascades where highland river tributaries drop into the the Sacred River Talisman basin.
+ * Animated waterfall cascades where highland river tributaries drop into the Sacred River Talisman basin.
  */
 function buildWaterfallCascades(): { group: THREE.Group; update: (t: number) => void } {
   const group = new THREE.Group();

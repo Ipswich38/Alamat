@@ -1,4 +1,4 @@
-# Talisman
+# Alamat
 
 Heroes of Philippine folklore, in a duel arena where nothing locks on.
 

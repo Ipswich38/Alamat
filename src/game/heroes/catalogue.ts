@@ -25,7 +25,7 @@ export const HEROES: Hero[] = [
     name: 'Veer',
     title: 'The Trailbreaker',
     baybayin: 'ᜆᜒᜃ᜔ᜊᜎᜅ᜔',
-    quote: 'Ibaligtad mo ang iyong damit, bago ka tuluyang mawala sa gubat.',
+    quote: 'Turn your shirt inside out, before the forest keeps you.',
     passive: {
       id: 'veer-passive',
       name: 'Inside-Out Shirt',
@@ -118,7 +118,7 @@ export const HEROES: Hero[] = [
     name: 'Thistle',
     title: 'The Healer and the Hexer',
     baybayin: 'ᜋᜅ᜔ᜃᜓᜃᜓᜎᜋ᜔',
-    quote: 'Isang hibla ng buhok mo lamang, hawak ko na ang iyong kapalaran.',
+    quote: 'One strand of your hair, and I hold your fate.',
     passive: {
       id: 'kulam-passive',
       name: 'Hair and Needle',
@@ -205,7 +205,7 @@ export const HEROES: Hero[] = [
     name: 'Hollow',
     title: 'The Hunter in the Dark',
     baybayin: 'ᜀᜐ᜔ᜏᜅ᜔',
-    quote: 'Huwag kang titingin sa tubig, baka makita mo ang iyong sariling wakas.',
+    quote: 'Do not look into the water. You may see your own ending.',
     passive: {
       id: 'hollow-passive',
       name: 'Scent of Blood',
@@ -292,7 +292,7 @@ export const HEROES: Hero[] = [
     name: 'Willow',
     title: 'Warden of the Grove',
     baybayin: 'ᜇᜒᜏᜆ',
-    quote: 'Magbigay-galang sa lupa, bago kayo lamunin ng mga ugat.',
+    quote: 'Show respect to the ground, before the roots take you.',
     passive: {
       id: 'willow-passive',
       name: 'By Your Leave',
@@ -379,7 +379,7 @@ export const HEROES: Hero[] = [
     name: 'Bedrock',
     title: 'The Mountain Giant',
     baybayin: 'ᜊᜒᜇ᜔ᜈᜇ᜔ᜇᜓ',
-    quote: 'Kapag akoy kumilos, yayanig ang buong kapuluan!',
+    quote: 'When I shift my shoulders, the whole valley shakes.',
     passive: {
       id: 'bedrock-passive',
       name: 'The Narrow Mountain',
@@ -466,7 +466,7 @@ export const HEROES: Hero[] = [
     name: 'Sever',
     title: 'The Midnight Hunter',
     baybayin: 'ᜋᜈᜈᜅ᜔ᜄᜎ᜔',
-    quote: 'Sa pagpatak ng dilim, maririnig mo ang pagaspas ng aking pakpak.',
+    quote: 'When the dark falls, you will hear my wings.',
     passive: {
       id: 'sever-passive',
       name: 'Severed at the Waist',
@@ -556,7 +556,7 @@ export const HEROES: Hero[] = [
     name: 'Argent',
     title: 'Goddess of Moon and War',
     baybayin: 'ᜋᜌᜇᜒ',
-    quote: 'Bagamat iisa ang aking mata, malinaw kong nakikita ang inyong kahihinatnan.',
+    quote: 'One eye is enough to see how this ends for you.',
     passive: {
       id: 'argent-passive',
       name: 'Moonlight',
@@ -643,7 +643,7 @@ export const HEROES: Hero[] = [
     name: 'Zenith',
     title: 'Sovereign of Sun and War',
     baybayin: 'ᜀᜉᜓᜎᜃᜒ',
-    quote: 'Sa ngalan ng Araw, walang aninong makapagtatago sa aking sibat!',
+    quote: 'In the name of the sun, no shadow hides from my spear.',
     passive: {
       id: 'zenith-passive',
       name: 'Sun King',
@@ -730,7 +730,7 @@ export const HEROES: Hero[] = [
     name: 'Maw',
     title: 'The Sky-Swallowing Dragon',
     baybayin: 'ᜊᜃᜓᜈᜏ',
-    quote: 'Ako ang lalamon sa liwanag, hanggang sa maghari ang walang hanggang dilim!',
+    quote: 'I will swallow the light, until only the dark is left.',
     passive: {
       id: 'maw-passive',
       name: 'Seven Moons Devoured',

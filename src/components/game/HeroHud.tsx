@@ -2742,7 +2742,7 @@ export default function HeroHud({
                       </span>
                     </div>
                     <div style={{ fontSize: 10, color: '#FFD700', margin: '2px 0 6px' }}>
-                      {mastery.masteryLevel >= 7 ? 'Bayani ng Kapuluan' : mastery.masteryLevel >= 4 ? 'Batikan' : 'Baguhan'}
+                      {mastery.masteryLevel >= 7 ? 'Legend of the Isles' : mastery.masteryLevel >= 4 ? 'Veteran' : 'Baguhan'}
                     </div>
                     <div style={{ width: '100%', height: 5, background: '#1E293B', borderRadius: 3, overflow: 'hidden' }}>
                       <div

@@ -1,6 +1,6 @@
 'use client';
 
-// Mythic Hero Selection & 5 Territories Lobby Route (Talisman).
+// Mythic Hero Selection & 5 Territories Lobby Route (Alamat).
 //
 // ── FEATURES ────────────────────────────────────────────────────────────────
 // 1. Dual Master Navigation: [CHAMPIONS] & [5 TERRITORIES OF THE ARCHIPELAGO]
@@ -197,7 +197,7 @@ export default function HeroSelectionLobby() {
       {/* Top Navigation Bar */}
       <header className="lobby-topbar" style={topHeader}>
         <div style={brandCol}>
-          <h1 style={brandTitle}>TALISMAN</h1>
+          <h1 style={brandTitle}>ALAMAT</h1>
           <span className="lobby-tagline" style={brandSubtitle}>A 3D ACTION MOBA</span>
         </div>
 
@@ -761,7 +761,7 @@ export default function HeroSelectionLobby() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <strong style={{ fontSize: 18, color: '#FFD700' }}>📱 I-install ang Talisman App</strong>
+              <strong style={{ fontSize: 18, color: '#FFD700' }}>📱 Install the Alamat App</strong>
               <button
                 style={{
                   background: 'none',
@@ -789,7 +789,7 @@ export default function HeroSelectionLobby() {
               <div style={{ background: 'rgba(15, 23, 42, 0.7)', borderRadius: 10, padding: 14, border: '1px solid rgba(16, 185, 129, 0.3)' }}>
                 <strong style={{ color: '#10B981', fontSize: 13.5 }}>Para sa Android (Chrome) / Desktop:</strong>
                 <p style={{ fontSize: 12, color: '#CBD5E1', marginTop: 4, lineHeight: 1.5 }}>
-                  Open the Chrome menu (⋮) and choose <strong>Install Talisman</strong> to play fullscreen and offline.
+                  Open the Chrome menu (⋮) and choose <strong>Install Alamat</strong> to play fullscreen and offline.
                 </p>
               </div>
 

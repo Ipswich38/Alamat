@@ -1,9 +1,9 @@
-// Territory and Cultural Lore Types (Talisman).
+// Territory and Cultural Lore Types (Alamat).
 //
 // ── THE MYTHIC TERRITORIES ───────────────────────
 // 1. Skyhold (The Celestial Sky Citadel & Solar Highlands - Luzon)
 // 2. Kasakitan & Abyssal Depths (The Leviathan Ocean & the Fire Peak Volcano - the Middle Isles/Bicol)
-// 3. Gubat ng mga Willow (The Enchanted Rainforest & Sacred Banyan Groves - Mindanao)
+// 3. The Old Grove (The Enchanted Rainforest & Sacred Banyan Groves - Mindanao)
 // 4. The Unseen City (The Phantom City & Shadow Underworld - the eastern wilds/Capiz)
 // 5. The Warding Plain (The the Sacred River Heartland & Barangay Stronghold)
 
