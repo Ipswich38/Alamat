@@ -1374,6 +1374,23 @@ export default function HeroHud({
               <span style={spellCooldownText}>{Math.ceil(cooldowns.potion)}</span>
             ) : null}
           </button>
+
+          {/* Recall to Base / Sanctuary (B) */}
+          <button
+            style={{
+              ...smallSpellBtn,
+              borderColor: '#38BDF8',
+              opacity: cooldowns.recall > 0 ? 0.55 : 1,
+            }}
+            onClick={() => onCast('recall')}
+            title="Recall to Sanctuary Base (Channeled Teleport) [B]"
+          >
+            <span style={spellKeyBadge}>B</span>
+            <span style={{ fontSize: 18 }}>🏠</span>
+            {cooldowns.recall > 0 ? (
+              <span style={spellCooldownText}>{Math.ceil(cooldowns.recall)}</span>
+            ) : null}
+          </button>
         </div>
 
         {/*

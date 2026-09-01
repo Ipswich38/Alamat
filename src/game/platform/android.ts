@@ -24,6 +24,7 @@ export interface GamepadState {
   ultimate: boolean;
   potion: boolean;
   spell: boolean;
+  recall: boolean;
   pingAttack: boolean;
   pingDefend: boolean;
   pingRetreat: boolean;
@@ -80,6 +81,7 @@ const EMPTY_GAMEPAD_STATE: GamepadState = {
   ultimate: false,
   potion: false,
   spell: false,
+  recall: false,
   pingAttack: false,
   pingDefend: false,
   pingRetreat: false,
@@ -399,6 +401,7 @@ class AndroidPlatformEngine {
       ultimate: isJustPressed(5),
       potion: isJustPressed(6),
       spell: isJustPressed(7),
+      recall: isJustPressed(10) || isJustPressed(11),
       shop: isJustPressed(8),
       settings: isJustPressed(9),
       pingAttack: isJustPressed(12),

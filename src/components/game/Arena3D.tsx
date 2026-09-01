@@ -505,6 +505,10 @@ export default function Arena3D({
     let playerHealth = activeStats.maxHp;
     let castLockUntil = 0;
     let dash: DashCast | null = null;
+    let isRecalling = false;
+    let recallTimer = 0;
+    let recallStartPos = { x: 0, z: 0 };
+    let recallHpBefore = activeStats.maxHp;
     const ready: CooldownState = { ...EMPTY_COOLDOWNS };
     const windups: WindupCast[] = [];
     const projectiles: ProjectileCast[] = [];
@@ -520,6 +524,7 @@ export default function Arena3D({
         ultimate: Math.max(0, ready.ultimate - clock),
         potion: Math.max(0, ready.potion - clock),
         spell: Math.max(0, ready.spell - clock),
+        recall: Math.max(0, ready.recall - clock),
       });
     };
 
@@ -533,6 +538,7 @@ export default function Arena3D({
       ready.ultimate = 0;
       ready.potion = 0;
       ready.spell = 0;
+      ready.recall = 0;
       syncCooldowns();
     };
 
@@ -925,6 +931,35 @@ export default function Arena3D({
         return;
       }
 
+      if (slot === 'recall') {
+        const dawnSpawn = TEAMS.dawn.spawn;
+        const distToBase = Math.hypot(px - dawnSpawn.x, pz - dawnSpawn.z);
+        if (distToBase < 12) {
+          setCombatLine('Already safe inside Sanctuary Base.');
+          return;
+        }
+        if (isRecalling) {
+          isRecalling = false;
+          setCombatLine('Recall cancelled.');
+          sound.playPing('retreat');
+          return;
+        }
+        isRecalling = true;
+        recallTimer = 6.0;
+        recallStartPos = { x: px, z: pz };
+        recallHpBefore = playerHealth;
+        sound.playSpellCast('beam');
+        haptics.tick();
+        combatFx.addBlessingBurst(px, pz, 0x38bdf8);
+        setCombatLine('✨ Recalling to Sanctuary Base... (6.0s)');
+        return;
+      }
+
+      // Any combat action interrupts recall
+      if (isRecalling) {
+        isRecalling = false;
+      }
+
       if (slot === 'potion') {
         ready.potion = clock + 35;
         sound.playPotion();
@@ -1210,6 +1245,7 @@ export default function Arena3D({
         if (gp.ultimate) tryCast('ultimate');
         if (gp.potion) tryCast('potion');
         if (gp.spell) tryCast('spell');
+        if (gp.recall) tryCast('recall');
         if (gp.pingAttack) pingFn.current?.('attack');
         if (gp.pingDefend) pingFn.current?.('defend');
         if (gp.pingRetreat) pingFn.current?.('retreat');
@@ -1298,6 +1334,39 @@ export default function Arena3D({
       if (territory.id === 'gubat_dawn' && inBrush) {
         extraRegen += 2.5;
       }
+      // Sanctuary Base rapid health regeneration (+120 HP/s inside base circle)
+      const distToSanctuary = Math.hypot(px - TEAMS.dawn.spawn.x, pz - TEAMS.dawn.spawn.z);
+      if (distToSanctuary < 14 && playerHealth < activeStats.maxHp && playerHealth > 0) {
+        playerHealth = Math.min(activeStats.maxHp, playerHealth + 120 * dt);
+        setPlayerHp(playerHealth);
+      }
+
+      // Recall Channeling logic (6.0s channel, canceled by movement or damage)
+      if (isRecalling) {
+        const distMoved = Math.hypot(px - recallStartPos.x, pz - recallStartPos.z);
+        if (distMoved > 0.4 || playerHealth < recallHpBefore) {
+          isRecalling = false;
+          sound.playPing('danger');
+          haptics.cancel();
+          setCombatLine('⚠️ Recall interrupted by movement or damage!');
+        } else {
+          recallHpBefore = playerHealth;
+          recallTimer -= dt;
+          if (recallTimer <= 0) {
+            isRecalling = false;
+            px = TEAMS.dawn.spawn.x;
+            pz = TEAMS.dawn.spawn.z;
+            playerHealth = activeStats.maxHp;
+            setPlayerHp(playerHealth);
+            sound.playVictory();
+            haptics.victory();
+            combatFx.addBurst(px, pz, 0xffd700);
+            stage.addCameraShake(0.3);
+            setCombatLine('✨ Teleported to Sanctuary! Health fully restored.');
+          }
+        }
+      }
+
       if (playerHealth > 0 && playerHealth < activeStats.maxHp) {
         playerHealth = Math.min(activeStats.maxHp, playerHealth + (activeStats.hpRegen + extraRegen) * dt);
         setPlayerHp(playerHealth);

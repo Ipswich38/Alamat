@@ -9,7 +9,7 @@
 import type { Ability, Hero } from '@/game/heroes';
 import type * as THREE from 'three';
 
-export type CastSlot = 'basic' | 'basic_minion' | 'basic_tower' | 'ability0' | 'ability1' | 'ability2' | 'ultimate' | 'potion' | 'spell';
+export type CastSlot = 'basic' | 'basic_minion' | 'basic_tower' | 'ability0' | 'ability1' | 'ability2' | 'ultimate' | 'potion' | 'spell' | 'recall';
 
 /** Seconds remaining on each slot. Zero means ready. */
 export type CooldownState = Record<CastSlot, number>;
@@ -24,6 +24,7 @@ export const EMPTY_COOLDOWNS: CooldownState = {
   ultimate: 0,
   potion: 0,
   spell: 0,
+  recall: 0,
 };
 
 /** Keyboard bindings. The on-screen buttons cast through the same path. */
@@ -43,6 +44,7 @@ export const CAST_KEYS: Record<string, CastSlot> = {
   '4': 'ultimate',
   d: 'potion',
   f: 'spell',
+  b: 'recall',
 };
 
 

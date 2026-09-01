@@ -285,13 +285,32 @@ Use this checklist to track progress across sessions:
   - [x] Add Gamepad controller support (Bluetooth / USB: Razer Kishi, Xbox, PlayStation DualSense) with live polling in render loop and lobby navigation.
   - [x] Add high-refresh rate display targets (60Hz / 90Hz / 120Hz), auto-aim priority settings, and haptic feedback intensity scaling.
   - [x] Upgrade PWA Web App Manifests (`manifest.webmanifest`, `manifest.json`) for Android standalone landscape installation.
+- [x] **Phase 17: Universal Mobile MOBA UI/UX Ergonomics & Holy Trinity Controls**
+  - [x] Implement Universal 3-Button Target Selection ("Holy Trinity"): Main Hero Attack (88px), Minion/Creep Farm sub-button (46px), and Turret/Structure Siege sub-button (46px).
+  - [x] Add 1-Tap Quick-Buy Item Recommendations Bar pinned under the minimap (`🪙 BUY` on affordable shop items without opening full-screen modals).
+  - [x] Add Channeled Recall to Base (`[🏠 RECALL]` button, hotkey `[B]`, Gamepad L3/R3) with 6.0s channeling and rapid Sanctuary base health regeneration (`+120 HP/s`).
+  - [x] Add Skill Arc Level-Up `[+]` mid-combat upgrade pills above Skill 1, 2, 3, and Ultimate.
+  - [x] Add Dedicated Cancel Cast Zone (`[ ❌ CANCEL ]` at top-right) with crimson reticle feedback and cancel haptics.
+  - [x] Ensure 0 TypeScript errors and clean production builds on Next.js 16.3.2 Turbopack.
 
 ---
 
 ## 5. HARD INVARIANTS & LESSONS LEARNED
 
 1. **"Nothing Locks On":** Never implement point-and-click homing spells. Everything must project along a trajectory, cone, line, or ground radius.
-2. **Pure Web Audio API:** Do NOT attempt to load external audio files (`.mp3`, `.wav`) that do not exist in the repo. Synthesize every sound procedurally.
-3. **Stat Calculation Hierarchy:** Always compute effective stats through the formula `(Base + Growth) * (1 + ItemPct) + ItemFlat` so buffs and items stack cleanly.
-4. **Frame Loop Integrity:** Keep state mutations out of high-frequency Three.js render loops; use refs (`heroRef`, `joyRef`, `turnRef`) for 60fps loop access and React state only for HUD synchronization.
-5. **Camera & Elevation Coordinates:** The Pasig River channel sits at `y = -1.05u`, lane terraces at `y = +1.0u`, and bases at `y = +3.0u`. All ground raycasting must use `terrainHeight(x, z)`.
+2. **Universal Mobile MOBA Standard:** Controls must strictly follow the MLBB / Wild Rift thumb fan layout (Left Stick Move, Right Arc Skills, Holy Trinity Attack Cluster). Do not invent unfamiliar control abstractions.
+3. **Pure Web Audio API:** Do NOT attempt to load external audio files (`.mp3`, `.wav`) that do not exist in the repo. Synthesize every sound procedurally.
+4. **Stat Calculation Hierarchy:** Always compute effective stats through the formula `(Base + Growth) * (1 + ItemPct) + ItemFlat` so buffs and items stack cleanly.
+5. **Frame Loop Integrity:** Keep state mutations out of high-frequency Three.js render loops; use refs (`heroRef`, `joyRef`, `turnRef`) for 60fps loop access and React state only for HUD synchronization.
+6. **Camera & Elevation Coordinates:** The Pasig River channel sits at `y = -1.05u`, lane terraces at `y = +1.0u`, and bases at `y = +3.0u`. All ground raycasting must use `terrainHeight(x, z)`.
+
+---
+
+## 6. INSTRUCTIONS FOR THE NEXT AGENT (SEAMLESS CONTINUATION)
+
+When continuing this project:
+1. Check `git status` and ensure the branch is `main`.
+2. All core gameplay systems (Phases 1–17) are fully operational and verified.
+3. If extending hero abilities or items, modify `src/game/heroes/catalogue.ts` and `src/game/items/catalogue.ts`.
+4. Run `npm run lint && npm run build` to ensure 0 TypeScript compilation errors.
+5. Push to GitHub (`git push origin main`) and deploy to Vercel (`vercel --prod --yes`).
