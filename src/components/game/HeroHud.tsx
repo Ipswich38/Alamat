@@ -26,7 +26,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { TEAMS, type TeamId } from '@/game/arena/nexus';
 import type { CastSlot, CooldownState } from '@/game/combat';
 import { abilityForSlot } from '@/game/combat/casting';
-import type { Hero, Ability } from '@/game/heroes';
+import type { Hero } from '@/game/heroes';
 import { CAMPS } from '@/game/arena/camps';
 import { AGIMAT_ITEMS, type TalismanItem } from '@/game/items/catalogue';
 import type { EffectiveHeroStats } from '@/game/items/inventory';
@@ -39,10 +39,15 @@ import {
   updateSettings,
   getRankForLevel,
   type PlayerProfile,
-  type DailyQuest,
   type MatchRewardResult,
 } from '@/game/progression/profile';
 import { type Territory, DEFAULT_TERRITORY } from '@/game/territories';
+import { android } from '@/game/platform/android';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
 
 export interface AimPreviewData {
   slot: CastSlot;
@@ -187,6 +192,8 @@ export interface HeroHudProps {
   teammatesData?: TeammateHudData[];
   enemyBotsData?: EnemyBotHudData[];
   activePings?: TacticalPingData[];
+  gamepadConnected?: boolean;
+  gamepadName?: string;
 }
 
 export default function HeroHud({
@@ -244,6 +251,8 @@ export default function HeroHud({
   teammatesData,
   enemyBotsData,
   activePings = [],
+  gamepadConnected = false,
+  gamepadName = '',
 }: HeroHudProps) {
   // ── Modal Dialog States ──────────────────────────────────────────────────
   const [showStats, setShowStats] = useState(false);
@@ -265,8 +274,11 @@ export default function HeroHud({
   const [graphicsQuality, setGraphicsQuality] = useState<'performance' | 'balanced' | 'ultra'>('balanced');
   const [hudScale, setHudScale] = useState<'compact' | 'normal' | 'large'>('normal');
   const [isPortrait, setIsPortrait] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [autoAimPriority, setAutoAimPriority] = useState<'lowest_hp' | 'closest'>('lowest_hp');
+  const [fpsTarget, setFpsTarget] = useState<number>(60);
   const [playerProfile, setPlayerProfile] = useState<PlayerProfile>(() => loadPlayerProfile());
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIosInstallGuide, setShowIosInstallGuide] = useState(false);
   const [dynamicOrigin, setDynamicOrigin] = useState<{ x: number; y: number } | null>(null);
 
@@ -291,11 +303,35 @@ export default function HeroHud({
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
+
+  // Track Fullscreen State
+  useEffect(() => {
+    const updateFs = () => {
+      setIsFullscreen(android.isFullscreen());
+    };
+    document.addEventListener('fullscreenchange', updateFs);
+    document.addEventListener('webkitfullscreenchange', updateFs);
+    return () => {
+      document.removeEventListener('fullscreenchange', updateFs);
+      document.removeEventListener('webkitfullscreenchange', updateFs);
+    };
+  }, []);
+
+  const handleToggleFullscreen = async () => {
+    if (android.isFullscreen()) {
+      await android.exitFullscreen();
+      setIsFullscreen(false);
+    } else {
+      await android.enterImmersiveLandscape();
+      setIsFullscreen(true);
+    }
+    haptics.tick();
+  };
 
   // Detect orientation changes for mobile guide
   useEffect(() => {
@@ -978,21 +1014,30 @@ export default function HeroHud({
           <span style={utilityIcon}>⚙</span>
         </button>
         <button
-          style={{ ...utilityBtn, borderColor: 'rgba(56, 189, 248, 0.6)' }}
-          title="Toggle Fullscreen Mode [⛶]"
-          onClick={() => {
-            try {
-              if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen?.().catch(() => {});
-              } else {
-                document.exitFullscreen?.().catch(() => {});
-              }
-            } catch {}
+          style={{
+            ...utilityBtn,
+            borderColor: isFullscreen ? '#38BDF8' : 'rgba(56, 189, 248, 0.6)',
+            background: isFullscreen ? 'rgba(14, 165, 233, 0.3)' : 'rgba(15, 23, 42, 0.85)',
           }}
+          title="Toggle Fullscreen Landscape Mode [⛶]"
+          onClick={handleToggleFullscreen}
           aria-label="Fullscreen"
         >
           <span style={utilityIcon}>⛶</span>
         </button>
+        {gamepadConnected && (
+          <div
+            style={{
+              ...utilityBtn,
+              borderColor: '#10B981',
+              background: 'rgba(16, 185, 129, 0.25)',
+              cursor: 'default',
+            }}
+            title={`Gamepad Connected: ${gamepadName || 'Controller'}`}
+          >
+            <span style={{ fontSize: 16 }}>🎮</span>
+          </div>
+        )}
       </div>
 
       {/* ── 1-Tap Floating Quick-Buy Pill (Under/Next to Utility Menu) ────── */}
@@ -1596,14 +1641,14 @@ export default function HeroHud({
         </div>
 
         {/* ── Mobile Target Priority Attack Buttons ────────────────────────── */}
-        {/* Tower Siege Priority Attack Button (Top-Left of Main Attack) */}
+        {/* Tower Siege Priority Attack Button (Directly Above Main Attack) */}
         <button
           style={{
             position: 'absolute',
-            bottom: 88,
-            right: 350,
-            width: 44,
-            height: 44,
+            bottom: 126,
+            right: 30,
+            width: 46,
+            height: 46,
             borderRadius: '50%',
             background: 'linear-gradient(135deg, #1E293B, #0F172A)',
             border: '2px solid #38BDF8',
@@ -1613,7 +1658,7 @@ export default function HeroHud({
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+            boxShadow: '0 4px 14px rgba(56, 189, 248, 0.4)',
             zIndex: 10,
             opacity: cooldowns.basic > 0.05 ? 0.6 : 1,
             pointerEvents: 'auto',
@@ -1624,18 +1669,18 @@ export default function HeroHud({
           }}
           title="Tower Siege Attack (Target Enemy Turrets / Core) [T]"
         >
-          <span style={{ fontSize: 16 }}>🏰</span>
-          <span style={{ fontSize: 8, fontWeight: 900 }}>TOWER</span>
+          <span style={{ fontSize: 18 }}>🏰</span>
+          <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: 0.5 }}>TOWER</span>
         </button>
 
-        {/* Minion / Monster Priority Attack Button (Bottom-Left of Main Attack) */}
+        {/* Minion / Monster Priority Attack Button (Directly to the Left of Main Attack) */}
         <button
           style={{
             position: 'absolute',
-            bottom: 34,
-            right: 350,
-            width: 44,
-            height: 44,
+            bottom: 30,
+            right: 126,
+            width: 46,
+            height: 46,
             borderRadius: '50%',
             background: 'linear-gradient(135deg, #1E293B, #0F172A)',
             border: '2px solid #10B981',
@@ -1645,7 +1690,7 @@ export default function HeroHud({
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)',
             zIndex: 10,
             opacity: cooldowns.basic > 0.05 ? 0.6 : 1,
             pointerEvents: 'auto',
@@ -1656,16 +1701,16 @@ export default function HeroHud({
           }}
           title="Minion / Monster Farm Attack (Target Creeps) [M]"
         >
-          <span style={{ fontSize: 16 }}>🌾</span>
-          <span style={{ fontSize: 8, fontWeight: 900 }}>CREEP</span>
+          <span style={{ fontSize: 18 }}>🌾</span>
+          <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: 0.5 }}>CREEP</span>
         </button>
 
-        {/* Main Hero / Foe Attack Button (85px, Gold Frame #E5B25D) at bottom: 40px; right: 40px; */}
+        {/* Main Hero / Foe Attack Button (88px, Gold Frame #E5B25D) */}
         <button
           style={{
             ...mainAttackBtn,
-            bottom: 34,
-            right: 34,
+            bottom: 30,
+            right: 30,
             opacity: cooldowns.basic > 0.05 ? 0.7 : 1,
           }}
           onClick={() => {
@@ -1704,7 +1749,7 @@ export default function HeroHud({
             I-IKOT ANG TELEPONO SA LANDSCAPE
           </strong>
           <p style={{ fontSize: 14, color: '#94A3B8', maxWidth: 360, lineHeight: 1.6 }}>
-            Ang Talisman ay idinisenyo para sa <strong style={{ color: '#00E5FF' }}>Pahiga (Landscape)</strong> na kontrol ng dalawang kamay. I-rotate ang iyong device para magpatuloy sa labanan!
+            Ang Alamat ay idinisenyo para sa <strong style={{ color: '#00E5FF' }}>Pahiga (Landscape)</strong> na kontrol ng dalawang kamay. I-rotate ang iyong device para magpatuloy sa labanan!
           </p>
           <button
             style={{
@@ -1712,20 +1757,16 @@ export default function HeroHud({
               background: 'linear-gradient(135deg, #0284c7, #0369a1)',
               border: '1px solid #38bdf8',
               color: '#FFF',
-              padding: '10px 20px',
-              borderRadius: 20,
-              fontWeight: 700,
+              padding: '12px 24px',
+              borderRadius: 24,
+              fontWeight: 800,
+              fontSize: 14,
               cursor: 'pointer',
+              boxShadow: '0 0 20px rgba(56, 189, 248, 0.5)',
             }}
-            onClick={() => {
-              try {
-                if (document.documentElement.requestFullscreen) {
-                  document.documentElement.requestFullscreen().catch(() => {});
-                }
-              } catch {}
-            }}
+            onClick={handleToggleFullscreen}
           >
-            ⛶ I-fullscreen ang Laro
+            ⛶ I-Fullscreen & I-Lock ang Screen
           </button>
         </div>
       ) : null}
@@ -2872,6 +2913,82 @@ export default function HeroHud({
                 </div>
               </div>
               <div style={settingRow}>
+                <span>Auto-Aim Priority (Quick-Tap)</span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {(['lowest_hp', 'closest'] as const).map((p) => (
+                    <button
+                      key={p}
+                      style={{
+                        ...zoomBtn,
+                        width: 'auto',
+                        padding: '4px 10px',
+                        background: autoAimPriority === p ? '#0284C7' : 'rgba(255,255,255,0.1)',
+                        borderColor: autoAimPriority === p ? '#38BDF8' : 'rgba(255,255,255,0.2)',
+                        color: autoAimPriority === p ? '#FFF' : '#94A3B8',
+                        fontWeight: 700,
+                        fontSize: 11,
+                      }}
+                      onClick={() => {
+                        setAutoAimPriority(p);
+                        updateSettings({ autoAimPriority: p });
+                        sound.playPing('select');
+                      }}
+                    >
+                      {p === 'lowest_hp' ? '🎯 Lowest HP %' : '📍 Closest Enemy'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={settingRow}>
+                <span>Display Refresh Rate (FPS)</span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {([60, 90, 120, 30] as const).map((target) => (
+                    <button
+                      key={target}
+                      style={{
+                        ...zoomBtn,
+                        width: 'auto',
+                        padding: '4px 8px',
+                        background: fpsTarget === target ? '#10B981' : 'rgba(255,255,255,0.1)',
+                        borderColor: fpsTarget === target ? '#6EE7B7' : 'rgba(255,255,255,0.2)',
+                        color: fpsTarget === target ? '#FFF' : '#94A3B8',
+                        fontWeight: 700,
+                        fontSize: 11,
+                      }}
+                      onClick={() => {
+                        setFpsTarget(target);
+                        updateSettings({ fpsTarget: target });
+                        sound.playPing('select');
+                      }}
+                    >
+                      {target === 30 ? '🔋 30 (Saver)' : `${target} Hz`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={settingRow}>
+                <span>Gamepad Controller</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 11, color: gamepadConnected ? '#10B981' : '#94A3B8', fontWeight: 700 }}>
+                    {gamepadConnected ? `🎮 ${gamepadName || 'Connected'}` : '🎮 No Controller'}
+                  </span>
+                </div>
+              </div>
+              <div style={settingRow}>
+                <span>Immersive Fullscreen</span>
+                <button
+                  style={{
+                    ...zoomBtn,
+                    width: 'auto',
+                    padding: '4px 12px',
+                    background: isFullscreen ? '#0284C7' : '#334155',
+                  }}
+                  onClick={handleToggleFullscreen}
+                >
+                  {isFullscreen ? '⛶ Fullscreen ON' : '⛶ Enter Fullscreen'}
+                </button>
+              </div>
+              <div style={settingRow}>
                 <span>Virtual Joystick Mode</span>
                 <button
                   style={{
@@ -2904,7 +3021,7 @@ export default function HeroHud({
                   }}
                   onClick={handleInstallApp}
                 >
-                  📱 I-install ang App
+                  📱 I-install sa Android
                 </button>
               </div>
               <div style={settingRow}>
@@ -2929,9 +3046,12 @@ export default function HeroHud({
                   </button>
                 </div>
               </div>
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 10 }}>
-                <span style={{ fontSize: 12, color: '#94A3B8' }}>
-                  Kontrol: Dynamic Touch Joystick sa kaliwa · Drag Skills para sa skillshot · [+] Level-Up buttons · Mini-map drag para mag-scout.
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 10, display: 'grid', gap: 4 }}>
+                <span style={{ fontSize: 11.5, color: '#00E5FF', fontWeight: 700 }}>
+                  🎮 Controller / Touch Layout:
+                </span>
+                <span style={{ fontSize: 11, color: '#94A3B8', lineHeight: 1.5 }}>
+                  Kaliwang Analog/Thumb: Galaw · Kanang Analog/Touch Drag: Aim Skillshot · [A/J]: Attack · [B/M]: Creep · [X/Q]: Skill 1 · [Y/W]: Skill 2 · [L1/E]: Skill 3 · [R1/R]: Ultimate · [L2/D]: Potion · [R2/F]: Flicker.
                 </span>
               </div>
             </div>

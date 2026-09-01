@@ -52,12 +52,12 @@ import { recordMatchOutcome, type MatchRewardResult } from '@/game/progression/p
 import {
   BOUNTIES,
   getProgressionState,
-  getScaledAttack,
   getArmorDamageReduction,
 } from '@/game/combat/progression';
 import { createInventoryManager, type EffectiveHeroStats } from '@/game/items/inventory';
 import { type TalismanItem } from '@/game/items/catalogue';
-import { createBotTeamManager, type BotHero } from '@/game/ai/botHero';
+import { createBotTeamManager } from '@/game/ai/botHero';
+import { android } from '@/game/platform/android';
 import type { TeammateHudData, EnemyBotHudData, TacticalPingData } from '@/components/game/HeroHud';
 import {
   BASIC_WIDTH,
@@ -141,6 +141,8 @@ export default function Arena3D({
   const [teammatesData, setTeammatesData] = useState<TeammateHudData[]>([]);
   const [enemyBotsData, setEnemyBotsData] = useState<EnemyBotHudData[]>([]);
   const [activePings, setActivePings] = useState<TacticalPingData[]>([]);
+  const [gamepadConnected, setGamepadConnected] = useState<boolean>(false);
+  const [gamepadName, setGamepadName] = useState<string>('');
 
   const turnRef = useRef(0);
   const joyRef = useRef({ x: 0, z: 0 });
@@ -187,6 +189,22 @@ export default function Arena3D({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // ── Android Mobile & Gamepad Initializers ────────────────────────────────
+    android.requestWakeLock().catch(() => {});
+    const removeBackGuard = android.setupBackGestureGuard();
+
+    const unsubGpConnect = android.onGamepadConnected((id) => {
+      setGamepadConnected(true);
+      setGamepadName(id);
+      sound.playPing('select');
+      setCombatLine(`🎮 Controller Connected: ${id.slice(0, 24)}`);
+    });
+
+    const unsubGpDisconnect = android.onGamepadDisconnected(() => {
+      setGamepadConnected(false);
+      setGamepadName('');
+    });
 
     if (process.env.NODE_ENV !== 'production') {
       for (const problem of checkContent([KAPRE])) console.warn('[talisman content]', problem);
@@ -779,8 +797,81 @@ export default function Arena3D({
         targetZ = targetOverride.z;
         castHeading = Math.atan2(targetX - startX, targetZ - startZ);
       } else {
-        const aimHeading = Math.atan2(mouseGroundX - startX, mouseGroundZ - startZ);
-        castHeading = Number.isFinite(aimHeading) ? aimHeading : heading;
+        // ── Mobile Smart Auto-Aim Targeting Engine ────────────────────────
+        const searchRange = ability.range * 1.35;
+        let foundTarget: { x: number; z: number } | null = null;
+        let lowestHp = Infinity;
+        let nearestDist = Infinity;
+
+        // 1. Enemy bot heroes (prioritize lowest HP, then closest)
+        for (const bot of botTeamManager.enemies) {
+          if (bot.health > 0) {
+            const dist = Math.hypot(bot.x - startX, bot.z - startZ);
+            if (dist <= searchRange) {
+              if (bot.health < lowestHp || (bot.health === lowestHp && dist < nearestDist)) {
+                lowestHp = bot.health;
+                nearestDist = dist;
+                foundTarget = { x: bot.x, z: bot.z };
+              }
+            }
+          }
+        }
+
+        // 2. Jungle Boss (Kapre Treant / Maw)
+        if (!foundTarget && brute.alive) {
+          const dist = Math.hypot(brute.x - startX, brute.z - startZ);
+          if (dist <= searchRange) {
+            foundTarget = { x: brute.x, z: brute.z };
+          }
+        }
+
+        // 3. Jungle Creeps
+        if (!foundTarget) {
+          for (const c of creepManager.creeps) {
+            if (c.alive) {
+              const dist = Math.hypot(c.x - startX, c.z - startZ);
+              if (dist <= searchRange && dist < nearestDist) {
+                nearestDist = dist;
+                foundTarget = { x: c.x, z: c.z };
+              }
+            }
+          }
+        }
+
+        // 4. Enemy Minions
+        if (!foundTarget) {
+          for (const m of minionManager.minions) {
+            if (m.team === ENEMY && m.alive) {
+              const dist = Math.hypot(m.x - startX, m.z - startZ);
+              if (dist <= searchRange && dist < nearestDist) {
+                nearestDist = dist;
+                foundTarget = { x: m.x, z: m.z };
+              }
+            }
+          }
+        }
+
+        if (foundTarget) {
+          targetX = foundTarget.x;
+          targetZ = foundTarget.z;
+          castHeading = Math.atan2(targetX - startX, targetZ - startZ);
+        } else if (joyRef.current.x !== 0 || joyRef.current.z !== 0) {
+          // Aim towards joystick movement heading
+          const cos = Math.cos(camera.yaw);
+          const sin = Math.sin(camera.yaw);
+          const joyX = joyRef.current.x * cos + joyRef.current.z * sin;
+          const joyZ = -joyRef.current.x * sin + joyRef.current.z * cos;
+          castHeading = Math.atan2(joyX, joyZ);
+          const dir = direction(castHeading);
+          targetX = startX + dir.x * ability.range;
+          targetZ = startZ + dir.z * ability.range;
+        } else {
+          // Fall back to hero facing
+          castHeading = heading;
+          const dir = direction(castHeading);
+          targetX = startX + dir.x * ability.range;
+          targetZ = startZ + dir.z * ability.range;
+        }
       }
 
       heading = castHeading;
@@ -857,9 +948,14 @@ export default function Arena3D({
           castHeading = targetOverride.heading;
         } else if (targetOverride?.x !== undefined && targetOverride?.z !== undefined) {
           castHeading = Math.atan2(targetOverride.x - px, targetOverride.z - pz);
+        } else if (joyRef.current.x !== 0 || joyRef.current.z !== 0) {
+          const cos = Math.cos(camera.yaw);
+          const sin = Math.sin(camera.yaw);
+          const dx = joyRef.current.x * cos + joyRef.current.z * sin;
+          const dz = -joyRef.current.x * sin + joyRef.current.z * cos;
+          castHeading = Math.atan2(dx, dz);
         } else {
-          const aimHeading = Math.atan2(mouseGroundX - px, mouseGroundZ - pz);
-          castHeading = Number.isFinite(aimHeading) ? aimHeading : heading;
+          castHeading = heading;
         }
         const dir = direction(castHeading);
         const blinkDist = 6.5;
@@ -1089,6 +1185,37 @@ export default function Arena3D({
 
 
       // ── Movement & Controls ───────────────────────────────────────────────
+      // Android & Bluetooth Gamepad Polling
+      const gp = android.pollGamepad();
+      if (gp.connected) {
+        if (!gamepadConnected) {
+          setGamepadConnected(true);
+          setGamepadName(gp.id);
+        }
+        if (gp.moveX !== 0 || gp.moveZ !== 0) {
+          joyRef.current = { x: gp.moveX, z: gp.moveZ };
+        }
+        if (gp.aimActive) {
+          const cos = Math.cos(camera.yaw);
+          const sin = Math.sin(camera.yaw);
+          const worldAimX = gp.aimX * cos + gp.aimZ * sin;
+          const worldAimZ = -gp.aimX * sin + gp.aimZ * cos;
+          heading = Math.atan2(worldAimX, worldAimZ);
+        }
+        if (gp.attack) tryCast('basic');
+        if (gp.minionAttack) tryCast('basic_minion');
+        if (gp.ability0) tryCast('ability0');
+        if (gp.ability1) tryCast('ability1');
+        if (gp.ability2) tryCast('ability2');
+        if (gp.ultimate) tryCast('ultimate');
+        if (gp.potion) tryCast('potion');
+        if (gp.spell) tryCast('spell');
+        if (gp.pingAttack) pingFn.current?.('attack');
+        if (gp.pingDefend) pingFn.current?.('defend');
+        if (gp.pingRetreat) pingFn.current?.('retreat');
+        if (gp.pingOmw) pingFn.current?.('gather');
+      }
+
       const turnKey = (keys.has('q') ? 1 : 0) - (keys.has('e') ? 1 : 0);
       camera.update(dt, turnKey + turnRef.current);
       if (Math.abs(camera.yaw - yawShown) > 0.02) {
@@ -1713,6 +1840,10 @@ export default function Arena3D({
         a.dispose();
       });
       botActors.clear();
+      removeBackGuard();
+      unsubGpConnect();
+      unsubGpDisconnect();
+      android.releaseWakeLock();
       stage.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1781,6 +1912,8 @@ export default function Arena3D({
         teammatesData={teammatesData}
         enemyBotsData={enemyBotsData}
         activePings={activePings}
+        gamepadConnected={gamepadConnected}
+        gamepadName={gamepadName}
       />
     </div>
   );

@@ -106,10 +106,14 @@ export interface DailyQuest {
 
 export interface MobileGameSettings {
   hapticsEnabled: boolean;
+  vibrationIntensity: number; // 0.2 to 1.5 (default 1.0)
   aimSensitivity: number; // 0.6 to 1.8 (default 1.0)
+  autoAimPriority: 'lowest_hp' | 'closest'; // Mobile quick-tap auto-targeting priority
   joystickMode: 'fixed' | 'dynamic'; // fixed anchor vs dynamic drag origin
   cameraAimLead: boolean; // pan camera slightly toward skillshot aim
   graphicsQuality: 'performance' | 'balanced' | 'ultra';
+  fpsTarget: 30 | 60 | 90 | 120; // Android high-refresh rate display target
+  gamepadEnabled: boolean; // Bluetooth/USB controller support
   hudScale: 'compact' | 'normal' | 'large';
   masterVolume: number; // 0.0 to 1.0
   sfxVolume: number;
@@ -140,10 +144,14 @@ const STORAGE_KEY = 'talisman_player_profile_v2';
 
 export const DEFAULT_SETTINGS: MobileGameSettings = {
   hapticsEnabled: true,
+  vibrationIntensity: 1.0,
   aimSensitivity: 1.0,
+  autoAimPriority: 'lowest_hp',
   joystickMode: 'fixed',
   cameraAimLead: true,
   graphicsQuality: 'balanced',
+  fpsTarget: 60,
+  gamepadEnabled: true,
   hudScale: 'normal',
   masterVolume: 1.0,
   sfxVolume: 1.0,

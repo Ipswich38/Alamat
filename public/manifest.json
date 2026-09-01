@@ -1,13 +1,19 @@
 {
-  "name": "Alamat",
+  "name": "Alamat: Philippine Mythology MOBA",
   "short_name": "Alamat",
-  "description": "A 3D duel arena where nothing locks on. Dawn against Dusk.",
+  "description": "Philippine mythology 3D Action MOBA arena where nothing locks on. Dawn against Dusk.",
   "start_url": "/",
   "id": "/",
   "display": "standalone",
+  "display_override": [
+    "fullscreen",
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "landscape",
   "background_color": "#020617",
-  "theme_color": "#0f172a",
+  "theme_color": "#020617",
+  "prefer_related_applications": false,
   "categories": [
     "games",
     "action",
@@ -23,9 +29,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Play Arena",
-      "short_name": "Play",
-      "description": "Jump directly into the 3D Action Arena",
+      "name": "Enter MOBA Arena",
+      "short_name": "Play Arena",
+      "description": "Jump directly into the 3D Action MOBA Arena",
       "url": "/play",
       "icons": [
         {
@@ -35,9 +41,9 @@
       ]
     },
     {
-      "name": "Hero Selection",
-      "short_name": "Lobby",
-      "description": "Choose your hero and territory",
+      "name": "Champions & Territories",
+      "short_name": "Hero Lobby",
+      "description": "Choose your Philippine champion and territory",
       "url": "/",
       "icons": [
         {

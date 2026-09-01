@@ -278,6 +278,13 @@ Use this checklist to track progress across sessions:
 - [x] **Phase 15: 3D Cultural Props Integration (Idol, Dong Son Drum, Kim Quy Altar)**
   - [x] Integrate 3D prop assets (`idol.glb`, `dongSonDrum.glb`, `kimQuyAltar.glb`) into distinct jungle camp quadrants in `src/game/render3d/camps.ts`.
   - [x] Verify production build (`npm run build`) and live gameplay smoke tests (`smoke-run.mjs` & `smoke-tower.mjs`) with 0 errors.
+- [x] **Phase 16: Complete Android & Mobile MOBA Engine**
+  - [x] Create `src/game/platform/android.ts` with Fullscreen API, Screen Orientation Lock, Wake Lock API, Back Gesture Guard, and Gamepad API engine.
+  - [x] Implement Smart Auto-Aim targeting on mobile quick-taps for skillshots and dashes.
+  - [x] Fix Minion and Tower attack sub-buttons placement for natural thumb reach.
+  - [x] Add Gamepad controller support (Bluetooth / USB: Razer Kishi, Xbox, PlayStation DualSense) with live polling in render loop and lobby navigation.
+  - [x] Add high-refresh rate display targets (60Hz / 90Hz / 120Hz), auto-aim priority settings, and haptic feedback intensity scaling.
+  - [x] Upgrade PWA Web App Manifests (`manifest.webmanifest`, `manifest.json`) for Android standalone landscape installation.
 
 ---
 

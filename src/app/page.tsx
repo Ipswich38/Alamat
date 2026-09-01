@@ -21,6 +21,12 @@ import { TERRITORIES, type Territory, DEFAULT_TERRITORY } from '@/game/territori
 import { createActor, type Actor } from '@/game/render3d/actor';
 import { sound } from '@/game/audio/synth';
 import { loadPlayerProfile, getRankForLevel, type PlayerProfile } from '@/game/progression/profile';
+import { android } from '@/game/platform/android';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
 
 export default function HeroSelectionLobby() {
   const [activeTab, setActiveTab] = useState<'heroes' | 'territories'>('heroes');
@@ -30,7 +36,7 @@ export default function HeroSelectionLobby() {
   const [activeStoryChapter, setActiveStoryChapter] = useState<number>(1);
   const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(true);
   const [playerProfile] = useState<PlayerProfile>(() => loadPlayerProfile());
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallGuide, setShowInstallGuide] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -38,7 +44,7 @@ export default function HeroSelectionLobby() {
   useEffect(() => {
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
@@ -60,13 +66,44 @@ export default function HeroSelectionLobby() {
     }
   };
 
-
-
   const playableHeroes = HEROES.filter((h) => h.model);
   const filteredHeroes =
     selectedRole === 'all'
       ? playableHeroes
       : playableHeroes.filter((h) => h.role.toLowerCase() === selectedRole.toLowerCase());
+
+  // ── Gamepad Navigation in Lobby ──────────────────────────────────────────
+  useEffect(() => {
+    let gpRaf = 0;
+    let lastNav = 0;
+    const pollLobbyGamepad = () => {
+      gpRaf = requestAnimationFrame(pollLobbyGamepad);
+      const gp = android.pollGamepad();
+      if (!gp.connected) return;
+      const now = performance.now();
+      if (now - lastNav < 220) return;
+
+      if (gp.moveX > 0.4 || gp.aimX > 0.4 || gp.pingOmw) {
+        lastNav = now;
+        setSelectedHero((prev) => {
+          const idx = playableHeroes.findIndex((h) => h.id === prev.id);
+          const nextIdx = (idx + 1) % playableHeroes.length;
+          sound.playPing('select');
+          return playableHeroes[nextIdx];
+        });
+      } else if (gp.moveX < -0.4 || gp.aimX < -0.4 || gp.pingRetreat) {
+        lastNav = now;
+        setSelectedHero((prev) => {
+          const idx = playableHeroes.findIndex((h) => h.id === prev.id);
+          const prevIdx = (idx - 1 + playableHeroes.length) % playableHeroes.length;
+          sound.playPing('select');
+          return playableHeroes[prevIdx];
+        });
+      }
+    };
+    gpRaf = requestAnimationFrame(pollLobbyGamepad);
+    return () => cancelAnimationFrame(gpRaf);
+  }, [playableHeroes]);
 
   // ── 3D Turntable Scene ───────────────────────────────────────────────────
   useEffect(() => {
