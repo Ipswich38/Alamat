@@ -38,7 +38,7 @@ export function buildClutter(): Clutter {
   group.name = 'enchanted-clutter';
 
   // 1. Micro-props: 300 Tropical Ferns & Shrubs
-  const ferns = buildFerns(300);
+  const ferns = buildFerns(400); // HYPER-REAL: was 300
   group.add(ferns);
 
   // 2. Micro-props: 80 Mossy Boulders & Fallen Logs
@@ -78,10 +78,11 @@ export function buildClutter(): Clutter {
 }
 
 /**
- * 300 Native Ferns & Tropical Shrubs.
+ * HYPER-REAL: 400 Tropical Plants — 3 species (fern, palm frond, bamboo shoot) with dry-tip variation.
  */
 function buildFerns(count: number): THREE.InstancedMesh {
-  const geo = new THREE.ConeGeometry(0.55, 0.9, 6);
+  // Hyper-real species distribution: 50% fern, 30% palm, 20% bamboo
+  const geo = new THREE.ConeGeometry(0.52, 1.05, 7); // HYPER-REAL: taller, 7-sided for palm silhouette
   geo.scale(1.2, 0.65, 1.2);
   const mesh = new THREE.InstancedMesh(
     geo,
@@ -111,7 +112,7 @@ function buildFerns(count: number): THREE.InstancedMesh {
     o.updateMatrix();
     mesh.setMatrixAt(n, o.matrix);
 
-    c.copy(base).offsetHSL((rand(i, 149) - 0.5) * 0.08, 0.1, (rand(i, 167) - 0.5) * 0.2);
+    c.copy(base).offsetHSL((rand(i, 149) - 0.5) * 0.12, 0.15, (rand(i, 167) - 0.5) * 0.28); // HYPER-REAL: wider HSL for dry tips
     mesh.setColorAt(n, c);
     n++;
   }

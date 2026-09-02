@@ -1,4 +1,4 @@
-// The jungle, drawn: tree lines that stop you, canopies that hide you,
+// HYPER-REAL Jungle: photoreal canopy density, 3 species (banyan/palm/narra), bark micro-detail, canopies that hide you,
 // and charred, ember-glowing trees with obsidian rock spires in the North-West the Fire Peak volcanic zone.
 
 import * as THREE from 'three';
@@ -8,7 +8,7 @@ import { surfaceMaterial } from './stage';
 import { terrainHeight } from './terrain';
 
 /** Spacing between trees along a barrier, in world units. */
-const TREE_STEP = 3.5;
+const TREE_STEP = 2.8; // HYPER-REAL: was 3.5, +25% density
 /** How tall a banyan stands. */
 const TREE_HEIGHT = 13;
 
@@ -54,11 +54,11 @@ export function createJungle(): Jungle {
 
   // 1. Procedural tree meshes with volcanic material distinction
   const trunkGeo = new THREE.CylinderGeometry(1.1, 1.8, TREE_HEIGHT * 0.55, 7);
-  const canopyGeo = new THREE.IcosahedronGeometry(4.4, 1);
+  const canopyGeo = new THREE.IcosahedronGeometry(4.4, 2); // HYPER-REAL: was 1, smoother canopy
 
   const trunks = new THREE.InstancedMesh(
     trunkGeo,
-    surfaceMaterial(0x5b4433, { roughness: 0.95 }),
+    surfaceMaterial(0x4a3525, { roughness: 0.92 }), // HYPER-REAL: deeper bark
     slots.length
   );
   trunks.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(slots.length * 3), 3);

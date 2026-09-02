@@ -46,7 +46,7 @@ export interface GroundCover {
 // nursery of pine seedlings scattered on a lawn. Grass tips catch the light.
 // The terrain under this is MOSSY_GRASS (#2E7D32) blended toward JUNGLE_DEEP
 // (#1B4D2E), so both of these are comfortably lighter than anything below.
-const GRASS_DEEP = new THREE.Color(0x6cb04e);
+const GRASS_DEEP = new THREE.Color(0x5fa042); // HYPER-REAL: deeper base
 const GRASS_LIGHT = new THREE.Color(0x93cf62);
 
 /** The one element allowed to be a saturated non-green. */
@@ -54,7 +54,7 @@ const FLOWER_PALETTE = [0xf2c14e, 0xef767a, 0xf7f0d8, 0xe8a0bf, 0xffd9a0];
 
 // ── sizes, all derived from the hero ─────────────────────────────────────────
 /** Ankle height on a hero. Tall enough to read, short enough not to be cover. */
-const BLADE_HEIGHT = HERO_HEIGHT * 0.1;
+const BLADE_HEIGHT = HERO_HEIGHT * 0.13; // HYPER-REAL: was 0.10, taller blades
 const BLADE_RADIUS = HERO_HEIGHT * 0.037;
 const FLOWER_RADIUS = HERO_HEIGHT * 0.016;
 
@@ -62,8 +62,8 @@ const FLOWER_RADIUS = HERO_HEIGHT * 0.016;
 // Tuned against fog (fogNear 65, fogFar 145) and the orthographic view height
 // range of 16 to 90 units: only a fraction of this is ever on screen at once,
 // and all of it is one draw call per layer.
-const GRASS_PER_UNIT2 = 0.34;
-const FLOWERS_PER_UNIT2 = 0.024;
+const GRASS_PER_UNIT2 = 0.42; // HYPER-REAL: was 0.34, denser field
+const FLOWERS_PER_UNIT2 = 0.032; // HYPER-REAL: was 0.024
 
 /** Deterministic 0..1 from an integer and a salt. */
 function rand(i: number, salt: number): number {

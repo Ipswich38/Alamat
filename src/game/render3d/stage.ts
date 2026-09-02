@@ -49,7 +49,7 @@ export const DEFAULT_MOOD: Mood = {
   fogNear: 65,
   fogFar: 145,
   vignette: 0.22,
-  saturation: 1.20,
+  saturation: 1.08, // HYPER-REAL: was 1.20, more natural
   contrast: 1.14,
   gradeStrength: 0.20,
   sun: 3.2,
@@ -94,7 +94,7 @@ export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string):
   });
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap; // HYPER-REAL: was PCFShadowMap, softer penumbra
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.5;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -127,7 +127,7 @@ export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string):
   const sun = new THREE.DirectionalLight(0xfff4e0, 3.2);
   sun.position.set(-65, 55, -65);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.set(4096, 4096); // HYPER-REAL: was 2048, hyper shadow detail
   const s = 36;
   sun.shadow.camera.left = -s;
   sun.shadow.camera.right = s;
@@ -180,7 +180,7 @@ export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string):
     strength: 0.20,
     vignette: 0.22,
     contrast: 1.14,
-    saturation: 1.20,
+    saturation: 1.08, // HYPER-REAL: was 1.20, more natural
   });
   composer.addPass(grade);
 

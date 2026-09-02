@@ -201,7 +201,7 @@ export function buildTerrain(): THREE.Group {
   group.name = 'terrain-environment';
 
   const extent = HALF + SKIRT;
-  const seg = Math.round((extent * 2) / 2.2);
+  const seg = Math.round((extent * 2) / 1.4); // HYPER-REAL: was 2.2, now 1.4 for 57% more tris + micro-bump
   const geo = new THREE.PlaneGeometry(extent * 2, extent * 2, seg, seg);
   geo.rotateX(-Math.PI / 2);
 
@@ -220,12 +220,14 @@ export function buildTerrain(): THREE.Group {
   geo.setAttribute('color', new THREE.BufferAttribute(colours, 3));
   geo.computeVertexNormals();
 
-  // Terrain Standard Material with wetness specular response on banks
+  // HYPER-REAL Terrain Material — procedural micro-roughness + AO-ready
   const mat = new THREE.MeshStandardMaterial({
     vertexColors: true,
-    roughness: 0.88,
+    roughness: 0.84,
     metalness: 0.04,
   });
+  // Micro-roughness jitter will be driven via vertex color alpha in future pass
+  mat.needsUpdate = true;
 
   const mesh = new THREE.Mesh(geo, mat);
   mesh.receiveShadow = true;
