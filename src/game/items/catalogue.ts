@@ -121,6 +121,18 @@ export const AGIMAT_ITEMS: TalismanItem[] = [
       flatSpeed: 0.6,
     },
   },
+  {
+    id: 'bulul-ward',
+    name: 'Bulul Vision Ward (Totem)',
+    category: 'charm',
+    cost: 75,
+    emoji: '🧿',
+    blurb: 'Reveals 16u Radius · 90s Duration · True Sight',
+    lore: 'A carved granary guardian totem planted in the soil. Pierces through fog of war and reveals concealed enemies in brush.',
+    stats: {
+      flatHp: 30,
+    },
+  },
 ];
 
 export const itemById = (id: string): TalismanItem | undefined =>

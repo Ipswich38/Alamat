@@ -57,6 +57,9 @@ import {
 import { createInventoryManager, type EffectiveHeroStats } from '@/game/items/inventory';
 import { type TalismanItem } from '@/game/items/catalogue';
 import { createBotTeamManager } from '@/game/ai/botHero';
+import { createWardManager, type WardManager } from '@/game/render3d/wards';
+import { createRaidManager, type RaidManager } from '@/game/combat/raid';
+import { createRaidMonsterRender, type RaidMonsterRender } from '@/game/render3d/raidMonsters';
 import { android } from '@/game/platform/android';
 import type { TeammateHudData, EnemyBotHudData, TacticalPingData } from '@/components/game/HeroHud';
 import {
@@ -85,6 +88,8 @@ import {
   type ProjectileCast,
   type WindupCast,
   type JungleBuffType,
+  type BattleSpellId,
+  BATTLE_SPELLS,
 } from '@/game/combat';
 import { combatGroundY, createCombatFx } from '@/game/render3d/combat';
 
@@ -95,9 +100,11 @@ const ENEMY: TeamId = 'dusk';
 export default function Arena3D({
   heroId = 'veer',
   territoryId = 'warding',
+  mode = 'classic',
 }: {
   heroId?: string;
   territoryId?: string;
+  mode?: 'classic' | 'duel' | 'raid';
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const playable = HEROES.filter((h) => h.model);
@@ -105,6 +112,8 @@ export default function Arena3D({
   const [hero, setHero] = useState<Hero>(
     () => playable.find((h) => h.id === heroId) ?? playable[0]
   );
+  const [battleSpell, setBattleSpell] = useState<BattleSpellId>('flicker');
+  const battleSpellRef = useRef<BattleSpellId>('flicker');
   const [fps, setFps] = useState(0);
   const [hidden, setHidden] = useState(false);
   const [compass, setCompass] = useState(Math.PI / 4);
@@ -254,6 +263,16 @@ export default function Arena3D({
     const bossRender = createBossRender();
     stage.scene.add(bossRender.group);
 
+    const wardManager = createWardManager();
+    stage.scene.add(wardManager.group);
+
+    const raidManager = createRaidManager();
+    const raidRender = createRaidMonsterRender();
+    if (mode === 'raid') {
+      stage.scene.add(raidRender.group);
+      raidManager.startRaid();
+    }
+
     // ── Inventory & RPG Item Engine ─────────────────────────────────────────
     const inventory = createInventoryManager(['amihan-boots']);
     let currentLevel = 1;
@@ -270,6 +289,19 @@ export default function Arena3D({
     let activeStats = refreshStats();
 
     buyFn.current = (item: TalismanItem) => {
+      if (item.id === 'bulul-ward') {
+        if (currentGold >= item.cost) {
+          currentGold -= item.cost;
+          setPlayerGold(currentGold);
+          wardManager.addWard('ward-' + Math.floor(clock), px, pz, 'dawn', clock, 90);
+          sound.playChimeChime();
+          combatFx.addBlessingBurst(px, pz, 0x00e5ff);
+          setCombatLine('Planted Bulul Vision Ward (16u True Sight for 90s)!');
+        } else {
+          setCombatLine('Not enough gold for Bulul Vision Ward (🪙 75g)!');
+        }
+        return;
+      }
       if (currentGold >= item.cost && !inventory.isFull()) {
         currentGold -= item.cost;
         inventory.addItem(item);
@@ -352,8 +384,8 @@ export default function Arena3D({
       stage.scene.add(a.object);
     });
 
-    // ── 3v3 MOBA AI Champion Team System ────────────────────────────────────
-    const botTeamManager = createBotTeamManager(hero.id, 'dawn');
+    // ── 3v3 / 5v5 MOBA AI Champion Team System ─────────────────────────────
+    const botTeamManager = createBotTeamManager(hero.id, 'dawn', mode === 'duel');
     const botActors = new Map<string, Actor>();
 
     for (const bot of botTeamManager.all) {
@@ -742,6 +774,24 @@ export default function Arena3D({
         awardXpAndGold(bounty.xp, bounty.gold, 'Minion');
       }
 
+      // ── PvE Folklore Monster Raid Strike ──────────────────────────────────
+      if (mode === 'raid') {
+        for (const rm of raidManager.monsters) {
+          if (rm.alive && covers(rm.x, rm.z, 1.3)) {
+            rm.hp -= appliedDamage;
+            damageNumbers.spawn(rm.x, terrainHeight(rm.x, rm.z) + 1.2, rm.z, appliedDamage, isCrit ? 'crit' : 'physical');
+            combatFx.addBurst(rm.x, rm.z, 0xff0055);
+            sound.playMeleeHit();
+            damageDealtToFoes += appliedDamage;
+
+            if (rm.hp <= 0) {
+              rm.alive = false;
+              awardXpAndGold(BOUNTIES.jungleCreep.xp, BOUNTIES.jungleCreep.gold, rm.name);
+            }
+          }
+        }
+      }
+
       // ── Objectives / Structure Strike ─────────────────────────────────────
       const report = objectives.strike(ENEMY, covers, appliedDamage);
       for (const hit of report.hits) {
@@ -975,33 +1025,146 @@ export default function Arena3D({
       }
 
       if (slot === 'spell') {
-        ready.spell = clock + 45;
-        sound.playDash();
+        const currentSpellId = battleSpellRef.current;
+        const spellDef = BATTLE_SPELLS.find((s) => s.id === currentSpellId) ?? BATTLE_SPELLS[0];
+        ready.spell = clock + spellDef.cooldown;
         haptics.cast();
-        let castHeading = heading;
-        if (targetOverride?.heading !== undefined) {
-          castHeading = targetOverride.heading;
-        } else if (targetOverride?.x !== undefined && targetOverride?.z !== undefined) {
-          castHeading = Math.atan2(targetOverride.x - px, targetOverride.z - pz);
-        } else if (joyRef.current.x !== 0 || joyRef.current.z !== 0) {
-          const cos = Math.cos(camera.yaw);
-          const sin = Math.sin(camera.yaw);
-          const dx = joyRef.current.x * cos + joyRef.current.z * sin;
-          const dz = -joyRef.current.x * sin + joyRef.current.z * cos;
-          castHeading = Math.atan2(dx, dz);
+
+        if (currentSpellId === 'sprint') {
+          sound.playSpellCast('buff');
+          grantBuff('amihan_haste', 'Amihan Gale Sprint', 4.0);
+          combatFx.addBlessingBurst(px, pz, 0x38bdf8);
+          setCombatLine('Cast Sprint (Amihan Gale +50% Movement Speed)!');
+        } else if (currentSpellId === 'purify') {
+          sound.playChimeChime();
+          grantBuff('bathala_tenacity', "Bathala's Grace", 1.5);
+          playerHealth = Math.min(activeStats.maxHp, playerHealth + 150);
+          setPlayerHp(playerHealth);
+          damageNumbers.spawn(px, terrainHeight(px, pz) + 1.2, pz, 150, 'heal');
+          combatFx.addBlessingBurst(px, pz, 0xfacc15);
+          setCombatLine("Cast Purify (Bathala's Grace Cleansed CC & +150 HP)!");
+        } else if (currentSpellId === 'retribution') {
+          let smiteTarget: { x: number; y: number; z: number; takeDamage: (dmg: number) => void } | null = null;
+          let nearestD = 8.5;
+
+          // Check creeps
+          for (const c of creepManager.creeps) {
+            if (c.alive) {
+              const d = Math.hypot(c.x - px, c.z - pz);
+              if (d < nearestD) {
+                nearestD = d;
+                smiteTarget = {
+                  x: c.x,
+                  y: terrainHeight(c.x, c.z),
+                  z: c.z,
+                  takeDamage: (dmg) => {
+                    c.health -= dmg;
+                    if (c.health <= 0) c.alive = false;
+                  },
+                };
+              }
+            }
+          }
+          // Check bosses
+          if (bossManager.maw.alive) {
+            const d = Math.hypot(bossManager.maw.x - px, bossManager.maw.z - pz);
+            if (d < nearestD) {
+              nearestD = d;
+              smiteTarget = {
+                x: bossManager.maw.x,
+                y: terrainHeight(bossManager.maw.x, bossManager.maw.z),
+                z: bossManager.maw.z,
+                takeDamage: (dmg) => {
+                  bossManager.maw.health -= dmg;
+                  if (bossManager.maw.health <= 0) bossManager.maw.alive = false;
+                },
+              };
+            }
+          }
+          if (bossManager.treant.alive) {
+            const d = Math.hypot(bossManager.treant.x - px, bossManager.treant.z - pz);
+            if (d < nearestD) {
+              nearestD = d;
+              smiteTarget = {
+                x: bossManager.treant.x,
+                y: terrainHeight(bossManager.treant.x, bossManager.treant.z),
+                z: bossManager.treant.z,
+                takeDamage: (dmg) => {
+                  bossManager.treant.health -= dmg;
+                  if (bossManager.treant.health <= 0) bossManager.treant.alive = false;
+                },
+              };
+            }
+          }
+          // Check raid monsters
+          if (mode === 'raid') {
+            for (const rm of raidManager.monsters) {
+              if (rm.alive) {
+                const d = Math.hypot(rm.x - px, rm.z - pz);
+                if (d < nearestD) {
+                  nearestD = d;
+                  smiteTarget = {
+                    x: rm.x,
+                    y: rm.y,
+                    z: rm.z,
+                    takeDamage: (dmg) => {
+                      rm.hp -= dmg;
+                      if (rm.hp <= 0) rm.alive = false;
+                    },
+                  };
+                }
+              }
+            }
+          }
+
+          if (smiteTarget) {
+            smiteTarget.takeDamage(550);
+            damageNumbers.spawn(smiteTarget.x, smiteTarget.y + 1.2, smiteTarget.z, 550, 'crit');
+            combatFx.addBurst(smiteTarget.x, smiteTarget.z, 0xffd700);
+            sound.playMeleeHit();
+            currentGold += 75;
+            setPlayerGold(currentGold);
+            setCombatLine('Cast Retribution (Agimat Smite -550 True DMG +75 Gold)!');
+          } else {
+            combatFx.addBurst(px, pz, 0xef4444);
+            setCombatLine('Cast Retribution (No jungle monster or boss in range)!');
+          }
+        } else if (currentSpellId === 'heal') {
+          sound.playPotion();
+          grantBuff('ginhawa_heal', 'Ginhawa Life Surge', 5.0);
+          playerHealth = Math.min(activeStats.maxHp, playerHealth + 300);
+          setPlayerHp(playerHealth);
+          damageNumbers.spawn(px, terrainHeight(px, pz) + 1.2, pz, 300, 'heal');
+          combatFx.addBlessingBurst(px, pz, 0x10b981);
+          setCombatLine('Cast Heal (Ginhawa Restored +300 HP & Regen)!');
         } else {
-          castHeading = heading;
+          // Default: Flicker
+          sound.playDash();
+          let castHeading = heading;
+          if (targetOverride?.heading !== undefined) {
+            castHeading = targetOverride.heading;
+          } else if (targetOverride?.x !== undefined && targetOverride?.z !== undefined) {
+            castHeading = Math.atan2(targetOverride.x - px, targetOverride.z - pz);
+          } else if (joyRef.current.x !== 0 || joyRef.current.z !== 0) {
+            const cos = Math.cos(camera.yaw);
+            const sin = Math.sin(camera.yaw);
+            const dx = joyRef.current.x * cos + joyRef.current.z * sin;
+            const dz = -joyRef.current.x * sin + joyRef.current.z * cos;
+            castHeading = Math.atan2(dx, dz);
+          } else {
+            castHeading = heading;
+          }
+          const dir = direction(castHeading);
+          const blinkDist = 6.5;
+          const next = resolveBody(px + dir.x * blinkDist, pz + dir.z * blinkDist, heroRadius(currentHero.build.scale));
+          combatFx.addBurst(px, pz, 0x00e5ff);
+          px = next.x;
+          pz = next.z;
+          heading = castHeading;
+          combatFx.addBurst(px, pz, 0x00e5ff);
+          stage.addCameraShake(0.25);
+          setCombatLine('Cast Flicker (Kidlat Instant Flash Dash)!');
         }
-        const dir = direction(castHeading);
-        const blinkDist = 6.5;
-        const next = resolveBody(px + dir.x * blinkDist, pz + dir.z * blinkDist, heroRadius(currentHero.build.scale));
-        combatFx.addBurst(px, pz, 0x00e5ff);
-        px = next.x;
-        pz = next.z;
-        heading = castHeading;
-        combatFx.addBurst(px, pz, 0x00e5ff);
-        stage.addCameraShake(0.25);
-        setCombatLine('Cast Flicker Spell (Instant Flash Dash)!');
         syncCooldowns();
         return;
       }
@@ -1605,6 +1768,52 @@ export default function Arena3D({
       });
       minionRender.update(minionManager.minions, clock);
 
+      // Bulul Vision Wards update
+      wardManager.update(clock);
+
+      // PvE Folklore Monster Raid update
+      if (mode === 'raid') {
+        raidRender.update(raidManager.monsters, clock);
+        raidManager.update(
+          dt,
+          clock,
+          px,
+          pz,
+          (dmg, monsterName) => {
+            hurtPlayer(dmg, monsterName);
+          },
+          (monster) => {
+            sound.playMeleeHit();
+            awardXpAndGold(BOUNTIES.jungleCreep.xp, BOUNTIES.jungleCreep.gold, monster.name);
+          },
+          (wave) => {
+            sound.playLevelUp();
+            sound.playMultiKill(3);
+            setCombatLine(`⚔️ Wave ${wave} CLEARED! Next raid wave incoming in 5s.`);
+          },
+          () => {
+            if (!won && !defeated) {
+              setWon(true);
+              sound.playVictory();
+              setCombatLine('🏆 MYTHIC RAID VICTORY! All 5 monster waves defeated!');
+            }
+          }
+        );
+      }
+
+      // 1v1 Ancestral Duel Win Condition Check
+      if (mode === 'duel') {
+        if (allyKills >= 3 && !won && !defeated) {
+          setWon(true);
+          sound.playVictory();
+          setCombatLine('🏆 1v1 DUEL VICTORY! Reached 3 kills first!');
+        } else if (enemyKills >= 3 && !won && !defeated) {
+          setDefeated(true);
+          sound.playDefeat();
+          setCombatLine('💀 1v1 DUEL DEFEAT! Opponent reached 3 kills!');
+        }
+      }
+
       // Idol jungle camp boons
       const camp = campAt(px, pz);
       if (camp) {
@@ -1927,6 +2136,8 @@ export default function Arena3D({
       minionRender.dispose();
       creepRender.dispose();
       bossRender.dispose();
+      wardManager.dispose();
+      raidRender.dispose();
       player?.dispose();
       foe?.dispose();
       botActors.forEach((a) => {
@@ -2008,6 +2219,11 @@ export default function Arena3D({
         activePings={activePings}
         gamepadConnected={gamepadConnected}
         gamepadName={gamepadName}
+        battleSpell={battleSpell}
+        onSelectBattleSpell={(spellId) => {
+          setBattleSpell(spellId);
+          battleSpellRef.current = spellId;
+        }}
       />
     </div>
   );

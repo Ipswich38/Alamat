@@ -11,6 +11,60 @@ import type * as THREE from 'three';
 
 export type CastSlot = 'basic' | 'basic_minion' | 'basic_tower' | 'ability0' | 'ability1' | 'ability2' | 'ultimate' | 'potion' | 'spell' | 'recall';
 
+export type BattleSpellId = 'flicker' | 'sprint' | 'purify' | 'retribution' | 'heal';
+
+export interface BattleSpell {
+  id: BattleSpellId;
+  name: string;
+  tagalogName: string;
+  emoji: string;
+  cooldown: number;
+  description: string;
+}
+
+export const BATTLE_SPELLS: BattleSpell[] = [
+  {
+    id: 'flicker',
+    name: 'Flicker',
+    tagalogName: 'Kidlat',
+    emoji: '⚡',
+    cooldown: 45,
+    description: 'Instant 6.5u directional blink flash.',
+  },
+  {
+    id: 'sprint',
+    name: 'Sprint',
+    tagalogName: 'Amihan Gale',
+    emoji: '💨',
+    cooldown: 35,
+    description: '+50% decaying movement speed boost for 4s.',
+  },
+  {
+    id: 'purify',
+    name: 'Purify',
+    tagalogName: "Bathala's Grace",
+    emoji: '✨',
+    cooldown: 40,
+    description: 'Cleanses all CC debuffs, heals +150 HP, and grants 1.5s tenacity.',
+  },
+  {
+    id: 'retribution',
+    name: 'Retribution',
+    tagalogName: 'Agimat Smite',
+    emoji: '🗡️',
+    cooldown: 30,
+    description: 'Deals 550 true damage to jungle creeps/bosses and grants +75 gold.',
+  },
+  {
+    id: 'heal',
+    name: 'Heal',
+    tagalogName: 'Ginhawa',
+    emoji: '🍃',
+    cooldown: 40,
+    description: 'Restores +300 HP and +15 HP/s for 5s to self and nearby allies.',
+  },
+];
+
 /** Seconds remaining on each slot. Zero means ready. */
 export type CooldownState = Record<CastSlot, number>;
 

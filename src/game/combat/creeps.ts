@@ -2,7 +2,7 @@
 import { CAMPS, type Camp } from "@/game/arena/camps";
 
 export type CreepKind = "tikbalang_leader" | "tikbalang_wisp" | "aswang_stalker" | "idol_guardian" | "scuttler";
-export type JungleBuffType = "wind_stride" | "blood_thirst" | "idol_blessing" | "river_stride";
+export type JungleBuffType = "wind_stride" | "blood_thirst" | "idol_blessing" | "river_stride" | "amihan_haste" | "bathala_tenacity" | "ginhawa_heal";
 
 export interface CreepUnit {
   id: string;

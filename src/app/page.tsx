@@ -23,6 +23,7 @@ export default function HeroSelectionLobby() {
   const [selectedHero, setSelectedHero] = useState<Hero>(HEROES[0]);
   const [selectedTerritory, setSelectedTerritory] = useState<Territory>(DEFAULT_TERRITORY);
   const [selectedRole, setSelectedRole] = useState<string>('all');
+  const [selectedMode, setSelectedMode] = useState<'classic' | 'duel' | 'raid'>('classic');
   const [activeStoryChapter, setActiveStoryChapter] = useState<number>(1);
   const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(true);
   const [playerProfile] = useState<PlayerProfile>(() => loadPlayerProfile());
@@ -301,10 +302,10 @@ export default function HeroSelectionLobby() {
           </button>
 
           <Link
-            href={`/play?hero=${selectedHero.id}&territory=${selectedTerritory.id}`}
+            href={`/play?hero=${selectedHero.id}&territory=${selectedTerritory.id}&mode=${selectedMode}`}
             style={quickPlayHeaderBtn}
           >
-            <span>⚔️ PLAY</span>
+            <span>⚔️ PLAY ({selectedMode.toUpperCase()})</span>
           </Link>
         </div>
       </header>
@@ -589,12 +590,60 @@ export default function HeroSelectionLobby() {
                 </div>
               </div>
 
+              {/* Game Mode Selection Switcher */}
+              <div style={{ marginTop: 14, marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: '#94A3B8', letterSpacing: 0.5 }}>
+                    🎮 URI NG LABANAN (GAME MODE):
+                  </span>
+                  <span style={{ fontSize: 10, color: '#FFD700', fontWeight: 700 }}>
+                    {selectedMode === 'classic' ? '5v5 Classic MOBA' : selectedMode === 'duel' ? '1v1 Ancestral Duel' : 'PvE Monster Raid'}
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+                  {[
+                    { id: 'classic', icon: '⚔️', label: '5v5 CLASSIC', sub: '3-Lane Conquest' },
+                    { id: 'duel', icon: '🤺', label: '1v1 DUEL', sub: 'Mid Ancestral Duel' },
+                    { id: 'raid', icon: '🐉', label: 'MONSTER RAID', sub: '5-Wave Survival' },
+                  ].map((m) => {
+                    const isSelected = selectedMode === m.id;
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => {
+                          setSelectedMode(m.id as 'classic' | 'duel' | 'raid');
+                          sound.playPing('select');
+                        }}
+                        style={{
+                          padding: '8px 6px',
+                          borderRadius: 10,
+                          border: isSelected ? '1.5px solid #FFD700' : '1px solid rgba(255, 255, 255, 0.12)',
+                          background: isSelected ? 'rgba(255, 215, 0, 0.2)' : 'rgba(15, 23, 42, 0.7)',
+                          color: isSelected ? '#FFD700' : '#CBD5E1',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 2,
+                          transition: 'all 120ms ease',
+                          boxShadow: isSelected ? '0 0 12px rgba(255, 215, 0, 0.25)' : 'none',
+                        }}
+                      >
+                        <span style={{ fontSize: 16 }}>{m.icon}</span>
+                        <strong style={{ fontSize: 10.5, letterSpacing: 0.5 }}>{m.label}</strong>
+                        <span style={{ fontSize: 8.5, color: isSelected ? '#FEF08A' : '#64748B' }}>{m.sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Mobile Fixed Launch Button */}
               <Link
-                href={`/play?hero=${selectedHero.id}&territory=${selectedTerritory.id}`}
+                href={`/play?hero=${selectedHero.id}&territory=${selectedTerritory.id}&mode=${selectedMode}`}
                 style={launchPlayBtn}
               >
-                <span>⚔️ DEPLOY TO {selectedTerritory.name.toUpperCase()}</span>
+                <span>⚔️ DEPLOY TO {selectedTerritory.name.toUpperCase()} · {selectedMode.toUpperCase()}</span>
               </Link>
             </section>
           </main>
@@ -806,13 +855,13 @@ export default function HeroSelectionLobby() {
 
               {/* Launch Arena in this Territory */}
               <Link
-                href={`/play?hero=${selectedHero.id}&territory=${selectedTerritory.id}`}
+                href={`/play?hero=${selectedHero.id}&territory=${selectedTerritory.id}&mode=${selectedMode}`}
                 style={{
                   ...launchPlayBtn,
                   background: `linear-gradient(135deg, ${selectedTerritory.atmosphere.primaryColor}, #B45309)`,
                 }}
               >
-                <span>⚔️ DEPLOY {selectedHero.name.toUpperCase()} TO {selectedTerritory.name.toUpperCase()}</span>
+                <span>⚔️ DEPLOY {selectedHero.name.toUpperCase()} TO {selectedTerritory.name.toUpperCase()} ({selectedMode.toUpperCase()})</span>
               </Link>
             </div>
           </div>

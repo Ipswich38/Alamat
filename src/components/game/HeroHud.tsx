@@ -25,7 +25,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { TEAMS, type TeamId } from '@/game/arena/nexus';
 import type { CastSlot, CooldownState } from '@/game/combat';
-import { abilityForSlot } from '@/game/combat/casting';
+import { abilityForSlot, BATTLE_SPELLS, type BattleSpell, type BattleSpellId } from '@/game/combat/casting';
 import type { Hero } from '@/game/heroes';
 import { CAMPS } from '@/game/arena/camps';
 import { AGIMAT_ITEMS, type TalismanItem } from '@/game/items/catalogue';
@@ -194,6 +194,8 @@ export interface HeroHudProps {
   activePings?: TacticalPingData[];
   gamepadConnected?: boolean;
   gamepadName?: string;
+  battleSpell?: BattleSpellId;
+  onSelectBattleSpell?: (id: BattleSpellId) => void;
 }
 
 export default function HeroHud({
@@ -253,17 +255,21 @@ export default function HeroHud({
   activePings = [],
   gamepadConnected = false,
   gamepadName = '',
+  battleSpell = 'flicker',
+  onSelectBattleSpell,
 }: HeroHudProps) {
   // ── Modal Dialog States ──────────────────────────────────────────────────
   const [showStats, setShowStats] = useState(false);
   const [showShop, setShowShop] = useState(false);
-  const [showTerritoryCodex, setShowTerritoryCodex] = useState(false);
-  const [activeStoryChapter, setActiveStoryChapter] = useState(1);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showRoster, setShowRoster] = useState(false);
   const [showMinionsCodex, setShowMinionsCodex] = useState(false);
+  const [showTerritoryCodex, setShowTerritoryCodex] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showRoster, setShowRoster] = useState(false);
   const [showScoreboard, setShowScoreboard] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showBattleSpells, setShowBattleSpells] = useState(false);
   const [showBattlePings, setShowBattlePings] = useState(false);
+  const [activeStoryChapter, setActiveStoryChapter] = useState<number>(1);
   const [showProfile, setShowProfile] = useState(false);
   const [profileTab, setProfileTab] = useState<'dossier' | 'quests' | 'mastery'>('dossier');
   const [pingNotification, setPingNotification] = useState<string | null>(null);
@@ -725,7 +731,9 @@ export default function HeroHud({
   };
 
 
-  // ── Ability Configurations ───────────────────────────────────────────────
+  // ── Battle Spell & Ability Configurations ─────────────────────────────────
+  const activeSpell = BATTLE_SPELLS.find((s) => s.id === battleSpell) ?? BATTLE_SPELLS[0];
+
   const ability0 = hero.abilities[0] || {
     id: 'ab0',
     name: 'Strike',
@@ -1314,25 +1322,50 @@ export default function HeroHud({
             </div>
           )}
 
-          {/* Battle Spell / Flicker (F) */}
-          <button
-            style={{
-              ...smallSpellBtn,
-              opacity: cooldowns.spell > 0 ? 0.55 : 1,
-              transform: aimSlot === 'spell' ? `translate(${aimDragOffset.x * 0.4}px, ${aimDragOffset.y * 0.4}px) scale(1.15)` : 'none',
-              boxShadow: aimSlot === 'spell' ? '0 0 20px #00E5FF' : 'none',
-            }}
-            onPointerDown={(e) => handleAbilityPointerDown(e, 'spell')}
-            onPointerMove={handleAbilityPointerMove}
-            onPointerUp={handleAbilityPointerUp}
-            onPointerCancel={handleAbilityPointerUp}
-            title="Battle Spell: Flicker"
-          >
-            <span style={{ fontSize: 16 }}>⚡</span>
-            {cooldowns.spell > 0 ? (
-              <span style={spellCooldownText}>{Math.ceil(cooldowns.spell)}</span>
-            ) : null}
-          </button>
+          {/* Battle Spell / Selected Summoner Spell (F) */}
+          <div style={{ position: 'relative' }}>
+            <button
+              style={{
+                ...smallSpellBtn,
+                opacity: cooldowns.spell > 0 ? 0.55 : 1,
+                transform: aimSlot === 'spell' ? `translate(${aimDragOffset.x * 0.4}px, ${aimDragOffset.y * 0.4}px) scale(1.15)` : 'none',
+                boxShadow: aimSlot === 'spell' ? '0 0 20px #00E5FF' : 'none',
+              }}
+              onPointerDown={(e) => handleAbilityPointerDown(e, 'spell')}
+              onPointerMove={handleAbilityPointerMove}
+              onPointerUp={handleAbilityPointerUp}
+              onPointerCancel={handleAbilityPointerUp}
+              title={`Battle Spell: ${activeSpell.name} (${activeSpell.tagalogName}) [F]`}
+            >
+              <span style={{ fontSize: 16 }}>{activeSpell.emoji}</span>
+              {cooldowns.spell > 0 ? (
+                <span style={spellCooldownText}>{Math.ceil(cooldowns.spell)}</span>
+              ) : null}
+            </button>
+            <button
+              onClick={() => setShowBattleSpells(true)}
+              style={{
+                position: 'absolute',
+                top: -4,
+                right: -4,
+                width: 14,
+                height: 14,
+                borderRadius: '50%',
+                background: 'rgba(56, 189, 248, 0.95)',
+                border: '1px solid #FFF',
+                color: '#FFF',
+                fontSize: 8,
+                fontWeight: 900,
+                display: 'grid',
+                placeItems: 'center',
+                cursor: 'pointer',
+                zIndex: 10,
+              }}
+              title="Change Battle Spell"
+            >
+              ⚙
+            </button>
+          </div>
 
           {/* Health Potion (D) */}
           <button
@@ -3076,6 +3109,229 @@ export default function HeroHud({
                   )}
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Battle Spell Switcher Modal */}
+      {showBattleSpells ? (
+        <div style={modalOverlay} onClick={() => setShowBattleSpells(false)}>
+          <div style={{ ...modalCard, maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
+            <div style={modalHeader}>
+              <div>
+                <strong style={{ fontSize: 18, color: '#FFD700', letterSpacing: 0.5 }}>
+                  ⚡ Mga Orasyon ng Pakikipaglaban (Battle Spells)
+                </strong>
+                <span style={{ display: 'block', fontSize: 11.5, color: '#94A3B8', marginTop: 2 }}>
+                  Equip ancestral summoner spell to turn the tide of combat.
+                </span>
+              </div>
+              <button style={closeBtn} onClick={() => setShowBattleSpells(false)}>
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {BATTLE_SPELLS.map((spell) => {
+                const isActive = spell.id === battleSpell;
+                return (
+                  <div
+                    key={spell.id}
+                    onClick={() => {
+                      onSelectBattleSpell?.(spell.id);
+                      setShowBattleSpells(false);
+                      sound.playPing('select');
+                      haptics.tick();
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '10px 14px',
+                      borderRadius: 12,
+                      background: isActive ? 'rgba(56, 189, 248, 0.2)' : 'rgba(15, 23, 42, 0.65)',
+                      border: isActive ? '1.5px solid #38BDF8' : '1px solid rgba(255, 255, 255, 0.12)',
+                      cursor: 'pointer',
+                      transition: 'all 120ms ease',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 10,
+                        background: isActive ? 'rgba(56, 189, 248, 0.3)' : 'rgba(30, 41, 59, 0.8)',
+                        border: isActive ? '1px solid #38BDF8' : '1px solid rgba(255,255,255,0.1)',
+                        display: 'grid',
+                        placeItems: 'center',
+                        fontSize: 22,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {spell.emoji}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <strong style={{ fontSize: 13.5, color: '#F8FAFC' }}>
+                          {spell.name} ({spell.tagalogName})
+                        </strong>
+                        <span style={{ fontSize: 10, color: '#FFD700', fontWeight: 800 }}>
+                          ⏱ {spell.cooldown}s CD
+                        </span>
+                      </div>
+                      <p style={{ margin: '3px 0 0', fontSize: 11, color: '#94A3B8', lineHeight: 1.35 }}>
+                        {spell.description}
+                      </p>
+                    </div>
+                    <div>
+                      {isActive ? (
+                        <span style={{ fontSize: 10, fontWeight: 900, color: '#38BDF8', background: 'rgba(56, 189, 248, 0.2)', padding: '4px 10px', borderRadius: 999, border: '1px solid #38BDF8' }}>
+                          EQUIPPED
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 10, fontWeight: 700, color: '#CBD5E1', background: 'rgba(255,255,255,0.08)', padding: '4px 10px', borderRadius: 999 }}>
+                          EQUIP
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Ancestral Warcalls & Tactical Pings Modal */}
+      {showBattlePings ? (
+        <div style={modalOverlay} onClick={() => setShowBattlePings(false)}>
+          <div style={{ ...modalCard, maxWidth: 500 }} onClick={(e) => e.stopPropagation()}>
+            <div style={modalHeader}>
+              <div>
+                <strong style={{ fontSize: 18, color: '#EF4444', letterSpacing: 0.5 }}>
+                  📢 Mga Panawagan sa Labanan (Ancestral Warcalls)
+                </strong>
+                <span style={{ display: 'block', fontSize: 11.5, color: '#94A3B8', marginTop: 2 }}>
+                  Broadcast strategic commands to all allied heroes on the battlefield.
+                </span>
+              </div>
+              <button style={closeBtn} onClick={() => setShowBattlePings(false)}>
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <button
+                onClick={() => triggerWarCall('sulong')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1.5px solid rgba(239, 68, 68, 0.6)',
+                  color: '#F8FAFC',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{ fontSize: 24 }}>⚔️</span>
+                <div>
+                  <strong style={{ display: 'block', fontSize: 13, color: '#EF4444' }}>SULONG! (Attack)</strong>
+                  <span style={{ fontSize: 10.5, color: '#94A3B8' }}>Push the lane & strike enemy</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => triggerWarCall('iwas')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  border: '1.5px solid rgba(245, 158, 11, 0.6)',
+                  color: '#F8FAFC',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{ fontSize: 24 }}>⚠️</span>
+                <div>
+                  <strong style={{ display: 'block', fontSize: 13, color: '#F59E0B' }}>IWAS! (Danger)</strong>
+                  <span style={{ fontSize: 10.5, color: '#94A3B8' }}>Watch out for ambush</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => triggerWarCall('tabi')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1.5px solid rgba(16, 185, 129, 0.6)',
+                  color: '#F8FAFC',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{ fontSize: 24 }}>🌿</span>
+                <div>
+                  <strong style={{ display: 'block', fontSize: 13, color: '#10B981' }}>TABI! (Stealth)</strong>
+                  <span style={{ fontSize: 10.5, color: '#94A3B8' }}>Hide in brush & regroup</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => triggerWarCall('tulong')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: 'rgba(56, 189, 248, 0.15)',
+                  border: '1.5px solid rgba(56, 189, 248, 0.6)',
+                  color: '#F8FAFC',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{ fontSize: 24 }}>🛡️</span>
+                <div>
+                  <strong style={{ display: 'block', fontSize: 13, color: '#38BDF8' }}>TULONG! (Defend)</strong>
+                  <span style={{ fontSize: 10.5, color: '#94A3B8' }}>Protect tower & allies</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => triggerWarCall('chime')}
+                style={{
+                  gridColumn: '1 / -1',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: 'rgba(168, 85, 247, 0.15)',
+                  border: '1.5px solid rgba(168, 85, 247, 0.6)',
+                  color: '#F8FAFC',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{ fontSize: 24 }}>🎶</span>
+                <div>
+                  <strong style={{ display: 'block', fontSize: 13, color: '#C084FC' }}>KULINTANG (Blessing)</strong>
+                  <span style={{ fontSize: 10.5, color: '#94A3B8' }}>Rouse spirit and inspire ancient bravery</span>
+                </div>
+              </button>
             </div>
           </div>
         </div>

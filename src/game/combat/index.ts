@@ -15,8 +15,9 @@ export {
   EMPTY_COOLDOWNS,
   PROJECTILE_SPEED,
   abilityForSlot,
+  BATTLE_SPELLS,
 } from './casting';
-export type { CastSlot, CooldownState, DashCast, ProjectileCast, WindupCast } from './casting';
+export type { CastSlot, CooldownState, DashCast, ProjectileCast, WindupCast, BattleSpell, BattleSpellId } from './casting';
 
 export { createObjectives } from './objectives';
 export type { HitReport, Objectives, Structure, StructureKind } from './objectives';
