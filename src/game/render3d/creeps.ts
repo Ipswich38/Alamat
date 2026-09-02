@@ -247,6 +247,72 @@ export function createCreepRender(): CreepRender {
 
       g.add(unitG);
       unitObj = unitG;
+    } else if (creep.kind === 'scuttler') {
+      // Gintong Alimango (Golden River Scuttler / Crab)
+      barColor = 0xffd700; // Bright Gold
+      barWidth = 1.4;
+      barY = 1.6;
+
+      const unitG = new THREE.Group();
+      const crabMat = surfaceMaterial(0xc99318, { roughness: 0.35, metalness: 0.65 });
+      const shellTopMat = surfaceMaterial(0xefb82c, { roughness: 0.25, metalness: 0.75 });
+
+      // Flattened Golden Carapace Shell
+      const shell = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.85, 0.95, 0.42, 8),
+        shellTopMat
+      );
+      shell.scale.set(1.2, 0.7, 0.9);
+      shell.position.y = 0.32;
+      shell.castShadow = true;
+      unitG.add(shell);
+
+      // Shell Dome / Crest
+      const dome = new THREE.Mesh(
+        new THREE.SphereGeometry(0.72, 8, 6),
+        crabMat
+      );
+      dome.scale.set(1.1, 0.45, 0.85);
+      dome.position.y = 0.45;
+      dome.castShadow = true;
+      unitG.add(dome);
+
+      // Glowing Cyan Eye Stalks
+      const eyeGlowMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff, toneMapped: false });
+      for (const side of [-1, 1]) {
+        const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.3, 4), crabMat);
+        stalk.position.set(side * 0.24, 0.65, 0.55);
+        stalk.rotation.x = Math.PI / 6;
+        const eyeOrb = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), eyeGlowMat);
+        eyeOrb.position.set(side * 0.24, 0.8, 0.62);
+        unitG.add(stalk, eyeOrb);
+      }
+
+      // Front Pincer Claws
+      for (const side of [-1, 1]) {
+        const pincerArm = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.6, 5), crabMat);
+        pincerArm.position.set(side * 0.75, 0.32, 0.55);
+        pincerArm.rotation.set(0, side * Math.PI / 4, side * Math.PI / 3);
+        const clawMain = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.5, 4), shellTopMat);
+        clawMain.position.set(side * 1.05, 0.35, 0.85);
+        clawMain.rotation.set(Math.PI / 2, 0, side * Math.PI / 6);
+        clawMain.castShadow = true;
+        unitG.add(pincerArm, clawMain);
+      }
+
+      // 6 Articulated Walking Legs
+      for (let leg = 0; leg < 3; leg++) {
+        for (const side of [-1, 1]) {
+          const legMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.03, 0.75, 4), crabMat);
+          legMesh.position.set(side * (0.85 + leg * 0.12), 0.22, (leg - 1) * 0.38);
+          legMesh.rotation.set(0, 0, -side * (Math.PI / 3 - leg * 0.1));
+          legMesh.castShadow = true;
+          unitG.add(legMesh);
+        }
+      }
+
+      g.add(unitG);
+      unitObj = unitG;
     } else {
       // Idol Guardian (Ancient Stone / Wood Idol)
       barColor = 0xffd06f; // Gold

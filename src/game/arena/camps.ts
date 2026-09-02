@@ -100,6 +100,26 @@ export const CAMPS: Camp[] = [
     light: 0xffd06f,
   },
 
+  // ── River Scuttler / Gold Crab (River Objectives) ───────────────────────
+  {
+    id: 'scuttler-nw',
+    name: 'Gintong Alimango (Gold River Crab)',
+    boon: 'River Stride: +35% river speed & grants river vision shrine for 60s.',
+    x: -24,
+    z: -24,
+    radius: POCKET,
+    light: 0xffd700, // Sacred golden glow
+  },
+  {
+    id: 'scuttler-se',
+    name: 'Gintong Alimango (Gold River Crab)',
+    boon: 'River Stride: +35% river speed & grants river vision shrine for 60s.',
+    x: 24,
+    z: 24,
+    radius: POCKET,
+    light: 0xffd700,
+  },
+
   // ── Major Boss Camps (The Epic Objectives) ────────────────────────────────
   {
     id: 'maw-pit',

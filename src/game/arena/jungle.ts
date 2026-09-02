@@ -75,6 +75,14 @@ export const BRUSH: Brush[] = [
   { id: 'brush-se-camp', x: 56, z: 30, radius: 6 },
   { id: 'brush-sw-camp', x: -30, z: 56, radius: 6 },
   { id: 'brush-ne-camp', x: 30, z: -56, radius: 6 },
+  // Side Lane Alcove Brush Pockets (Top & Bottom outplay zones)
+  { id: 'brush-top-alcove', x: -74, z: -74, radius: 6.5 },
+  { id: 'brush-bot-alcove', x: 74, z: 74, radius: 6.5 },
+  // River Chokepoint & Dragon Pit Ambush Brush
+  { id: 'brush-river-north', x: 12, z: -18, radius: 6 },
+  { id: 'brush-river-south', x: -12, z: 18, radius: 6 },
+  { id: 'brush-river-mid-west', x: -18, z: -6, radius: 5.5 },
+  { id: 'brush-river-mid-east', x: 18, z: 6, radius: 5.5 },
 ];
 
 /** Distance from a point to a segment, and how far along it that lands. */

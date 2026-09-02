@@ -621,6 +621,7 @@ export default function Arena3D({
         wind_stride: '💨',
         blood_thirst: '🩸',
         idol_blessing: '🌾',
+        river_stride: '🌊',
         moons_eclipse: '🌙',
       };
       const emoji = emojis[type] ?? '✨';
@@ -1303,6 +1304,7 @@ export default function Arena3D({
         const dz = -ix * sin + iz * cos;
         const len = Math.hypot(dx, dz) || 1;
         const hasWindStride = liveBuffs.some((b) => b.type === 'wind_stride' && clock < b.expiresAt);
+        const hasRiverStride = liveBuffs.some((b) => b.type === 'river_stride' && clock < b.expiresAt);
         const inRiver = onCrossing(px, pz);
         const isDaylight = clock % 600 < 420;
         let territorySpeedMult = 1.0;
@@ -1313,7 +1315,7 @@ export default function Arena3D({
         } else if (territory.id === 'gubat_dawn' && hiddenSeen) {
           territorySpeedMult *= 1.20;
         }
-        const speedMult = (hasWindStride ? 1.35 : 1.0) * riverSpeed(px, pz) * territorySpeedMult;
+        const speedMult = (hasWindStride ? 1.35 : 1.0) * (hasRiverStride ? 1.40 : 1.0) * riverSpeed(px, pz) * territorySpeedMult;
         const step = activeStats.speed * speedMult * dt;
         const bodyR = heroRadius(want.build.scale);
         const next = resolveBody(px + (dx / len) * step, pz + (dz / len) * step, bodyR);
@@ -1522,6 +1524,12 @@ export default function Arena3D({
       if (creepTick.buffGranted) {
         grantBuff(creepTick.buffGranted.type, creepTick.buffGranted.name, creepTick.buffGranted.duration);
         setCombatLine(`${creepTick.buffGranted.name} acquired! ${creepTick.buffGranted.description}`);
+      }
+      if (creepTick.clearedCampName) {
+        currentGold += 120;
+        setPlayerGold(currentGold);
+        sound.playBuyItem();
+        damageNumbers.spawn(px, terrainHeight(px, pz) + 1.4, pz, 120, 'gold');
       }
       if (creepTick.aoeSlam) {
         combatFx.addCircle(creepTick.aoeSlam.x, creepTick.aoeSlam.z, creepTick.aoeSlam.radius, 0xffd06f, 0.45);

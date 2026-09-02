@@ -1,8 +1,8 @@
 // Neutral Jungle Creeps: Veer Tricksters, Hollow Stalkers, and Idol Guardians.
 import { CAMPS, type Camp } from "@/game/arena/camps";
 
-export type CreepKind = "tikbalang_leader" | "tikbalang_wisp" | "aswang_stalker" | "idol_guardian";
-export type JungleBuffType = "wind_stride" | "blood_thirst" | "idol_blessing";
+export type CreepKind = "tikbalang_leader" | "tikbalang_wisp" | "aswang_stalker" | "idol_guardian" | "scuttler";
+export type JungleBuffType = "wind_stride" | "blood_thirst" | "idol_blessing" | "river_stride";
 
 export interface CreepUnit {
   id: string;
@@ -179,6 +179,28 @@ export function createCreepManager(): CreepManager {
         alive: true,
         state: "idle",
       });
+    } else if (camp.id.startsWith("scuttler")) {
+      units.push({
+        id: camp.id + "-crab",
+        campId: camp.id,
+        kind: "scuttler",
+        name: "Gintong Alimango",
+        anchorX: camp.x,
+        anchorZ: camp.z,
+        x: camp.x,
+        z: camp.z,
+        facing: Math.atan2(-camp.x, -camp.z),
+        health: 1100,
+        maxHealth: 1100,
+        radius: 1.1,
+        damage: 8,
+        range: 1.8,
+        speed: 5.2,
+        attackCooldown: 2.0,
+        defenseReduction: 0.1,
+        alive: true,
+        state: "idle",
+      });
     }
     return units;
   }
@@ -259,7 +281,8 @@ export function createCreepManager(): CreepManager {
         if (aliveCount === 0 && !tracker.cleared) {
           tracker.cleared = true;
           const isMedium = tracker.camp.id.startsWith("idol");
-          tracker.respawnAt = clock + (isMedium ? MEDIUM_RESPAWN : MINOR_RESPAWN);
+          const isScuttler = tracker.camp.id.startsWith("scuttler");
+          tracker.respawnAt = clock + (isMedium ? MEDIUM_RESPAWN : isScuttler ? 60.0 : MINOR_RESPAWN);
           clearedCampName = tracker.camp.name;
 
           if (tracker.camp.id.startsWith("veer")) {
@@ -282,6 +305,13 @@ export function createCreepManager(): CreepManager {
               name: "Idol Blessing",
               duration: 90,
               description: "+35 HP/s Regen & 20% CDR for 90s",
+            };
+          } else if (tracker.camp.id.startsWith("scuttler")) {
+            buffGranted = {
+              type: "river_stride",
+              name: "River Stride",
+              duration: 60,
+              description: "+35% River Movement Speed & Vision Shrine for 60s",
             };
           }
           continue;
@@ -316,6 +346,18 @@ export function createCreepManager(): CreepManager {
               u.state = "idle";
             }
           } else if (u.state === "chasing") {
+            if (u.kind === "scuttler") {
+              // Scuttler flees away from player along the river channel
+              const fx = u.x - player.x;
+              const fz = u.z - player.z;
+              const d = Math.hypot(fx, fz) || 1;
+              u.facing = Math.atan2(fx, fz);
+              const step = u.speed * dt;
+              u.x += (fx / d) * step;
+              u.z += (fz / d) * step;
+              continue;
+            }
+
             const dx = player.x - u.x;
             const dz = player.z - u.z;
             const gap = Math.hypot(dx, dz);
