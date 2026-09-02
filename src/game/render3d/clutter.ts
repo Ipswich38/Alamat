@@ -53,6 +53,12 @@ export function buildClutter(): Clutter {
   const dawnShrines = buildDawnRunicStones();
   group.add(dawnShrines.group);
 
+  // 4b. LANDSCAPE DETAIL PATCH: Crystal clusters + fallen logs (Forgotten Lands ref)
+  const crystalClusters = buildCrystalClusters();
+  group.add(crystalClusters);
+  const fallenLogs = buildFallenLogs();
+  group.add(fallenLogs);
+
   // 5. Willow Spirit Particles (ambient floating golden/cyan motes)
   const spiritParticles = buildWillowSpiritParticles();
   group.add(spiritParticles.points);
@@ -381,3 +387,68 @@ function buildWillowSpiritParticles(): {
     },
   };
 }
+
+/**
+ * LANDSCAPE DETAIL PATCH: Crystal clusters — purple emissive like ref (b47cff)
+ */
+function buildCrystalClusters(): THREE.Group {
+  const g = new THREE.Group();
+  g.name = 'crystal-clusters';
+  const pts: [number, number][] = [
+    [-48, 22], [-44, 28], [38, -36], [42, -28], [-12, -38], [18, 42],
+  ];
+  for (const [x, z] of pts) {
+    const cluster = new THREE.Group();
+    cluster.position.set(x, terrainHeight(x, z), z);
+    const count = 5 + Math.floor(Math.random()*3);
+    for (let i=0;i<count;i++) {
+      const h = 1.2 + Math.random()*1.8;
+      const geo = new THREE.IcosahedronGeometry(0.5 + Math.random()*0.4, 0);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x7a3cff,
+        emissive: 0x4a1fad,
+        emissiveIntensity: 0.65,
+        roughness: 0.3,
+        metalness: 0.15,
+        transparent: true,
+        opacity: 0.92,
+      });
+      const m = new THREE.Mesh(geo, mat);
+      m.position.set((Math.random()-0.5)*1.8, h*0.5, (Math.random()-0.5)*1.8);
+      m.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, 0);
+      m.scale.set(1, 1.4 + Math.random()*0.6, 1);
+      m.castShadow = true;
+      cluster.add(m);
+    }
+    // Point light for glow
+    const light = new THREE.PointLight(0xb47cff, 2.2, 14);
+    light.position.set(0, 2.2, 0);
+    cluster.add(light);
+    g.add(cluster);
+  }
+  return g;
+}
+
+/**
+ * Fallen logs — leaning dead tree like ref left-foreground
+ */
+function buildFallenLogs(): THREE.Group {
+  const g = new THREE.Group();
+  g.name = 'fallen-logs';
+  const logs: [number, number, number][] = [
+    [-52, 18, 0.6], [46, -22, -0.4], [-18, 36, 1.1],
+  ];
+  for (const [x, z, rot] of logs) {
+    const geo = new THREE.CylinderGeometry(0.9, 1.4, 7, 6);
+    geo.rotateZ(Math.PI/2);
+    const mat = surfaceMaterial(0x3e2f26, { roughness: 0.96 });
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x, terrainHeight(x, z) + 0.9, z);
+    m.rotation.set(0, rot, 0.15);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    g.add(m);
+  }
+  return g;
+}
+

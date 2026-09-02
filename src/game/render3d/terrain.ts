@@ -156,10 +156,23 @@ function surfaceColour(x: number, z: number, out: THREE.Color): void {
   out.copy(MOSSY_GRASS).lerp(JUNGLE_DEEP, 0.35 + grain * 0.4);
   out.lerp(MOSSY_LIT, Math.max(0, grain - 0.52) * 0.85);
 
-  // 2. Lane Layer: Dirt Path (#5D4037)
+  // 2. Lane Layer: Dirt Path (#5D4037) — LANDSCAPE DETAIL PATCH: cobble stones on main lane
   const lane = laneStrength(x, z);
   if (lane > 0) {
-    const dirt = DIRT_PATH.clone().offsetHSL(0, -0.05, (grain - 0.5) * 0.1);
+    let dirt: THREE.Color;
+    if (lane > 0.62) {
+      // Central lane = Forgotten Lands cobble: 8-dark mortar + 3 stone tints
+      const cx = Math.floor(x * 2.2);
+      const cz = Math.floor(z * 2.2);
+      const h = hash(cx * 0.11 + 0.5, cz * 0.11 + 0.5);
+      if (h < 0.08) dirt = new THREE.Color('#2b1f18'); // mortar 1px
+      else if (h < 0.36) dirt = new THREE.Color('#6a5a4a');
+      else if (h < 0.64) dirt = new THREE.Color('#7a6a5a');
+      else dirt = new THREE.Color('#5a4a3a');
+      dirt.offsetHSL(0, -0.05, (grain - 0.5) * 0.08);
+    } else {
+      dirt = DIRT_PATH.clone().offsetHSL(0, -0.05, (grain - 0.5) * 0.1);
+    }
     out.lerp(dirt, Math.min(1, lane * 1.3));
   }
 

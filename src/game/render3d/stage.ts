@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { SAOPass } from 'three/examples/jsm/postprocessing/SAOPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { createSky, getTodLighting } from './sky';
 import { createGradePass } from './grade';
@@ -173,6 +174,18 @@ export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string):
     0.86
   );
   composer.addPass(bloom);
+  // LANDSCAPE DETAIL PATCH: SSAO for cobble crevices (subtle)
+  try {
+    const sao = new SAOPass(scene, camera);
+    // @ts-ignore — SAO params vary by three version
+    sao.params = sao.params || {};
+    // keep subtle so MOBA readability stays
+    if ((sao as any).params) {
+      (sao as any).params.saoIntensity = 0.04;
+      (sao as any).params.saoScale = 12;
+    }
+    composer.addPass(sao as any);
+  } catch {}
   composer.addPass(new OutputPass());
   const grade = createGradePass({
     shadowTint: new THREE.Color('#35505C'),
