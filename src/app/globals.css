@@ -306,3 +306,110 @@ canvas {
     font-size: 16px !important;
   }
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   ALAMAT PREMIUM POLISH PACK — Graphics & UX Elevation
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Premium Lobby Card Motion — Stagger Pop-in */
+@keyframes cardPopIn {
+  0% { opacity: 0; transform: translateY(14px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes shimmerSweep {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes floatGentle {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@keyframes ringPulse {
+  0%,100% { opacity: 0.85; transform: scale(1) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.03) rotate(1deg); }
+}
+@keyframes goldSheen {
+  0% { box-shadow: 0 0 0 rgba(255,215,0,0); }
+  50% { box-shadow: 0 0 18px rgba(255,215,0,0.45), inset 0 0 10px rgba(255,215,0,0.18); }
+  100% { box-shadow: 0 0 0 rgba(255,215,0,0); }
+}
+
+/* Lobby hero cards — polish */
+.lobby-hero-card {
+  transition: transform 180ms cubic-bezier(0.34,1.56,0.64,1), border-color 180ms ease, box-shadow 180ms ease, background 180ms ease !important;
+  animation: cardPopIn 420ms cubic-bezier(0.16,1,0.3,1) both;
+}
+.lobby-hero-card:hover {
+  transform: translateY(-2px) scale(1.015);
+}
+.lobby-hero-card:active {
+  transform: scale(0.97);
+}
+.lobby-hero-card:nth-child(1) { animation-delay: 40ms; }
+.lobby-hero-card:nth-child(2) { animation-delay: 80ms; }
+.lobby-hero-card:nth-child(3) { animation-delay: 120ms; }
+.lobby-hero-card:nth-child(4) { animation-delay: 160ms; }
+.lobby-hero-card:nth-child(5) { animation-delay: 200ms; }
+.lobby-hero-card:nth-child(6) { animation-delay: 240ms; }
+.lobby-hero-card:nth-child(7) { animation-delay: 280ms; }
+.lobby-hero-card:nth-child(8) { animation-delay: 320ms; }
+
+/* Turntable polish — floating + gold sheen on selected */
+.lobby-turntable {
+  transition: box-shadow 300ms ease;
+}
+.lobby-turntable canvas {
+  filter: contrast(1.04) saturate(1.06);
+}
+
+/* Glassmorphic nameplate elevation */
+.lobby-nameplate {
+  backdrop-filter: blur(16px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.2) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+
+/* Topbar glass — premium depth */
+.lobby-topbar {
+  backdrop-filter: blur(20px) saturate(1.15) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.15) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+}
+
+/* Filter pills — tactile */
+.lobby-filters button, .lobby-filters select {
+  transition: all 140ms ease !important;
+}
+.lobby-filters button:active { transform: scale(0.96); }
+
+/* Territory cards — hover lift */
+.lobby-territory-picker > div {
+  transition: transform 180ms ease, box-shadow 180ms ease !important;
+}
+.lobby-territory-picker > div:hover {
+  transform: translateY(-3px);
+}
+
+/* Ability cards — subtle hover */
+.lobby-dossier [style*="abilityCard"], .lobby-dossier > div > div > div {
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+
+/* Scrollbar premium */
+.lobby-hero-list::-webkit-scrollbar-thumb,
+.lobby-territory-picker::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(255,215,0,0.45), rgba(0,229,255,0.35)) !important;
+}
+
+/* ── In-game HUD premium tokens ── */
+:root {
+  --hud-gold-glow: 0 0 14px rgba(255,215,0,0.5), inset 0 0 10px rgba(255,215,0,0.2);
+  --hud-cyan-glow: 0 0 14px rgba(0,229,255,0.5), inset 0 0 10px rgba(0,229,255,0.2);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .lobby-hero-card { animation: none !important; transition: none !important; }
+  * { animation-duration: 0.01ms !important; }
+}

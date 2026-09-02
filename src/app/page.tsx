@@ -10,6 +10,7 @@ import { HEROES, type Hero, heroHeight } from '@/game/heroes';
 import { TERRITORIES, type Territory, DEFAULT_TERRITORY } from '@/game/territories';
 import { createActor, type Actor } from '@/game/render3d/actor';
 import { sound } from '@/game/audio/synth';
+import { haptics } from '@/game/audio/haptics';
 import { loadPlayerProfile, getRankForLevel, type PlayerProfile } from '@/game/progression/profile';
 import { android } from '@/game/platform/android';
 
@@ -411,9 +412,14 @@ export default function HeroSelectionLobby() {
                           : 'rgba(15, 23, 42, 0.65)',
                         boxShadow: isSelected ? '0 0 16px rgba(255, 215, 0, 0.35)' : 'none',
                       }}
+                      onMouseEnter={() => {
+                        // subtle hover haptics on desktop
+                        if (window.matchMedia('(hover:hover)').matches) haptics.tick();
+                      }}
                       onClick={() => {
                         setSelectedHero(h);
                         sound.playPing('select');
+                        haptics.tick();
                       }}
                     >
                       {h.portrait ? (

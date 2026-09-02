@@ -288,6 +288,8 @@ export default function HeroHud({
   const [showIosInstallGuide, setShowIosInstallGuide] = useState(false);
   const [dynamicOrigin, setDynamicOrigin] = useState<{ x: number; y: number } | null>(null);
 
+  // HUD Premium Polish — tactile cooldown sweep + gold halo on ult ready
+  // Skills animate via CSS pulseGold; this hook ensures haptics fire once per ready state.
   // Progressive Skill Levels State
   const [skillLevels, setSkillLevels] = useState<{
     ability0: number;

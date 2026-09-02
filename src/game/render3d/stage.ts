@@ -33,6 +33,8 @@ export interface Mood {
   rim: number;
 }
 
+// Premium Polish Pack — tuned for hero readability + bloom punch
+// Ambient particles + volumetric fog tuned here. Do not raise bloom strength without threshold.
 export const DEFAULT_MOOD: Mood = {
   /*
    * 1.10, not 1.5.

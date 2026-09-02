@@ -182,6 +182,7 @@ export function createCombatFx(): CombatFx {
   }
 
   function addBurst(x: number, z: number, colour: number): void {
+    // Premium hit burst — core flash + expanding ring (additive, bloom-friendly)
     const g = new THREE.Group();
     g.position.set(x, combatGroundY(x, z) + 0.25, z);
 

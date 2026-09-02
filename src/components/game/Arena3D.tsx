@@ -37,6 +37,7 @@ import { brushAt, resolveJungle } from '@/game/arena/jungle';
 import { campAt } from '@/game/arena/camps';
 import { createRiver } from '@/game/render3d/river';
 import { createBackdrop } from '@/game/render3d/backdrop';
+import { createAmbientParticles } from '@/game/render3d/ambientParticles';
 import { DECK_HEIGHT, onCrossing, riverSpeed } from '@/game/arena/river';
 import { resolveWalls } from '@/game/arena/walls';
 import { createWisp } from '@/game/render3d/wisp';
@@ -244,6 +245,8 @@ export default function Arena3D({
     const backdrop = createBackdrop();
     stage.scene.add(stage.camera);
     backdrop.attach(stage.camera);
+    const ambient = createAmbientParticles();
+    stage.scene.add(ambient.group);
 
     const wisp = createWisp();
     stage.scene.add(wisp.group);
@@ -1868,6 +1871,7 @@ export default function Arena3D({
       jungle.update(clock);
       river.update(clock);
       backdrop.update(clock);
+      ambient.update(clock, dt);
       wisp.update(clock);
       combatFx.update(dt);
       stage.update(dt, clock, bossManager.maw.inCombat);
@@ -2129,6 +2133,7 @@ export default function Arena3D({
       jungle.dispose();
       river.dispose();
       backdrop.dispose();
+      ambient.dispose();
       wisp.dispose();
       combatFx.dispose();
       reticles.dispose();
