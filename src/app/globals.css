@@ -111,6 +111,17 @@ canvas {
   }
 }
 
+/* Header Button Interactive Effects */
+.lobby-install-btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: #FFF !important;
+  transform: translateY(-1px);
+}
+.lobby-install-btn:active {
+  transform: scale(0.94);
+}
+
 /* ───────────────────────────────────────────────────────────────────────────
    Mobile Responsive Rules for Alamat Lobby & Hero Selection
    ─────────────────────────────────────────────────────────────────────────── */

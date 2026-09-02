@@ -223,89 +223,121 @@ export default function HeroSelectionLobby() {
 
   return (
     <div style={lobbyContainer}>
-      {/* iOS Cupertino Style Glass Navigation Bar */}
+      {/* Sleek Modern Esports Glass Navigation Bar */}
       <header className="lobby-topbar" style={topHeader}>
+        {/* Left: Brand Identity */}
         <div style={brandCol}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 18 }}>⚔️</span>
-            <h1 style={brandTitle}>ALAMAT</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={brandIconWrap}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14.5 17.5L3 6V3h3l11.5 11.5" />
+                <path d="M13 19l6-6" />
+                <path d="M16 16l4 4" />
+                <path d="M19 21l2-2" />
+                <path d="M14.5 6.5L18 3h3v3l-3.5 3.5" />
+                <path d="M5 14l4 4" />
+                <path d="M7 17l-4 4" />
+                <path d="M3 19l2 2" />
+              </svg>
+            </div>
+            <div>
+              <h1 style={brandTitle}>ALAMAT</h1>
+              <span className="lobby-tagline" style={brandSubtitle}>MYTHOLOGY MOBA</span>
+            </div>
           </div>
-          <span className="lobby-tagline" style={brandSubtitle}>A 3D ACTION MOBA · PHILIPPINE MYTHOLOGY</span>
         </div>
 
-        {/* iOS Segmented Master Tab Switcher */}
+        {/* Center: Clean Segmented Tab Switcher */}
         <div style={masterSegmentedControl}>
           <button
             style={{
               ...segmentedTabBtn,
-              background: activeTab === 'heroes' ? 'rgba(255, 215, 0, 0.22)' : 'transparent',
+              background: activeTab === 'heroes' ? 'rgba(255, 215, 0, 0.16)' : 'transparent',
               color: activeTab === 'heroes' ? '#FFD700' : '#94A3B8',
-              boxShadow: activeTab === 'heroes' ? '0 2px 8px rgba(0,0,0,0.4), inset 0 0 10px rgba(255,215,0,0.2)' : 'none',
-              borderColor: activeTab === 'heroes' ? 'rgba(255, 215, 0, 0.4)' : 'transparent',
+              borderColor: activeTab === 'heroes' ? 'rgba(255, 215, 0, 0.35)' : 'transparent',
+              boxShadow: activeTab === 'heroes' ? '0 2px 10px rgba(0,0,0,0.3), inset 0 0 8px rgba(255,215,0,0.1)' : 'none',
             }}
             onClick={() => {
               setActiveTab('heroes');
               sound.playPing('select');
             }}
           >
-            <span>⚔️</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
             <span>CHAMPIONS</span>
           </button>
           <button
             style={{
               ...segmentedTabBtn,
-              background: activeTab === 'territories' ? 'rgba(0, 229, 255, 0.22)' : 'transparent',
+              background: activeTab === 'territories' ? 'rgba(0, 229, 255, 0.16)' : 'transparent',
               color: activeTab === 'territories' ? '#00E5FF' : '#94A3B8',
-              boxShadow: activeTab === 'territories' ? '0 2px 8px rgba(0,0,0,0.4), inset 0 0 10px rgba(0,229,255,0.2)' : 'none',
-              borderColor: activeTab === 'territories' ? 'rgba(0, 229, 255, 0.4)' : 'transparent',
+              borderColor: activeTab === 'territories' ? 'rgba(0, 229, 255, 0.35)' : 'transparent',
+              boxShadow: activeTab === 'territories' ? '0 2px 10px rgba(0,0,0,0.3), inset 0 0 8px rgba(0,229,255,0.1)' : 'none',
             }}
             onClick={() => {
               setActiveTab('territories');
               sound.playPing('onmyway');
             }}
           >
-            <span>🗺️</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+              <line x1="8" y1="2" x2="8" y2="18" />
+              <line x1="16" y1="6" x2="16" y2="22" />
+            </svg>
             <span>5 REALMS</span>
           </button>
         </div>
 
-        {/* Right Actions: Profile & Quick Play */}
+        {/* Right: Uncluttered Profile, Install Icon & Play Action */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {playerProfile ? (
-            <div style={profileCapsule}>
+            <div style={profileCapsule} title={`${playerProfile.name} · ${getRankForLevel(playerProfile.accountLevel).title}`}>
               <div style={profileAvatarCircle}>
                 {getRankForLevel(playerProfile.accountLevel).badgeEmoji}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <strong style={{ fontSize: 11.5, color: '#F8FAFC' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0, justifyContent: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#F8FAFC', letterSpacing: 0.2, lineHeight: 1.2 }}>
                     {playerProfile.name}
-                  </strong>
+                  </span>
                   <span style={lvlBadge}>
                     LVL {playerProfile.accountLevel}
                   </span>
                 </div>
-                <span style={{ fontSize: 9.5, color: '#FFD700', fontWeight: 600 }}>
+                <span style={{ fontSize: 9.5, color: '#94A3B8', fontWeight: 600, letterSpacing: 0.3, lineHeight: 1.1 }}>
                   {getRankForLevel(playerProfile.accountLevel).title}
                 </span>
               </div>
             </div>
           ) : null}
 
+          {/* Familiar App Install Icon Button */}
           <button
-            style={pwaInstallBtn}
+            className="lobby-install-btn"
+            style={pwaInstallIconBtn}
             onClick={handleInstallApp}
-            title="Install Mobile App"
+            title="Install App (PWA)"
+            aria-label="Install App"
           >
-            <span>📱</span>
-            <span style={{ fontSize: 11 }}>INSTALL</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span style={pwaDotIndicator} />
           </button>
 
+          {/* Quick Play CTA */}
           <Link
             href={`/play?hero=${selectedHero.id}&territory=${selectedTerritory.id}&mode=${selectedMode}`}
             style={quickPlayHeaderBtn}
           >
-            <span>⚔️ PLAY ({selectedMode.toUpperCase()})</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            <span>PLAY</span>
+            <span style={modePillTag}>{selectedMode.toUpperCase()}</span>
           </Link>
         </div>
       </header>
@@ -1000,40 +1032,55 @@ const topHeader: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  padding: 'calc(var(--safe-top) + 10px) 24px 10px 24px',
-  borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-  background: 'rgba(15, 23, 42, 0.85)',
+  height: 'calc(var(--safe-top) + 54px)',
+  padding: 'var(--safe-top) 24px 0 24px',
+  borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+  background: 'rgba(11, 17, 32, 0.88)',
   backdropFilter: 'blur(20px) saturate(180%)',
   zIndex: 20,
 };
 
 const brandCol: React.CSSProperties = {
   display: 'flex',
-  flexDirection: 'column',
+  alignItems: 'center',
+};
+
+const brandIconWrap: React.CSSProperties = {
+  width: 28,
+  height: 28,
+  borderRadius: 8,
+  background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(245, 158, 11, 0.05))',
+  border: '1px solid rgba(255, 215, 0, 0.3)',
+  display: 'grid',
+  placeItems: 'center',
+  boxShadow: '0 0 10px rgba(255, 215, 0, 0.15)',
 };
 
 const brandTitle: React.CSSProperties = {
-  fontSize: 20,
+  fontSize: 17,
   fontWeight: 900,
-  letterSpacing: 2,
+  letterSpacing: 1.8,
   margin: 0,
+  lineHeight: 1,
   color: '#FFF',
-  textShadow: '0 0 12px rgba(255, 215, 0, 0.5)',
+  textShadow: '0 0 12px rgba(255, 215, 0, 0.4)',
 };
 
 const brandSubtitle: React.CSSProperties = {
-  fontSize: 9,
-  color: '#94A3B8',
+  fontSize: 8,
+  color: '#64748B',
   letterSpacing: 1.2,
-  fontWeight: 600,
+  fontWeight: 700,
+  lineHeight: 1,
+  marginTop: 2,
 };
 
 const masterSegmentedControl: React.CSSProperties = {
   display: 'flex',
-  background: 'rgba(30, 41, 59, 0.65)',
+  background: 'rgba(15, 23, 42, 0.65)',
   padding: 3,
   borderRadius: 999,
-  border: '1px solid rgba(255, 255, 255, 0.12)',
+  border: '1px solid rgba(255, 255, 255, 0.08)',
   gap: 2,
 };
 
@@ -1041,72 +1088,105 @@ const segmentedTabBtn: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: 6,
-  padding: '6px 16px',
+  padding: '5px 14px',
   borderRadius: 999,
   border: '1px solid transparent',
-  fontSize: 12,
-  fontWeight: 800,
+  fontSize: 11.5,
+  fontWeight: 700,
+  letterSpacing: 0.4,
   cursor: 'pointer',
-  transition: 'all 160ms ease',
+  transition: 'all 150ms ease',
 };
 
 const profileCapsule: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: 8,
-  background: 'rgba(30, 41, 59, 0.75)',
-  border: '1px solid rgba(255, 215, 0, 0.35)',
+  background: 'rgba(30, 41, 59, 0.55)',
+  border: '1px solid rgba(255, 255, 255, 0.08)',
   borderRadius: 999,
-  padding: '3px 12px 3px 4px',
+  height: 36,
+  padding: '0 12px 0 4px',
+  backdropFilter: 'blur(8px)',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
 };
 
 const profileAvatarCircle: React.CSSProperties = {
   width: 28,
   height: 28,
   borderRadius: '50%',
-  background: 'linear-gradient(135deg, #FFD700, #F59E0B)',
+  background: 'linear-gradient(135deg, #F59E0B, #D97706)',
   display: 'grid',
   placeItems: 'center',
-  fontSize: 14,
+  fontSize: 13,
+  boxShadow: '0 0 10px rgba(245, 158, 11, 0.25)',
 };
 
 const lvlBadge: React.CSSProperties = {
-  fontSize: 9,
-  background: '#0284C7',
-  color: '#FFF',
+  fontSize: 8.5,
+  background: 'rgba(2, 132, 199, 0.25)',
+  border: '1px solid rgba(56, 189, 248, 0.35)',
+  color: '#38BDF8',
   padding: '1px 5px',
   borderRadius: 4,
   fontWeight: 800,
+  lineHeight: 1.2,
 };
 
-const pwaInstallBtn: React.CSSProperties = {
-  background: 'rgba(16, 185, 129, 0.15)',
-  border: '1px solid #10B981',
-  color: '#6EE7B7',
-  borderRadius: 999,
-  padding: '6px 12px',
-  fontSize: 11,
-  fontWeight: 800,
+const pwaInstallIconBtn: React.CSSProperties = {
+  width: 36,
+  height: 36,
+  borderRadius: 10,
+  background: 'rgba(30, 41, 59, 0.55)',
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  color: '#CBD5E1',
   cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  gap: 5,
+  display: 'grid',
+  placeItems: 'center',
+  position: 'relative',
+  transition: 'all 140ms ease',
+  boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+};
+
+const pwaDotIndicator: React.CSSProperties = {
+  position: 'absolute',
+  top: 7,
+  right: 7,
+  width: 5,
+  height: 5,
+  borderRadius: '50%',
+  background: '#10B981',
+  boxShadow: '0 0 6px #10B981',
 };
 
 const quickPlayHeaderBtn: React.CSSProperties = {
-  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-  border: '1px solid #FDE68A',
-  color: '#FFF',
-  padding: '7px 18px',
+  height: 36,
+  padding: '0 16px',
   borderRadius: 999,
-  fontSize: 12.5,
+  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+  border: '1px solid rgba(253, 230, 138, 0.5)',
+  color: '#FFF',
+  fontSize: 12,
   fontWeight: 900,
+  letterSpacing: 0.5,
   textAlign: 'center',
   textDecoration: 'none',
-  boxShadow: '0 4px 14px rgba(217, 119, 6, 0.45)',
+  boxShadow: '0 2px 12px rgba(217, 119, 6, 0.35)',
   display: 'flex',
   alignItems: 'center',
-  gap: 4,
+  gap: 6,
+  cursor: 'pointer',
+  transition: 'all 140ms ease',
+};
+
+const modePillTag: React.CSSProperties = {
+  background: 'rgba(0, 0, 0, 0.25)',
+  padding: '2px 6px',
+  borderRadius: 999,
+  fontSize: 9.5,
+  fontWeight: 800,
+  color: '#FEF08A',
+  letterSpacing: 0.3,
 };
 
 const filterSubheader: React.CSSProperties = {
