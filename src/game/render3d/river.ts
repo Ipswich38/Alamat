@@ -39,6 +39,10 @@ export function createRiver(): River {
   group.add(liliesAndLotuses(centre));
   group.add(troughMist(centre));
 
+  // ── Bakunawa Whirlpool Pit (Center River Swirl) ───────────────────────────
+  const whirlpool = buildBakunawaWhirlpool();
+  group.add(whirlpool.group);
+
   // ── Bridges & Crossings ───────────────────────────────────────────────────
   const crossings = findCrossings();
   for (const c of crossings) {
@@ -47,7 +51,10 @@ export function createRiver(): River {
 
   return {
     group,
-    update: (t) => water.setTime(t),
+    update: (t) => {
+      water.setTime(t);
+      whirlpool.update(t);
+    },
     dispose: () => {
       group.traverse((n) => {
         const m = n as THREE.Mesh;
@@ -631,4 +638,102 @@ function buildBridgeStructure(c: Crossing): THREE.Group {
   }
 
   return g;
+}
+
+/**
+ * Bakunawa Whirlpool Pit:
+ * Swirling animated vortex in the central river basin with foam spray particles.
+ */
+function buildBakunawaWhirlpool(): { group: THREE.Group; update: (t: number) => void } {
+  const group = new THREE.Group();
+  group.name = 'bakunawa-whirlpool';
+  group.position.set(0, -0.42, 0);
+
+  // 1. Swirling Water Rings
+  const ringGeo1 = new THREE.RingGeometry(3.5, 9.5, 32);
+  ringGeo1.rotateX(-Math.PI / 2);
+  const ringMat1 = new THREE.MeshBasicMaterial({
+    color: 0x00e5ff,
+    transparent: true,
+    opacity: 0.55,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+  });
+  const ring1 = new THREE.Mesh(ringGeo1, ringMat1);
+  group.add(ring1);
+
+  const ringGeo2 = new THREE.RingGeometry(1.2, 5.2, 28);
+  ringGeo2.rotateX(-Math.PI / 2);
+  const ringMat2 = new THREE.MeshBasicMaterial({
+    color: 0x10b981,
+    transparent: true,
+    opacity: 0.65,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+  });
+  const ring2 = new THREE.Mesh(ringGeo2, ringMat2);
+  ring2.position.y = -0.06;
+  group.add(ring2);
+
+  const coreGeo = new THREE.CircleGeometry(1.4, 24);
+  coreGeo.rotateX(-Math.PI / 2);
+  const coreMat = new THREE.MeshBasicMaterial({
+    color: 0x071e28,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+  });
+  const core = new THREE.Mesh(coreGeo, coreMat);
+  core.position.y = -0.12;
+  group.add(core);
+
+  // 2. Whirlpool Water Foam Spray Particles
+  const FOAM_COUNT = 32;
+  const foamGeo = new THREE.BufferGeometry();
+  const foamPos = new Float32Array(FOAM_COUNT * 3);
+  const foamData: { angle: number; radius: number; speed: number; y: number }[] = [];
+
+  for (let i = 0; i < FOAM_COUNT; i++) {
+    const a = (i / FOAM_COUNT) * Math.PI * 2;
+    const r = 2.5 + ((i * 13) % 6);
+    foamPos[i * 3] = Math.cos(a) * r;
+    foamPos[i * 3 + 1] = 0.1 + (i % 3) * 0.12;
+    foamPos[i * 3 + 2] = Math.sin(a) * r;
+    foamData.push({ angle: a, radius: r, speed: 1.8 + (i % 3) * 0.8, y: foamPos[i * 3 + 1] });
+  }
+  foamGeo.setAttribute('position', new THREE.BufferAttribute(foamPos, 3));
+
+  const foamParticles = new THREE.Points(
+    foamGeo,
+    new THREE.PointsMaterial({
+      color: 0xccfbf1,
+      size: 0.55,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+      toneMapped: false,
+    })
+  );
+  group.add(foamParticles);
+
+  return {
+    group,
+    update: (t) => {
+      ring1.rotation.y = t * 1.6;
+      ring2.rotation.y = -t * 2.4;
+      ringMat1.opacity = 0.45 + Math.sin(t * 2.8) * 0.15;
+      ringMat2.opacity = 0.55 + Math.cos(t * 3.2) * 0.15;
+
+      const pAttr = foamGeo.attributes.position;
+      for (let i = 0; i < FOAM_COUNT; i++) {
+        const d = foamData[i];
+        d.angle += d.speed * 0.04;
+        d.radius -= 0.025;
+        if (d.radius < 1.2) {
+          d.radius = 7.5 + (i % 3);
+        }
+        pAttr.setXYZ(i, Math.cos(d.angle) * d.radius, d.y + Math.sin(t * 4 + i) * 0.08, Math.sin(d.angle) * d.radius);
+      }
+      pAttr.needsUpdate = true;
+    },
+  };
 }

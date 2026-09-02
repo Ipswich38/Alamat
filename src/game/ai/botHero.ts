@@ -404,29 +404,63 @@ export interface BotTeamManager {
 
 export function createBotTeamManager(
   playerHeroId: string = 'veer',
-  playerTeam: TeamId = 'dawn'
+  _playerTeam: TeamId = 'dawn'
 ): BotTeamManager {
-  // Select balanced distinct rosters
-  const allyPool = ['bedrock', 'willow', 'zenith', 'argent'].filter((id) => id !== playerHeroId);
-  const enemyPool = ['hollow', 'sever', 'veer', 'thistle', 'maw'].filter((id) => id !== playerHeroId);
+  // Pool of all 10 heroes excluding the player's chosen hero
+  const availablePool = HEROES.map((h) => h.id).filter((id) => id !== playerHeroId);
 
-  // 2 Allies for 3v3 (Top and Bot lane, player covers Mid)
-  const ally1HeroId = allyPool[0] ?? 'bedrock';
-  const ally2HeroId = allyPool[1] ?? 'willow';
+  // Preferred role assignments for 5v5 match
+  // 4 Allies for Dawn (covering Top, Jungle, Bot Carry, Bot Support)
+  const preferredAllies = ['bedrock', 'willow', 'tala', 'argent', 'zenith', 'veer'];
+  const allySelectedIds: string[] = [];
 
-  const ally1 = createBotHero(ally1HeroId, 'dawn', 0, 1); // Top lane ally
-  const ally2 = createBotHero(ally2HeroId, 'dawn', 2, 1); // Bot lane ally
-  const allies: BotHero[] = [ally1, ally2];
+  for (const preferred of preferredAllies) {
+    if (allySelectedIds.length >= 4) break;
+    if (availablePool.includes(preferred) && !allySelectedIds.includes(preferred)) {
+      allySelectedIds.push(preferred);
+    }
+  }
+  // Fill remaining ally slots if needed
+  for (const id of availablePool) {
+    if (allySelectedIds.length >= 4) break;
+    if (!allySelectedIds.includes(id)) {
+      allySelectedIds.push(id);
+    }
+  }
 
-  // 3 Enemies for 3v3 (Top, Mid, Bot lane)
-  const enemy1HeroId = enemyPool[0] ?? 'veer';
-  const enemy2HeroId = enemyPool[1] ?? 'hollow';
-  const enemy3HeroId = enemyPool[2] ?? 'sever';
+  // 5 Enemies for Dusk (covering Top, Jungle, Mid, Bot Carry, Bot Support)
+  const remainingPool = availablePool.filter((id) => !allySelectedIds.includes(id));
+  const enemySelectedIds: string[] = [];
+  const preferredEnemies = ['hollow', 'zenith', 'sever', 'thistle', 'maw', 'veer', 'bedrock'];
 
-  const enemy1 = createBotHero(enemy1HeroId, 'dusk', 0, 1); // Top lane enemy
-  const enemy2 = createBotHero(enemy2HeroId, 'dusk', 1, 1); // Mid lane enemy
-  const enemy3 = createBotHero(enemy3HeroId, 'dusk', 2, 1); // Bot lane enemy
-  const enemies: BotHero[] = [enemy1, enemy2, enemy3];
+  for (const preferred of preferredEnemies) {
+    if (enemySelectedIds.length >= 5) break;
+    if (remainingPool.includes(preferred) && !enemySelectedIds.includes(preferred)) {
+      enemySelectedIds.push(preferred);
+    }
+  }
+  // Fill remaining enemy slots if needed
+  for (const id of remainingPool) {
+    if (enemySelectedIds.length >= 5) break;
+    if (!enemySelectedIds.includes(id)) {
+      enemySelectedIds.push(id);
+    }
+  }
+
+  // Spawn 4 Allies (Top, Jungle/Roam, Bot Carry, Bot Support)
+  const allyTop = createBotHero(allySelectedIds[0] ?? 'bedrock', 'dawn', 0, 1);
+  const allyJungle = createBotHero(allySelectedIds[1] ?? 'willow', 'dawn', 1, 1);
+  const allyBotCarry = createBotHero(allySelectedIds[2] ?? 'tala', 'dawn', 2, 1);
+  const allyBotSupport = createBotHero(allySelectedIds[3] ?? 'argent', 'dawn', 2, 1);
+  const allies: BotHero[] = [allyTop, allyJungle, allyBotCarry, allyBotSupport];
+
+  // Spawn 5 Enemies (Top, Jungle, Mid, Bot Carry, Bot Support)
+  const enemyTop = createBotHero(enemySelectedIds[0] ?? 'veer', 'dusk', 0, 1);
+  const enemyJungle = createBotHero(enemySelectedIds[1] ?? 'hollow', 'dusk', 1, 1);
+  const enemyMid = createBotHero(enemySelectedIds[2] ?? 'zenith', 'dusk', 1, 1);
+  const enemyBotCarry = createBotHero(enemySelectedIds[3] ?? 'sever', 'dusk', 2, 1);
+  const enemyBotSupport = createBotHero(enemySelectedIds[4] ?? 'thistle', 'dusk', 2, 1);
+  const enemies: BotHero[] = [enemyTop, enemyJungle, enemyMid, enemyBotCarry, enemyBotSupport];
 
   const all: BotHero[] = [...allies, ...enemies];
 

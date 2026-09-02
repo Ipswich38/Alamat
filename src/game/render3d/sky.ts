@@ -42,6 +42,7 @@ export interface SkyColors {
 export interface SkyResult {
   dome: THREE.Mesh;
   eclipseGroup: THREE.Group;
+  celestialGroup: THREE.Group;
   environment: THREE.Texture;
   getLighting(clock: number, isEclipse: boolean): SkyColors;
   update(clock: number, isEclipse: boolean): void;
@@ -376,6 +377,152 @@ export function createSky(renderer: THREE.WebGLRenderer, territoryTheme?: string
 
   eclipseGroup.add(ashParticles);
 
+  // ── Dynamic Celestial Bodies (Sun, Moon, Starfield, Clouds) ──────────────
+  const celestialGroup = new THREE.Group();
+  celestialGroup.name = 'celestial-sky-bodies';
+
+  // 1. Radiant Solar Group (Sun Disc + Solar Corona + Rays)
+  const sunGroup = new THREE.Group();
+  sunGroup.name = 'celestial-sun';
+
+  const sunDiscGeo = new THREE.CircleGeometry(22, 32);
+  const sunDiscMat = new THREE.MeshBasicMaterial({
+    color: 0xfffaed,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+    fog: false,
+  });
+  const sunDisc = new THREE.Mesh(sunDiscGeo, sunDiscMat);
+  sunGroup.add(sunDisc);
+
+  const sunCoronaGeo = new THREE.RingGeometry(21.5, 42, 32);
+  const sunCoronaMat = new THREE.MeshBasicMaterial({
+    color: 0xffd27d,
+    transparent: true,
+    opacity: 0.85,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+    fog: false,
+  });
+  const sunCorona = new THREE.Mesh(sunCoronaGeo, sunCoronaMat);
+  sunCorona.position.z = -0.1;
+  sunGroup.add(sunCorona);
+
+  const sunRaysGeo = new THREE.RingGeometry(38, 76, 24);
+  const sunRaysMat = new THREE.MeshBasicMaterial({
+    color: 0xffa500,
+    transparent: true,
+    opacity: 0.42,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+    fog: false,
+  });
+  const sunRays = new THREE.Mesh(sunRaysGeo, sunRaysMat);
+  sunRays.position.z = -0.2;
+  sunGroup.add(sunRays);
+
+  celestialGroup.add(sunGroup);
+
+  // 2. Luminous Lunar Group (Bulan Moon Disc + Silver Halo)
+  const moonGroup = new THREE.Group();
+  moonGroup.name = 'celestial-moon';
+
+  const moonDiscGeo = new THREE.CircleGeometry(17, 32);
+  const moonDiscMat = new THREE.MeshBasicMaterial({
+    color: 0xecf8ff,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+    fog: false,
+  });
+  const moonDisc = new THREE.Mesh(moonDiscGeo, moonDiscMat);
+  moonGroup.add(moonDisc);
+
+  const moonHaloGeo = new THREE.RingGeometry(16.5, 34, 32);
+  const moonHaloMat = new THREE.MeshBasicMaterial({
+    color: 0x6ee7b7,
+    transparent: true,
+    opacity: 0.65,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+    fog: false,
+  });
+  const moonHalo = new THREE.Mesh(moonHaloGeo, moonHaloMat);
+  moonHalo.position.z = -0.1;
+  moonGroup.add(moonHalo);
+
+  celestialGroup.add(moonGroup);
+
+  // 3. Twinkling Starfield Constellations (480 stars)
+  const STAR_COUNT = 480;
+  const starGeo = new THREE.BufferGeometry();
+  const starPos = new Float32Array(STAR_COUNT * 3);
+  const starColors = new Float32Array(STAR_COUNT * 3);
+  const starSeeds = new Float32Array(STAR_COUNT);
+
+  for (let i = 0; i < STAR_COUNT; i++) {
+    // Upper hemisphere distribution
+    const u = Math.sin(i * 12.7 + 1.2) * 0.5 + 0.5;
+    const v = Math.cos(i * 7.9 + 3.4) * 0.5 + 0.5;
+    const theta = u * Math.PI * 2;
+    const phi = 0.15 + v * (Math.PI * 0.42); // Avoid near horizon
+    const rad = 490;
+
+    starPos[i * 3] = rad * Math.sin(phi) * Math.cos(theta);
+    starPos[i * 3 + 1] = rad * Math.cos(phi);
+    starPos[i * 3 + 2] = rad * Math.sin(phi) * Math.sin(theta);
+
+    const isCyan = i % 5 === 0;
+    const isGold = i % 7 === 0;
+    starColors[i * 3] = isGold ? 1.0 : isCyan ? 0.4 : 0.95;
+    starColors[i * 3 + 1] = isGold ? 0.85 : isCyan ? 0.9 : 0.98;
+    starColors[i * 3 + 2] = isGold ? 0.4 : isCyan ? 1.0 : 1.0;
+
+    starSeeds[i] = i * 2.31;
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+
+  const starMat = new THREE.PointsMaterial({
+    size: 1.8,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.0,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  const starParticles = new THREE.Points(starGeo, starMat);
+  starParticles.name = 'celestial-starfield';
+  celestialGroup.add(starParticles);
+
+  // 4. Drifting Volumetric Cloud Layers (16 clouds)
+  const cloudsGroup = new THREE.Group();
+  cloudsGroup.name = 'celestial-clouds';
+  const CLOUD_COUNT = 16;
+  const cloudPuffsGeo = new THREE.IcosahedronGeometry(28, 1);
+  cloudPuffsGeo.scale(2.2, 0.45, 1.2);
+  const cloudMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.28,
+    depthWrite: false,
+    fog: false,
+  });
+  const cloudsMesh = new THREE.InstancedMesh(cloudPuffsGeo, cloudMat, CLOUD_COUNT);
+  const cloudObj = new THREE.Object3D();
+
+  for (let i = 0; i < CLOUD_COUNT; i++) {
+    const a = (i / CLOUD_COUNT) * Math.PI * 2;
+    const r = 320 + ((i * 37) % 80);
+    const y = 140 + ((i * 19) % 60);
+    cloudObj.position.set(Math.cos(a) * r, y, Math.sin(a) * r);
+    cloudObj.rotation.set(0, a + Math.PI / 2, 0);
+    cloudObj.scale.setScalar(0.7 + ((i * 13) % 5) * 0.15);
+    cloudObj.updateMatrix();
+    cloudsMesh.setMatrixAt(i, cloudObj.matrix);
+  }
+  cloudsGroup.add(cloudsMesh);
+  celestialGroup.add(cloudsGroup);
+
   // PMREM Environment texture
   const pmrem = new THREE.PMREMGenerator(renderer);
   pmrem.compileEquirectangularShader();
@@ -389,6 +536,7 @@ export function createSky(renderer: THREE.WebGLRenderer, territoryTheme?: string
   return {
     dome,
     eclipseGroup,
+    celestialGroup,
     environment,
     getLighting: (clock, isEclipse) => getTodLighting(clock, isEclipse, territoryTheme),
     update: (clock, isEclipse) => {
@@ -401,6 +549,50 @@ export function createSky(renderer: THREE.WebGLRenderer, territoryTheme?: string
       uniforms.uMid.value.lerp(lighting.mid, 0.1);
       uniforms.uHorizon.value.lerp(lighting.horizon, 0.1);
       uniforms.uGround.value.lerp(lighting.ground, 0.1);
+
+      // Day / Night Sun & Moon Solar Orbit (600s period)
+      const PERIOD = 600.0;
+      const t = (clock % PERIOD + PERIOD) % PERIOD;
+      const tod = t / PERIOD;
+      const sunAngle = tod * Math.PI * 2 - Math.PI * 0.5; // 0s Dawn = rising, 200s Midday = high, 360s Dusk = setting, 480s Night = low
+
+      // Position Sun
+      const sunDist = 440;
+      const sunHeight = Math.sin(sunAngle);
+      const sunX = Math.cos(sunAngle) * sunDist * 0.8;
+      const sunY = sunHeight * 360;
+      const sunZ = Math.sin(sunAngle * 0.8) * 220 - 40;
+      sunGroup.position.set(sunX, sunY, sunZ);
+      sunGroup.lookAt(0, 0, 0);
+
+      const sunVisible = Math.max(0, Math.min(1, (sunHeight + 0.15) * 3));
+      sunDiscMat.opacity = sunVisible * (1 - curEclipseLerp);
+      sunCoronaMat.opacity = sunVisible * 0.85 * (1 - curEclipseLerp);
+      sunRaysMat.opacity = sunVisible * 0.42 * (1 - curEclipseLerp);
+      sunCorona.rotation.z = clock * 0.08;
+      sunRays.rotation.z = -clock * 0.04;
+
+      // Position Moon (opposite to Sun)
+      const moonHeight = -sunHeight;
+      const moonX = -sunX;
+      const moonY = moonHeight * 360;
+      const moonZ = -sunZ;
+      moonGroup.position.set(moonX, moonY, moonZ);
+      moonGroup.lookAt(0, 0, 0);
+
+      const moonVisible = Math.max(0, Math.min(1, (moonHeight + 0.1) * 3));
+      moonDiscMat.opacity = moonVisible * (1 - curEclipseLerp * 0.5);
+      moonHaloMat.opacity = moonVisible * 0.65 * (1 - curEclipseLerp * 0.5);
+      moonHalo.rotation.z = clock * 0.03;
+
+      // Starfield twinkle and night opacity
+      const nightFactor = Math.max(0, Math.min(1, (moonHeight + 0.05) * 2.5));
+      starMat.opacity = nightFactor * (0.85 + Math.sin(clock * 1.5) * 0.15) * (1 - curEclipseLerp);
+
+      // Cloud drift
+      cloudsGroup.rotation.y = clock * 0.004;
+      cloudMat.color.copy(lighting.horizon);
+      cloudMat.opacity = 0.18 + sunVisible * 0.15;
 
       // Fade Blood-Moon Eclipse ring
       coronaMat.opacity = curEclipseLerp * 0.95;
@@ -443,6 +635,20 @@ export function createSky(renderer: THREE.WebGLRenderer, territoryTheme?: string
       moonCoreMat.dispose();
       ashGeo.dispose();
       ashMat.dispose();
+      sunDiscGeo.dispose();
+      sunDiscMat.dispose();
+      sunCoronaGeo.dispose();
+      sunCoronaMat.dispose();
+      sunRaysGeo.dispose();
+      sunRaysMat.dispose();
+      moonDiscGeo.dispose();
+      moonDiscMat.dispose();
+      moonHaloGeo.dispose();
+      moonHaloMat.dispose();
+      starGeo.dispose();
+      starMat.dispose();
+      cloudPuffsGeo.dispose();
+      cloudMat.dispose();
       environment.dispose();
     },
   };

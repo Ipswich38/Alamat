@@ -32,26 +32,30 @@ export interface Backdrop {
 
 export function createBackdrop(): Backdrop {
   const group = new THREE.Group();
-  group.name = 'mayon-volcano-environment';
-  group.position.set(MAYON_POS.x, MAYON_POS.y, MAYON_POS.z);
+  group.name = 'master-environment-backdrop';
 
-  // 1. Basalt cliff foundation connecting volcano slopes into NW lane boundary
+  // 1. Mayon Volcano Environment Group (North-West)
+  const mayonGroup = new THREE.Group();
+  mayonGroup.name = 'mayon-volcano-environment';
+  mayonGroup.position.set(MAYON_POS.x, MAYON_POS.y, MAYON_POS.z);
+
+  // Basalt cliff foundation connecting volcano slopes into NW lane boundary
   const cliffBase = buildBasaltCliffs();
-  group.add(cliffBase);
+  mayonGroup.add(cliffBase);
 
-  // 2. Volcanic magma fissures / vents around the base
+  // Volcanic magma fissures / vents around the base
   const fissures = buildMagmaFissures();
-  group.add(fissures.group);
+  mayonGroup.add(fissures.group);
 
-  // 3. Crater smoke plume and glowing lava embers
+  // Crater smoke plume and glowing lava embers
   const plume = buildCraterPlume();
-  group.add(plume.group);
+  mayonGroup.add(plume.group);
 
-  // 4. Volumetric God-Rays over the crater rim
+  // Volumetric God-Rays over the crater rim
   const godRays = buildVolumetricGodRays();
-  group.add(godRays.group);
+  mayonGroup.add(godRays.group);
 
-  // 5. Load and scale 3D the Fire Peak Volcano model
+  // Load and scale 3D the Fire Peak Volcano model
   new GLTFLoader()
     .loadAsync('/models/nature/mayon.glb')
     .then((gltf) => {
@@ -83,7 +87,7 @@ export function createBackdrop(): Backdrop {
         }
       });
 
-      group.add(model);
+      mayonGroup.add(model);
     })
     .catch(() => {
       /* Fallback procedural volcano cone if asset fails */
@@ -91,8 +95,14 @@ export function createBackdrop(): Backdrop {
       const coneMat = surfaceMaterial(0x2d2422, { roughness: 0.95 });
       const cone = new THREE.Mesh(coneGeo, coneMat);
       cone.position.y = MAYON_HEIGHT / 2;
-      group.add(cone);
+      mayonGroup.add(cone);
     });
+
+  group.add(mayonGroup);
+
+  // 2. 360-Degree Surrounding Mountain Panorama & Karst Spires (Sierra Madre / Coastal Ridges)
+  const surroundingMountains = buildSurroundingMountainRanges();
+  group.add(surroundingMountains);
 
   return {
     group,
@@ -354,4 +364,103 @@ function buildVolumetricGodRays(): { group: THREE.Group; update: (t: number) => 
       }
     },
   };
+}
+
+/**
+ * 360-Degree Surrounding Mountain Panorama:
+ * Sierra Madre tropical ridges, karst limestone spires, and layered misty horizon peaks.
+ */
+function buildSurroundingMountainRanges(): THREE.Group {
+  const group = new THREE.Group();
+  group.name = 'surrounding-mountain-ranges';
+
+  const PEAK_COUNT = 32;
+
+  // 1. Primary Mountain Ridges (Layered Dodecahedron & Cone Geometry)
+  const mountainGeo = new THREE.ConeGeometry(55, 95, 7, 2);
+  mountainGeo.scale(1.4, 1.0, 1.1);
+
+  const mountainMesh = new THREE.InstancedMesh(
+    mountainGeo,
+    surfaceMaterial(0x1a3b2b, { roughness: 0.94, metalness: 0.04 }),
+    PEAK_COUNT
+  );
+  mountainMesh.receiveShadow = true;
+  mountainMesh.castShadow = true;
+  mountainMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(PEAK_COUNT * 3), 3);
+
+  const o = new THREE.Object3D();
+  const c = new THREE.Color();
+  const innerColor = new THREE.Color('#1B4D2E'); // Deep Rainforest Green
+  const midColor = new THREE.Color('#173E36');   // Misty Slate Emerald
+  const outerColor = new THREE.Color('#122830'); // Distant Atmospheric Haze
+
+  for (let i = 0; i < PEAK_COUNT; i++) {
+    // Distribute around 360 degrees (0 to 2*PI), omitting NW volcano sector (angle ~ 3.6 to 4.2 rad)
+    let a = (i / PEAK_COUNT) * Math.PI * 2;
+    if (a > 3.5 && a < 4.3) {
+      a += 0.8; // Shift away from Mayon
+    }
+
+    const tier = i % 3; // 0 = Inner Ridge, 1 = Mid Ridge, 2 = Outer Ridge
+    const dist = 160 + tier * 45 + ((i * 17) % 35);
+    const height = 65 + tier * 25 + ((i * 23) % 40);
+    const scale = 0.85 + (height / 95) * 0.5;
+
+    const x = Math.cos(a) * dist;
+    const z = Math.sin(a) * dist;
+    const y = height * 0.45 - 6;
+
+    o.position.set(x, y, z);
+    o.rotation.set(0.1 * ((i % 3) - 1), a + Math.PI * 0.35, 0.08 * ((i % 2) - 0.5));
+    o.scale.set(scale * (1 + ((i % 4) * 0.15)), scale, scale * (1 + ((i % 3) * 0.12)));
+    o.updateMatrix();
+    mountainMesh.setMatrixAt(i, o.matrix);
+
+    if (tier === 0) {
+      c.copy(innerColor).lerp(new THREE.Color('#2A6538'), (i % 5) * 0.1);
+    } else if (tier === 1) {
+      c.copy(midColor).lerp(new THREE.Color('#1F4F42'), (i % 4) * 0.12);
+    } else {
+      c.copy(outerColor).lerp(new THREE.Color('#18323E'), (i % 3) * 0.15);
+    }
+    mountainMesh.setColorAt(i, c);
+  }
+  group.add(mountainMesh);
+
+  // 2. Karst Limestone Spires (Palawan / Coron Spires on the West/South-West flanks)
+  const SPIRE_COUNT = 14;
+  const spireGeo = new THREE.CylinderGeometry(4.5, 14, 85, 6, 2);
+  spireGeo.scale(1.1, 1.0, 1.3);
+
+  const spireMesh = new THREE.InstancedMesh(
+    spireGeo,
+    surfaceMaterial(0x283833, { roughness: 0.95 }),
+    SPIRE_COUNT
+  );
+  spireMesh.receiveShadow = true;
+  spireMesh.castShadow = true;
+  spireMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(SPIRE_COUNT * 3), 3);
+
+  const cSpire = new THREE.Color('#223830');
+
+  for (let i = 0; i < SPIRE_COUNT; i++) {
+    const a = Math.PI * 0.85 + (i / SPIRE_COUNT) * Math.PI * 0.8; // West to South flank
+    const dist = 145 + ((i * 29) % 55);
+    const height = 55 + ((i * 19) % 35);
+    const x = Math.cos(a) * dist;
+    const z = Math.sin(a) * dist;
+
+    o.position.set(x, height * 0.48 - 4, z);
+    o.rotation.set(0.08, i * 1.4, 0.05);
+    o.scale.set(0.9 + ((i % 3) * 0.2), height / 85, 0.9 + ((i % 4) * 0.2));
+    o.updateMatrix();
+    spireMesh.setMatrixAt(i, o.matrix);
+
+    c.copy(cSpire).lerp(new THREE.Color('#334E45'), (i % 4) * 0.2);
+    spireMesh.setColorAt(i, c);
+  }
+  group.add(spireMesh);
+
+  return group;
 }

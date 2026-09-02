@@ -148,7 +148,6 @@ export default function Arena3D({
   const joyRef = useRef({ x: 0, z: 0 });
   const pingFn = useRef<((type: string) => void) | null>(null);
   const mapPingFn = useRef<((worldX: number, worldZ: number, type: string) => void) | null>(null);
-  const scoutMapFn = useRef<((target: { x: number; z: number } | null) => void) | null>(null);
   const qualityFn = useRef<((q: 'performance' | 'balanced' | 'ultra') => void) | null>(null);
   const skillLevelsRef = useRef<{ ability0: number; ability1: number; ability2: number; ultimate: number }>({
     ability0: 1,
@@ -1678,6 +1677,24 @@ export default function Arena3D({
           cameraTargetZ += (pz - cameraTargetZ) * 0.2;
         }
       }
+
+      // Render 3D Foot Buff Auras if Player has active blessings
+      if (liveBuffs.length > 0) {
+        for (const buff of liveBuffs) {
+          if (clock < buff.expiresAt) {
+            const auraType =
+              buff.type === 'wind_stride'
+                ? 'blue'
+                : buff.type === 'blood_thirst'
+                ? 'red'
+                : buff.type === 'idol_blessing' || buff.type === 'moons_eclipse'
+                ? 'boss'
+                : 'shield';
+            combatFx.addBuffAuraRing(px, pz, auraType, 0.08);
+          }
+        }
+      }
+
       stage.lookAtGround(cameraTargetX, cameraTargetZ);
       stage.render();
 

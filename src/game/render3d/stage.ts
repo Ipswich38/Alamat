@@ -102,7 +102,11 @@ export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string):
   const sky = createSky(renderer, territoryTheme);
   scene.add(sky.dome);
   scene.add(sky.eclipseGroup);
+  scene.add(sky.celestialGroup);
   scene.environment = sky.environment;
+  
+  const weather = createAtmosphereWeather(territoryTheme);
+  scene.add(weather.group);
   
   const fog = new THREE.Fog(0xbfe4e0, 65, 145);
   scene.fog = fog;
@@ -276,12 +280,17 @@ export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string):
     grade.uniforms.uStrength.value = m.gradeStrength;
   }
 
+  let lastGroundX = 0;
+  let lastGroundZ = 0;
+
   function update(dt: number, clock: number, isEclipse: boolean): void {
     updateCameraShake(dt, clock);
     sky.update(clock, isEclipse);
+    weather.update(dt, clock, lastGroundX, lastGroundZ, isEclipse);
 
     // Smooth dynamic lighting transitions
-    const tod = getTodLighting(clock, isEclipse);
+    const tod = getTodLighting(clock, isEclipse, territoryTheme);
+    sun.position.lerp(tod.sunPos, 0.05);
     sun.color.lerp(tod.sunColor, 0.05);
     sun.intensity += (tod.sunIntensity - sun.intensity) * 0.05;
 
@@ -313,7 +322,11 @@ export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string):
     renderer,
     scene,
     camera,
-    lookAtGround,
+    lookAtGround: (x, z) => {
+      lastGroundX = x;
+      lastGroundZ = z;
+      lookAtGround(x, z);
+    },
     setViewHeight: (units) => {
       viewHeight = units;
       resize();
@@ -325,8 +338,140 @@ export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string):
     render: () => (quality === 'performance' || quality === 'low' ? renderer.render(scene, camera) : composer.render()),
     dispose: () => {
       composer.dispose();
+      weather.dispose();
       sky.dispose();
       renderer.dispose();
+    },
+  };
+}
+
+/**
+ * Dynamic Atmospheric Particle System:
+ * - Mayon / Volcanic Hearth: Floating ember sparks & ash flakes
+ * - Pasig River / Monsoon: Drifting tropical rain streaks & mist
+ * - Kapre Grove: Luminous bio-green fireflies
+ * - Eclipse / Night: Cosmic starlight dust
+ */
+function createAtmosphereWeather(territoryTheme?: string): {
+  group: THREE.Group;
+  update: (dt: number, clock: number, targetX: number, targetZ: number, isEclipse: boolean) => void;
+  dispose: () => void;
+} {
+  const group = new THREE.Group();
+  group.name = 'atmospheric-weather-vfx';
+
+  const isVolcano = territoryTheme === 'mayon' || territoryTheme === 'volcano';
+  const isRiver = territoryTheme === 'pasig' || territoryTheme === 'river';
+
+  // 1. Ash / Ember / Starlight Particles (240 count)
+  const PARTICLE_COUNT = 240;
+  const partGeo = new THREE.BufferGeometry();
+  const partPos = new Float32Array(PARTICLE_COUNT * 3);
+  const partData: { x: number; y: number; z: number; speedY: number; driftX: number; phase: number }[] = [];
+
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const rx = (Math.random() - 0.5) * 70;
+    const ry = 0.5 + Math.random() * 22;
+    const rz = (Math.random() - 0.5) * 70;
+    partPos[i * 3] = rx;
+    partPos[i * 3 + 1] = ry;
+    partPos[i * 3 + 2] = rz;
+
+    partData.push({
+      x: rx,
+      y: ry,
+      z: rz,
+      speedY: isRiver ? 28.0 + Math.random() * 12 : isVolcano ? 1.4 + Math.random() * 2.2 : 0.8 + Math.random() * 1.5,
+      driftX: (Math.random() - 0.5) * 2.5,
+      phase: Math.random() * Math.PI * 2,
+    });
+  }
+  partGeo.setAttribute('position', new THREE.BufferAttribute(partPos, 3));
+
+  const partColor = isVolcano ? 0xff7722 : isRiver ? 0x93c5fd : 0x86efac;
+  const partMat = new THREE.PointsMaterial({
+    color: partColor,
+    size: isRiver ? 0.75 : 0.85,
+    transparent: true,
+    opacity: 0.7,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  const particles = new THREE.Points(partGeo, partMat);
+  group.add(particles);
+
+  // 2. Bioluminescent Forest Fireflies (60 count)
+  const FIREFLY_COUNT = 60;
+  const flyGeo = new THREE.BufferGeometry();
+  const flyPos = new Float32Array(FIREFLY_COUNT * 3);
+  const flyData: { angle: number; radius: number; speed: number; y: number; baseY: number }[] = [];
+
+  for (let i = 0; i < FIREFLY_COUNT; i++) {
+    const a = (i / FIREFLY_COUNT) * Math.PI * 2;
+    const r = 8 + Math.random() * 32;
+    const by = 0.8 + Math.random() * 4.5;
+    flyPos[i * 3] = Math.cos(a) * r;
+    flyPos[i * 3 + 1] = by;
+    flyPos[i * 3 + 2] = Math.sin(a) * r;
+    flyData.push({
+      angle: a,
+      radius: r,
+      speed: 0.2 + (i % 5) * 0.08,
+      y: by,
+      baseY: by,
+    });
+  }
+  flyGeo.setAttribute('position', new THREE.BufferAttribute(flyPos, 3));
+
+  const flyMat = new THREE.PointsMaterial({
+    color: 0xfde047,
+    size: 1.1,
+    transparent: true,
+    opacity: 0.85,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  const fireflies = new THREE.Points(flyGeo, flyMat);
+  group.add(fireflies);
+
+  return {
+    group,
+    update: (dt, clock, targetX, targetZ, isEclipse) => {
+      group.position.set(targetX, 0, targetZ);
+
+      // Animate weather particles
+      const pAttr = partGeo.attributes.position;
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        const d = partData[i];
+        d.y -= d.speedY * dt;
+        if (d.y < 0.2) {
+          d.y = 22.0 + Math.random() * 4;
+          d.x = (Math.random() - 0.5) * 70;
+          d.z = (Math.random() - 0.5) * 70;
+        }
+        const curX = d.x + Math.sin(clock * 1.5 + d.phase) * (isRiver ? 0.3 : 1.2);
+        const curZ = d.z + Math.cos(clock * 1.2 + d.phase) * (isRiver ? 0.3 : 1.2);
+        pAttr.setXYZ(i, curX, d.y, curZ);
+      }
+      pAttr.needsUpdate = true;
+
+      // Animate fireflies
+      const fAttr = flyGeo.attributes.position;
+      for (let i = 0; i < FIREFLY_COUNT; i++) {
+        const fd = flyData[i];
+        fd.angle += fd.speed * dt;
+        const fy = fd.baseY + Math.sin(clock * 2.2 + i * 1.3) * 0.6;
+        fAttr.setXYZ(i, Math.cos(fd.angle) * fd.radius, fy, Math.sin(fd.angle) * fd.radius);
+      }
+      fAttr.needsUpdate = true;
+
+      flyMat.opacity = (0.5 + Math.sin(clock * 3.0) * 0.35) * (isEclipse ? 1.2 : 0.85);
+    },
+    dispose: () => {
+      partGeo.dispose();
+      partMat.dispose();
+      flyGeo.dispose();
+      flyMat.dispose();
     },
   };
 }

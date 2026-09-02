@@ -810,6 +810,100 @@ class SoundEngine {
     this.playChimeChime();
   }
 
+  /** Multi-Kill Triumphant Brass & Synth Fanfare */
+  public playMultiKill(count: number = 2) {
+    if (!this.init() || !this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    if (count === 2) {
+      // Double Kill: Duo punchy brass blast (G5 -> C6)
+      const freqs = [783.99, 1046.5];
+      freqs.forEach((f, idx) => {
+        if (!this.ctx || !this.masterGain) return;
+        const t = now + idx * 0.12;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(f, t);
+        gain.gain.setValueAtTime(0.38, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start(t);
+        osc.stop(t + 0.38);
+      });
+    } else if (count === 3) {
+      // Triple Kill: Triad fanfares (E5 -> G5 -> E6)
+      const freqs = [659.25, 783.99, 1318.51];
+      freqs.forEach((f, idx) => {
+        if (!this.ctx || !this.masterGain) return;
+        const t = now + idx * 0.11;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(f, t);
+        gain.gain.setValueAtTime(0.42, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start(t);
+        osc.stop(t + 0.42);
+      });
+      this.playKillAnnouncement();
+    } else if (count === 4) {
+      // Mega / Quadra Kill: High-energy power ascent (C5 -> E5 -> G5 -> C6 -> G6)
+      const freqs = [523.25, 659.25, 783.99, 1046.5, 1567.98];
+      freqs.forEach((f, idx) => {
+        if (!this.ctx || !this.masterGain) return;
+        const t = now + idx * 0.09;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(f, t);
+        gain.gain.setValueAtTime(0.45, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start(t);
+        osc.stop(t + 0.48);
+      });
+      this.playEclipseGong();
+    } else {
+      // 5+ Savage / Legendary / Pentakill: Full mythical major progression + gong
+      this.playVictory();
+      this.playEclipseGong();
+      this.playChimeChime();
+    }
+  }
+
+  /** Shutdown / End of Enemy Killing Spree */
+  public playShutdown() {
+    if (!this.init() || !this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+    const freqs = [880.0, 739.99, 587.33, 440.0];
+    freqs.forEach((f, idx) => {
+      if (!this.ctx || !this.masterGain) return;
+      const t = now + idx * 0.1;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(f, t);
+      gain.gain.setValueAtTime(0.35, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(t);
+      osc.stop(t + 0.38);
+    });
+  }
+
+  /** Objective / Boss Slain Fanfare */
+  public playObjectiveSlay(_bossName: string = 'Boss') {
+    if (!this.init() || !this.ctx || !this.masterGain) return;
+    this.playKillAnnouncement();
+    this.playLevelUp();
+  }
+
   /** Defeat (Kasawian) Solemn Minor Progression */
   public playDefeat() {
     if (!this.init() || !this.ctx || !this.masterGain) return;

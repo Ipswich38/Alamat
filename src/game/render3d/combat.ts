@@ -29,6 +29,7 @@ export interface CombatFx {
   addSlashArc(x: number, z: number, heading: number, radius: number, colour: number, life?: number): void;
   addBlessingBurst(x: number, z: number, colour: number): void;
   addStepRipple(x: number, z: number, isWater?: boolean): void;
+  addBuffAuraRing(x: number, z: number, buffType: 'blue' | 'red' | 'boss' | 'shield', life?: number): void;
   makeProjectile(colour: number): THREE.Object3D;
   removeObject(object: THREE.Object3D): void;
   update(dt: number): void;
@@ -398,6 +399,44 @@ export function createCombatFx(): CombatFx {
     });
   }
 
+  function addBuffAuraRing(
+    x: number,
+    z: number,
+    buffType: 'blue' | 'red' | 'boss' | 'shield',
+    life: number = 0.35
+  ): void {
+    const color =
+      buffType === 'blue'
+        ? 0x00e5ff
+        : buffType === 'red'
+        ? 0xff3b30
+        : buffType === 'boss'
+        ? 0xffd700
+        : 0x10b981;
+    const g = new THREE.Group();
+    g.position.set(x, combatGroundY(x, z), z);
+
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(1.15, 1.4, 32),
+      new THREE.MeshBasicMaterial({
+        color,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.7,
+        depthWrite: false,
+        toneMapped: false,
+      })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    g.add(ring);
+
+    track(g, life, (t) => {
+      ring.rotation.z = t * Math.PI * 2;
+      ring.scale.setScalar(1.0 + Math.sin(t * Math.PI * 2) * 0.08);
+      fadeObject(g, (1 - t * 0.4) * 0.7);
+    });
+  }
+
   function makeProjectile(colour: number): THREE.Object3D {
     const g = new THREE.Group();
     const core = new THREE.Mesh(
@@ -437,6 +476,7 @@ export function createCombatFx(): CombatFx {
     addSlashArc,
     addBlessingBurst,
     addStepRipple,
+    addBuffAuraRing,
     makeProjectile,
     removeObject,
     update: (dt) => {

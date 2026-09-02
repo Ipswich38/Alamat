@@ -350,6 +350,46 @@ export default function HeroHud({
     };
   }, []);
 
+  // ── Global Desktop Keyboard Navigation & Shortcuts ───────────────────────
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Avoid intercepting input if typing in text inputs
+      if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        setShowScoreboard((prev) => !prev);
+        sound.playPing('select');
+      } else if (e.key === 'Escape') {
+        setShowScoreboard(false);
+        setShowStats(false);
+        setShowShop(false);
+        setShowMinionsCodex(false);
+        setShowSettings(false);
+        setShowRoster(false);
+        setShowTerritoryCodex(false);
+        setShowProfile(false);
+        setShowBattlePings(false);
+      } else if (e.key === 'b' || e.key === 'B') {
+        onCast('recall');
+      } else if (e.key === 'p' || e.key === 'P' || e.key === 'o' || e.key === 'O') {
+        setShowShop((prev) => !prev);
+        sound.playPing('select');
+      } else if (e.key === 'c' || e.key === 'C' || e.key === 'i' || e.key === 'I') {
+        setShowStats((prev) => !prev);
+        sound.playPing('select');
+      } else if (e.key === 'm' || e.key === 'M') {
+        setShowTerritoryCodex((prev) => !prev);
+        sound.playPing('select');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onCast]);
+
   // ── Virtual Joystick State ───────────────────────────────────────────────
   const joystickContainerRef = useRef<HTMLDivElement | null>(null);
   const [thumbPos, setThumbPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });

@@ -292,6 +292,20 @@ Use this checklist to track progress across sessions:
   - [x] Add Skill Arc Level-Up `[+]` mid-combat upgrade pills above Skill 1, 2, 3, and Ultimate.
   - [x] Add Dedicated Cancel Cast Zone (`[ ❌ CANCEL ]` at top-right) with crimson reticle feedback and cancel haptics.
   - [x] Ensure 0 TypeScript errors and clean production builds on Next.js 16.3.2 Turbopack.
+- [x] **Phase 18: Hero Roster Expansion to 10 Champions & Full 5v5 MOBA Teams**
+  - [x] Added 10th Hero: **Tala (Goddess of the Morning Star & Celestial Guide)** (`ᜆᜎ`) with Starlight Arrow, Constellation Trap, Astral Vault, and Supernova Cascade.
+  - [x] Upgraded `src/game/ai/botHero.ts` to full 5v5 teams (4 bot allies + player vs 5 bot enemies) spanning Top Solo, Jungle Roamer, Mid Mage/Marksman, and Bot Duo (Carry + Support) with zero duplicate champions.
+- [x] **Phase 19: Dynamic Atmospheric Weather, 360 Mountains, Celestial Orbit & River Whirlpool VFX**
+  - [x] Built 360-degree surrounding mountain ranges (Sierra Madre & Palawan karst spires) in `backdrop.ts`.
+  - [x] Added central Bakunawa Whirlpool Pit with swirling water foam spray particles in `river.ts`.
+  - [x] Created Sun and Moon solar orbital cycle with corona rays, moon disc & halo, 480-star twinkling starfield constellations, and volumetric clouds in `sky.ts`.
+  - [x] Built `createAtmosphereWeather` in `stage.ts` with real-time Mayon ember ashfall, Pasig monsoon rain, and Kapre bioluminescent fireflies.
+- [x] **Phase 20: Multi-Kill Fanfare Synthesizer & Desktop Keyboard Navigation**
+  - [x] Added procedural Web Audio multi-kill fanfare engine in `synth.ts` (Double Kill, Triple Kill, Mega Kill, Savage/Legendary, Shutdown, Objective Slay).
+  - [x] Added desktop keyboard shortcuts in `HeroHud.tsx` for `[Tab]` Scoreboard toggle, `[Esc]` Modal dismiss, `[B]` Recall, `[P]` Shop, `[C]` Character Stats, and `[M]` Territory Codex.
+- [x] **Phase 21: 3D Foot Buff Auras & Scoreboard Synchronizations**
+  - [x] Added real-time 3D foot buff auras in `combat.ts` and `Arena3D.tsx` (Blue Haste/Mana Ring, Red Burning Magma Ring, Dragon Crown Aura, Stone Armor Shield).
+  - [x] Verified full production build (`npm run build`) and ESLint with 0 compilation errors.
 
 ---
 
@@ -310,7 +324,7 @@ Use this checklist to track progress across sessions:
 
 When continuing this project:
 1. Check `git status` and ensure the branch is `main`.
-2. All core gameplay systems (Phases 1–17) are fully operational and verified.
+2. All core gameplay systems (Phases 1–21) are fully operational and verified.
 3. If extending hero abilities or items, modify `src/game/heroes/catalogue.ts` and `src/game/items/catalogue.ts`.
 4. Run `npm run lint && npm run build` to ensure 0 TypeScript compilation errors.
 5. Push to GitHub (`git push origin main`) and deploy to Vercel (`vercel --prod --yes`).

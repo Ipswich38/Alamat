@@ -250,6 +250,7 @@ export function getDefaultProfile(): PlayerProfile {
       argent: { heroId: 'argent', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
       zenith: { heroId: 'zenith', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
       maw: { heroId: 'maw', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
+      tala: { heroId: 'tala', masteryLevel: 1, masteryXp: 0, matchesPlayed: 0, wins: 0, kills: 0, mvpCount: 0 },
     },
     matchHistory: [],
     dailyQuests: DEFAULT_QUESTS,
