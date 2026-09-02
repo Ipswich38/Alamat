@@ -1,17 +1,7 @@
 'use client';
 
 // Mythic Hero Selection & 5 Territories Lobby Route (Alamat).
-//
-// ── FEATURES ────────────────────────────────────────────────────────────────
-// 1. Dual Master Navigation: [CHAMPIONS] & [5 TERRITORIES OF THE ARCHIPELAGO]
-// 2. Interactive 3D Hero Model Turntable Preview (Three.js canvas)
-// 3. Full 5-Territory Mythological Showcase powered by Higgsfield AI media:
-//    - High-Definition Looping Video Trailers with Play/Pause & Fullscreen
-//    - Multi-Chapter Narrative Story Beats (Origins, Legends, Climax)
-//    - Pre-Colonial Cultural Traditions & Sacred Artifacts
-//    - Elemental Atmosphere & Regional Territory Blessing
-// 4. Role Filter Tabs: All, Vanguard, Mystic, Stalker, Warden, Ranger
-// 5. Territory-Bound Deployment directly to /play?hero=[id]&territory=[id]
+// iOS Human Interface Guidelines (HIG) + Google Play Mobile MOBA Standards.
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -72,7 +62,7 @@ export default function HeroSelectionLobby() {
       ? playableHeroes
       : playableHeroes.filter((h) => h.role.toLowerCase() === selectedRole.toLowerCase());
 
-  // ── Gamepad Navigation in Lobby ──────────────────────────────────────────
+  // Gamepad Navigation in Lobby
   useEffect(() => {
     let gpRaf = 0;
     let lastNav = 0;
@@ -105,7 +95,7 @@ export default function HeroSelectionLobby() {
     return () => cancelAnimationFrame(gpRaf);
   }, [playableHeroes]);
 
-  // ── 3D Turntable Scene ───────────────────────────────────────────────────
+  // 3D Turntable Scene with Studio Lighting & Adjusted Framing
   useEffect(() => {
     if (activeTab !== 'heroes') return;
     const canvas = canvasRef.current;
@@ -119,26 +109,27 @@ export default function HeroSelectionLobby() {
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
     renderer.setSize(canvas.clientWidth, canvas.clientHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.25;
+    renderer.toneMappingExposure = 1.3;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(38, canvas.clientWidth / canvas.clientHeight, 0.1, 100);
-    camera.position.set(0, 1.35, 4.6);
-    camera.lookAt(0, 1.05, 0);
+    // Optimized camera framing: centers hero torso and head with proper headroom
+    const camera = new THREE.PerspectiveCamera(36, canvas.clientWidth / canvas.clientHeight, 0.1, 100);
+    camera.position.set(0, 1.25, 4.3);
+    camera.lookAt(0, 0.95, 0);
 
     // Studio Lighting
-    const ambient = new THREE.AmbientLight(0x38bdf8, 1.2);
+    const ambient = new THREE.AmbientLight(0x38bdf8, 1.4);
     scene.add(ambient);
 
-    const keyLight = new THREE.DirectionalLight(0xfff4e0, 3.5);
+    const keyLight = new THREE.DirectionalLight(0xfff4e0, 3.8);
     keyLight.position.set(4, 6, 4);
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0x00e5ff, 4.0);
+    const rimLight = new THREE.DirectionalLight(0x00e5ff, 4.2);
     rimLight.position.set(-4, 3, -4);
     scene.add(rimLight);
 
-    const goldLight = new THREE.PointLight(0xffb300, 3.0, 10);
+    const goldLight = new THREE.PointLight(0xffb300, 3.5, 12);
     goldLight.position.set(0, 0.2, 0);
     scene.add(goldLight);
 
@@ -160,7 +151,7 @@ export default function HeroSelectionLobby() {
       color: 0x00e5ff,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.85,
     });
     const ringMesh = new THREE.Mesh(ringGeom, ringMat);
     ringMesh.position.y = 0.01;
@@ -189,7 +180,7 @@ export default function HeroSelectionLobby() {
       clock += 0.016;
 
       if (actor) {
-        actor.setFacing(clock * 0.45);
+        actor.setFacing(clock * 0.4);
         actor.update(0.016);
       }
       ringMesh.rotation.y = -clock * 0.2;
@@ -231,147 +222,122 @@ export default function HeroSelectionLobby() {
 
   return (
     <div style={lobbyContainer}>
-      {/* Top Navigation Bar */}
+      {/* iOS Cupertino Style Glass Navigation Bar */}
       <header className="lobby-topbar" style={topHeader}>
         <div style={brandCol}>
-          <h1 style={brandTitle}>ALAMAT</h1>
-          <span className="lobby-tagline" style={brandSubtitle}>A 3D ACTION MOBA</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 18 }}>⚔️</span>
+            <h1 style={brandTitle}>ALAMAT</h1>
+          </div>
+          <span className="lobby-tagline" style={brandSubtitle}>A 3D ACTION MOBA · PHILIPPINE MYTHOLOGY</span>
         </div>
 
-        {/* Master Navigation View Tabs */}
-        <div style={masterNavTabs}>
+        {/* iOS Segmented Master Tab Switcher */}
+        <div style={masterSegmentedControl}>
           <button
             style={{
-              ...masterNavBtn,
-              background: activeTab === 'heroes' ? 'linear-gradient(135deg, rgba(217, 119, 6, 0.4), rgba(180, 83, 9, 0.4))' : 'rgba(15, 23, 42, 0.6)',
-              borderColor: activeTab === 'heroes' ? '#FFD700' : 'rgba(255,255,255,0.15)',
+              ...segmentedTabBtn,
+              background: activeTab === 'heroes' ? 'rgba(255, 215, 0, 0.22)' : 'transparent',
               color: activeTab === 'heroes' ? '#FFD700' : '#94A3B8',
+              boxShadow: activeTab === 'heroes' ? '0 2px 8px rgba(0,0,0,0.4), inset 0 0 10px rgba(255,215,0,0.2)' : 'none',
+              borderColor: activeTab === 'heroes' ? 'rgba(255, 215, 0, 0.4)' : 'transparent',
             }}
             onClick={() => {
               setActiveTab('heroes');
               sound.playPing('select');
             }}
           >
-            ⚔️ CHAMPIONS ROSTER
+            <span>⚔️</span>
+            <span>CHAMPIONS</span>
           </button>
           <button
             style={{
-              ...masterNavBtn,
-              background: activeTab === 'territories' ? 'linear-gradient(135deg, rgba(37, 99, 235, 0.4), rgba(124, 58, 237, 0.4))' : 'rgba(15, 23, 42, 0.6)',
-              borderColor: activeTab === 'territories' ? '#00E5FF' : 'rgba(255,255,255,0.15)',
+              ...segmentedTabBtn,
+              background: activeTab === 'territories' ? 'rgba(0, 229, 255, 0.22)' : 'transparent',
               color: activeTab === 'territories' ? '#00E5FF' : '#94A3B8',
+              boxShadow: activeTab === 'territories' ? '0 2px 8px rgba(0,0,0,0.4), inset 0 0 10px rgba(0,229,255,0.2)' : 'none',
+              borderColor: activeTab === 'territories' ? 'rgba(0, 229, 255, 0.4)' : 'transparent',
             }}
             onClick={() => {
               setActiveTab('territories');
               sound.playPing('onmyway');
             }}
           >
-            🗺️ REALMS & TERRITORIES ({TERRITORIES.length})
+            <span>🗺️</span>
+            <span>5 REALMS</span>
           </button>
         </div>
 
-        {/* Progressive Profile & Rank Badge */}
-        {playerProfile ? (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              background: 'rgba(15, 23, 42, 0.85)',
-              border: '1.5px solid rgba(255, 215, 0, 0.4)',
-              borderRadius: 24,
-              padding: '4px 14px 4px 6px',
-            }}
-          >
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #FFD700, #F59E0B)',
-                display: 'grid',
-                placeItems: 'center',
-                fontSize: 16,
-              }}
-            >
-              {getRankForLevel(playerProfile.accountLevel).badgeEmoji}
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <strong style={{ fontSize: 12, color: '#F1F5F9' }}>
-                  {playerProfile.name}
-                </strong>
-
-                <span style={{ fontSize: 9.5, background: '#0284C7', color: '#FFF', padding: '1px 5px', borderRadius: 6, fontWeight: 800 }}>
-                  LVL {playerProfile.accountLevel}
+        {/* Right Actions: Profile & Quick Play */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {playerProfile ? (
+            <div style={profileCapsule}>
+              <div style={profileAvatarCircle}>
+                {getRankForLevel(playerProfile.accountLevel).badgeEmoji}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <strong style={{ fontSize: 11.5, color: '#F8FAFC' }}>
+                    {playerProfile.name}
+                  </strong>
+                  <span style={lvlBadge}>
+                    LVL {playerProfile.accountLevel}
+                  </span>
+                </div>
+                <span style={{ fontSize: 9.5, color: '#FFD700', fontWeight: 600 }}>
+                  {getRankForLevel(playerProfile.accountLevel).title}
                 </span>
               </div>
-              <span style={{ fontSize: 10, color: '#FFD700' }}>
-                {getRankForLevel(playerProfile.accountLevel).title}
-              </span>
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        {/* Progressive App Install & Quick Launch Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
-            style={{
-              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.3))',
-              border: '1.5px solid #10B981',
-              color: '#6EE7B7',
-              borderRadius: 999,
-              padding: '8px 16px',
-              fontSize: 11,
-              fontWeight: 800,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
+            style={pwaInstallBtn}
             onClick={handleInstallApp}
+            title="Install Mobile App"
           >
             <span>📱</span>
-            <span>INSTALL APP</span>
+            <span style={{ fontSize: 11 }}>INSTALL</span>
           </button>
 
           <Link
             href={`/play?hero=${selectedHero.id}&territory=${selectedTerritory.id}`}
             style={quickPlayHeaderBtn}
           >
-            <span>⚔️ ENTER ARENA</span>
-            <span style={{ fontSize: 10, opacity: 0.85, display: 'block', fontWeight: 600 }}>
-              {selectedHero.name} · {selectedTerritory.name}
-            </span>
+            <span>⚔️ PLAY</span>
           </Link>
         </div>
       </header>
 
       {/* VIEW 1: HEROES ROSTER VIEW */}
       {activeTab === 'heroes' && (
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-          {/* Role Filters Subheader */}
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          {/* iOS Role Filters & Realm Bar */}
           <div className="lobby-filters" style={filterSubheader}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-              <span style={{ fontSize: 12, color: '#FFD700', fontWeight: 800 }}>ROLE FILTER:</span>
-              {['all', 'vanguard', 'mystic', 'stalker', 'warden', 'ranger'].map((r) => (
-                <button
-                  key={r}
-                  style={{
-                    ...roleFilterBtn,
-                    background: selectedRole === r ? 'rgba(255, 215, 0, 0.2)' : 'rgba(15, 23, 42, 0.6)',
-                    borderColor: selectedRole === r ? '#FFD700' : 'rgba(255,255,255,0.15)',
-                    color: selectedRole === r ? '#FFD700' : '#94A3B8',
-                  }}
-                  onClick={() => setSelectedRole(r)}
-                >
-                  {r.toUpperCase()}
-                </button>
-              ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <span style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, paddingRight: 4, letterSpacing: 0.5 }}>ROLE:</span>
+              {['all', 'vanguard', 'mystic', 'stalker', 'warden', 'ranger'].map((r) => {
+                const isActive = selectedRole === r;
+                return (
+                  <button
+                    key={r}
+                    style={{
+                      ...roleFilterPill,
+                      background: isActive ? 'rgba(255, 215, 0, 0.18)' : 'rgba(30, 41, 59, 0.5)',
+                      borderColor: isActive ? '#FFD700' : 'rgba(255, 255, 255, 0.1)',
+                      color: isActive ? '#FFD700' : '#CBD5E1',
+                      boxShadow: isActive ? '0 0 10px rgba(255, 215, 0, 0.3)' : 'none',
+                    }}
+                    onClick={() => setSelectedRole(r)}
+                  >
+                    {r.toUpperCase()}
+                  </button>
+                );
+              })}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 12, color: '#00E5FF', fontWeight: 800 }}>TERRITORY REALM:</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              <span style={{ fontSize: 11, color: '#00E5FF', fontWeight: 700 }}>REALM:</span>
               <select
                 value={selectedTerritory.id}
                 onChange={(e) => {
@@ -390,20 +356,27 @@ export default function HeroSelectionLobby() {
           </div>
 
           <main className="lobby-main-grid" style={mainGrid}>
-            {/* 1. Left Hero List */}
+            {/* 1. Champion Selector Rail (Left / Top) */}
             <section className="lobby-roster" style={rosterSection}>
-              <h2 style={sectionTitle}>CHOOSE CHAMPION</h2>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <h2 style={sectionTitle}>CHAMPIONS ({filteredHeroes.length})</h2>
+                <span style={{ fontSize: 11, color: '#94A3B8' }}>Select to preview</span>
+              </div>
               <div className="lobby-hero-list" style={heroCardList}>
                 {filteredHeroes.map((h) => {
                   const isSelected = h.id === selectedHero.id;
+                  const roleColor = getRoleColor(h.role);
                   return (
                     <div
                       key={h.id}
                       className="lobby-hero-card"
                       style={{
                         ...heroCard,
-                        borderColor: isSelected ? '#FFD700' : 'rgba(255,255,255,0.12)',
-                        background: isSelected ? 'rgba(255, 215, 0, 0.15)' : 'rgba(15, 23, 42, 0.75)',
+                        borderColor: isSelected ? '#FFD700' : 'rgba(255,255,255,0.1)',
+                        background: isSelected
+                          ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.18), rgba(15, 23, 42, 0.85))'
+                          : 'rgba(15, 23, 42, 0.65)',
+                        boxShadow: isSelected ? '0 0 16px rgba(255, 215, 0, 0.35)' : 'none',
                       }}
                       onClick={() => {
                         setSelectedHero(h);
@@ -411,35 +384,35 @@ export default function HeroSelectionLobby() {
                       }}
                     >
                       {h.portrait ? (
-                        <img
-                          src={h.portrait}
-                          alt={h.name}
-                          width={44}
-                          height={44}
-                          style={{
-                            width: 44,
-                            height: 44,
-                            borderRadius: 8,
-                            objectFit: 'cover',
-                            /* the renders are lit on white, so they need a
-                               ground of their own against the dark card */
-                            background: 'rgba(255,255,255,0.06)',
-                            flex: 'none',
-                          }}
-                        />
+                        <div style={{ position: 'relative', width: 44, height: 44, flexShrink: 0 }}>
+                          <img
+                            src={h.portrait}
+                            alt={h.name}
+                            width={44}
+                            height={44}
+                            style={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: 10,
+                              objectFit: 'cover',
+                              border: `1.5px solid ${isSelected ? '#FFD700' : 'rgba(255,255,255,0.15)'}`,
+                              background: 'rgba(255,255,255,0.06)',
+                            }}
+                          />
+                        </div>
                       ) : (
-                        <span style={{ fontSize: 32 }}>{h.emoji}</span>
+                        <span style={{ fontSize: 30, flexShrink: 0 }}>{h.emoji}</span>
                       )}
-                      <div style={{ flex: 1, marginLeft: 12 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <strong style={{ color: '#F8FAFC', fontSize: 16 }}>{h.name}</strong>
-                          </div>
-                          <span style={{ ...roleBadge, background: getRoleColor(h.role) }}>
+                      <div style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                          <strong style={{ color: isSelected ? '#FFD700' : '#F8FAFC', fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {h.name}
+                          </strong>
+                          <span style={{ ...roleBadge, background: roleColor }}>
                             {h.role.toUpperCase()}
                           </span>
                         </div>
-                        <span style={{ fontSize: 11.5, color: '#00E5FF', display: 'block', marginTop: 1 }}>
+                        <span style={{ fontSize: 11, color: '#94A3B8', display: 'block', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {h.title || h.origin}
                         </span>
                       </div>
@@ -449,96 +422,174 @@ export default function HeroSelectionLobby() {
               </div>
             </section>
 
-            {/* 2. Center 3D Interactive Turntable */}
+            {/* 2. Center 3D Interactive Turntable Preview */}
             <section className="lobby-turntable" style={previewSection}>
               <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
+              
+              {/* Glassmorphic Nameplate & Attribute Gauges Overlay */}
               <div className="lobby-nameplate" style={turntableOverlay}>
-                <span style={heroOriginBadge}>{selectedHero.title || selectedHero.origin}</span>
-                <h2 style={heroDisplayName}>{selectedHero.name.toUpperCase()}</h2>
-                {selectedHero.quote && <p className="lobby-quote" style={heroQuoteText}>&ldquo;{selectedHero.quote}&rdquo;</p>}
-                <div style={heroStatChips}>
-                  <span style={statChip}>❤️ {selectedHero.health} HP</span>
-                  <span style={statChip}>⚔️ {selectedHero.attack} ATK</span>
-                  <span style={statChip}>💨 {selectedHero.speed} SPD</span>
-                  <span style={statChip}>🎯 {selectedHero.attackRange}u REACH</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                  <div>
+                    <span style={heroOriginBadge}>{selectedHero.title || selectedHero.origin}</span>
+                    <h2 style={heroDisplayName}>{selectedHero.name.toUpperCase()}</h2>
+                  </div>
+                  <span style={{ ...roleBadgeLarge, background: getRoleColor(selectedHero.role) }}>
+                    {selectedHero.role.toUpperCase()}
+                  </span>
+                </div>
+
+                {selectedHero.quote && (
+                  <p className="lobby-quote" style={heroQuoteText}>
+                    &ldquo;{selectedHero.quote}&rdquo;
+                  </p>
+                )}
+
+                {/* Visual Power Attribute Gauges */}
+                <div style={statGaugesContainer}>
+                  {/* Health Gauge */}
+                  <div style={statGaugeItem}>
+                    <div style={statGaugeLabelRow}>
+                      <span style={{ color: '#4ADE80', fontSize: 10.5, fontWeight: 700 }}>❤️ HP</span>
+                      <span style={{ color: '#F8FAFC', fontSize: 10.5, fontWeight: 800 }}>{selectedHero.health}</span>
+                    </div>
+                    <div style={statTrack}>
+                      <div style={{ ...statFill, width: `${Math.min(100, (selectedHero.health / 1200) * 100)}%`, background: 'linear-gradient(90deg, #10B981, #4ADE80)' }} />
+                    </div>
+                  </div>
+
+                  {/* Attack Gauge */}
+                  <div style={statGaugeItem}>
+                    <div style={statGaugeLabelRow}>
+                      <span style={{ color: '#F87171', fontSize: 10.5, fontWeight: 700 }}>⚔️ ATK</span>
+                      <span style={{ color: '#F8FAFC', fontSize: 10.5, fontWeight: 800 }}>{selectedHero.attack}</span>
+                    </div>
+                    <div style={statTrack}>
+                      <div style={{ ...statFill, width: `${Math.min(100, (selectedHero.attack / 80) * 100)}%`, background: 'linear-gradient(90deg, #EF4444, #F87171)' }} />
+                    </div>
+                  </div>
+
+                  {/* Speed Gauge */}
+                  <div style={statGaugeItem}>
+                    <div style={statGaugeLabelRow}>
+                      <span style={{ color: '#38BDF8', fontSize: 10.5, fontWeight: 700 }}>💨 SPD</span>
+                      <span style={{ color: '#F8FAFC', fontSize: 10.5, fontWeight: 800 }}>{selectedHero.speed}</span>
+                    </div>
+                    <div style={statTrack}>
+                      <div style={{ ...statFill, width: `${Math.min(100, (selectedHero.speed / 8.0) * 100)}%`, background: 'linear-gradient(90deg, #0284C7, #38BDF8)' }} />
+                    </div>
+                  </div>
+
+                  {/* Range Gauge */}
+                  <div style={statGaugeItem}>
+                    <div style={statGaugeLabelRow}>
+                      <span style={{ color: '#C084FC', fontSize: 10.5, fontWeight: 700 }}>🎯 REACH</span>
+                      <span style={{ color: '#F8FAFC', fontSize: 10.5, fontWeight: 800 }}>{selectedHero.attackRange}u</span>
+                    </div>
+                    <div style={statTrack}>
+                      <div style={{ ...statFill, width: `${Math.min(100, (selectedHero.attackRange / 10.0) * 100)}%`, background: 'linear-gradient(90deg, #9333EA, #C084FC)' }} />
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>
 
-            {/* 3. Right Hero Dossier & Abilities Showcase */}
+            {/* 3. Hero Dossier & Abilities Showcase (Right / Bottom) */}
             <section className="lobby-dossier" style={dossierSection}>
+              {/* Folklore Lore Card */}
               <div style={loreBox}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={loreHeader}>FOLKLORE DOSSIER</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <h3 style={loreHeader}>📜 FOLKLORE DOSSIER</h3>
+                  <span style={{ fontSize: 11, color: '#FFD700', fontStyle: 'italic' }}>
+                    {selectedHero.baybayin || ''}
+                  </span>
                 </div>
                 <p style={loreText}>{selectedHero.lore}</p>
               </div>
 
+              {/* Skillshot & Passive Arsenal */}
               <div style={abilitiesBox}>
-                <h3 style={loreHeader}>SKILLSHOT & PASSIVE ARSENAL</h3>
-                <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <h3 style={loreHeader}>⚡ ABILITY ARSENAL</h3>
+                  <span style={{ fontSize: 10.5, color: '#94A3B8' }}>Aimed Combat Kit</span>
+                </div>
+
+                <div style={{ display: 'grid', gap: 8 }}>
                   {/* Innate Mythic Passive Card */}
                   {selectedHero.passive && (
-                    <div style={{ ...abilityCard, borderColor: 'rgba(0, 229, 255, 0.4)', background: 'rgba(6, 78, 59, 0.25)' }}>
-                      <span style={{ fontSize: 24 }}>{selectedHero.passive.emoji}</span>
-                      <div style={{ flex: 1, marginLeft: 10 }}>
+                    <div style={{ ...abilityCard, borderColor: 'rgba(0, 229, 255, 0.35)', background: 'rgba(6, 78, 59, 0.35)' }}>
+                      <div style={abilityIconWrapper}>
+                        <span style={{ fontSize: 22 }}>{selectedHero.passive.emoji}</span>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <strong style={{ color: '#5EEAD4', fontSize: 13 }}>
-                            [PASSIVE] {selectedHero.passive.name}
+                            {selectedHero.passive.name}
                           </strong>
-                          <span style={{ ...abilityShapeTag, background: '#0D9488', color: '#FFF' }}>INNATE</span>
+                          <span style={{ ...abilityShapeTag, background: '#0D9488', color: '#FFF' }}>PASSIVE</span>
                         </div>
-                        <p style={{ fontSize: 11, color: '#99F6E4', margin: '2px 0 0' }}>{selectedHero.passive.blurb}</p>
-                        <div style={{ marginTop: 3, fontSize: 10, color: '#CCFBF1', fontWeight: 600 }}>
+                        <p style={{ fontSize: 11, color: '#CCFBF1', margin: '3px 0 0', lineHeight: 1.4 }}>
+                          {selectedHero.passive.blurb}
+                        </p>
+                        <div style={{ marginTop: 4, fontSize: 10, color: '#5EEAD4', fontWeight: 700 }}>
                           ⚡ {selectedHero.passive.effect}
                         </div>
                       </div>
                     </div>
                   )}
 
+                  {/* Active Skill 1, 2, 3 */}
                   {selectedHero.abilities.map((ab, idx) => (
                     <div key={ab.id} style={abilityCard}>
-                      <span style={{ fontSize: 22 }}>{ab.emoji}</span>
-                      <div style={{ flex: 1, marginLeft: 10 }}>
+                      <div style={abilityIconWrapper}>
+                        <span style={{ fontSize: 20 }}>{ab.emoji}</span>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <strong style={{ color: '#F1F5F9', fontSize: 13 }}>
-                            {idx === 0 ? '[Q]' : idx === 1 ? '[W]' : '[E]'} {ab.name}
+                            Skill {idx + 1}: {ab.name}
                           </strong>
                           <span style={abilityShapeTag}>{ab.shape.toUpperCase()}</span>
                         </div>
-                        <p style={{ fontSize: 11, color: '#94A3B8', margin: '2px 0 0' }}>{ab.blurb}</p>
-                        <div style={{ display: 'flex', gap: 8, marginTop: 3, fontSize: 10, color: '#CBD5E1' }}>
-                          <span>💥 {ab.damage} Dmg</span>
-                          <span>⏳ {ab.cooldown}s CD</span>
-                          <span>📏 {ab.range}u Range</span>
+                        <p style={{ fontSize: 11, color: '#94A3B8', margin: '3px 0 0', lineHeight: 1.4 }}>
+                          {ab.blurb}
+                        </p>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 10, color: '#CBD5E1' }}>
+                          <span style={statBadgeSmall}>💥 {ab.damage} Dmg</span>
+                          <span style={statBadgeSmall}>⏳ {ab.cooldown}s CD</span>
+                          <span style={statBadgeSmall}>📏 {ab.range}u Range</span>
                         </div>
                       </div>
                     </div>
                   ))}
 
                   {/* Ultimate Showcase */}
-                  <div style={{ ...abilityCard, borderColor: 'rgba(255, 215, 0, 0.4)', background: 'rgba(120, 53, 15, 0.25)' }}>
-                    <span style={{ fontSize: 26 }}>{selectedHero.ultimate.emoji}</span>
-                    <div style={{ flex: 1, marginLeft: 10 }}>
+                  <div style={{ ...abilityCard, borderColor: 'rgba(255, 215, 0, 0.45)', background: 'linear-gradient(135deg, rgba(120, 53, 15, 0.35), rgba(15, 23, 42, 0.7))' }}>
+                    <div style={{ ...abilityIconWrapper, borderColor: 'rgba(255, 215, 0, 0.6)', background: 'rgba(217, 119, 6, 0.3)' }}>
+                      <span style={{ fontSize: 24 }}>{selectedHero.ultimate.emoji}</span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <strong style={{ color: '#FFD700', fontSize: 13.5 }}>
-                          [R] {selectedHero.ultimate.name} (ULTIMATE)
+                          ULTIMATE: {selectedHero.ultimate.name}
                         </strong>
                         <span style={{ ...abilityShapeTag, background: '#D97706', color: '#FFF' }}>
                           {selectedHero.ultimate.shape.toUpperCase()}
                         </span>
                       </div>
-                      <p style={{ fontSize: 11, color: '#FEF08A', margin: '2px 0 0' }}>{selectedHero.ultimate.blurb}</p>
-                      <div style={{ display: 'flex', gap: 8, marginTop: 3, fontSize: 10, color: '#FDE68A' }}>
-                        <span>💥 {selectedHero.ultimate.damage} Dmg</span>
-                        <span>⏳ {selectedHero.ultimate.cooldown}s CD</span>
-                        <span>📏 {selectedHero.ultimate.range}u Range</span>
+                      <p style={{ fontSize: 11, color: '#FEF08A', margin: '3px 0 0', lineHeight: 1.4 }}>
+                        {selectedHero.ultimate.blurb}
+                      </p>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 10, color: '#FDE68A' }}>
+                        <span style={{ ...statBadgeSmall, borderColor: 'rgba(255, 215, 0, 0.3)' }}>💥 {selectedHero.ultimate.damage} Dmg</span>
+                        <span style={{ ...statBadgeSmall, borderColor: 'rgba(255, 215, 0, 0.3)' }}>⏳ {selectedHero.ultimate.cooldown}s CD</span>
+                        <span style={{ ...statBadgeSmall, borderColor: 'rgba(255, 215, 0, 0.3)' }}>📏 {selectedHero.ultimate.range}u Range</span>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
+              {/* Mobile Fixed Launch Button */}
               <Link
                 href={`/play?hero=${selectedHero.id}&territory=${selectedTerritory.id}`}
                 style={launchPlayBtn}
@@ -623,8 +674,6 @@ export default function HeroSelectionLobby() {
               <div style={territoryHeaderCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <span style={{ fontSize: 16, color: selectedTerritory.atmosphere.primaryColor, letterSpacing: 4 }}>
-                    </span>
                     <h2 style={territoryBigTitle}>{selectedTerritory.name.toUpperCase()}</h2>
                     <span style={{ fontSize: 12, color: '#00E5FF', fontWeight: 600 }}>
                       {selectedTerritory.title}
@@ -770,14 +819,14 @@ export default function HeroSelectionLobby() {
         </div>
       )}
 
-      {/* iOS Safari / Web PWA Installation Guide Modal */}
+      {/* iOS / Mobile Installation Guide Modal */}
       {showInstallGuide && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(2, 6, 23, 0.85)',
-            backdropFilter: 'blur(8px)',
+            background: 'rgba(2, 6, 23, 0.88)',
+            backdropFilter: 'blur(16px)',
             display: 'grid',
             placeItems: 'center',
             zIndex: 100,
@@ -788,24 +837,31 @@ export default function HeroSelectionLobby() {
           <div
             style={{
               background: 'linear-gradient(135deg, #1E293B, #0F172A)',
-              border: '1.5px solid rgba(255, 215, 0, 0.4)',
-              borderRadius: 16,
+              border: '1.5px solid rgba(255, 215, 0, 0.45)',
+              borderRadius: 20,
               padding: 24,
-              maxWidth: 480,
+              maxWidth: 460,
               width: '100%',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.8)',
+              boxShadow: '0 24px 60px rgba(0,0,0,0.85)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <strong style={{ fontSize: 18, color: '#FFD700' }}>📱 Install the Alamat App</strong>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 22 }}>📱</span>
+                <strong style={{ fontSize: 17, color: '#FFD700' }}>Install Alamat Mobile App</strong>
+              </div>
               <button
                 style={{
-                  background: 'none',
+                  background: 'rgba(255,255,255,0.1)',
                   border: 'none',
-                  color: '#94A3B8',
-                  fontSize: 18,
+                  color: '#CBD5E1',
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
                   cursor: 'pointer',
+                  display: 'grid',
+                  placeItems: 'center',
                 }}
                 onClick={() => setShowInstallGuide(false)}
               >
@@ -813,20 +869,24 @@ export default function HeroSelectionLobby() {
               </button>
             </div>
 
-            <div style={{ display: 'grid', gap: 14 }}>
-              <div style={{ background: 'rgba(15, 23, 42, 0.7)', borderRadius: 10, padding: 14, border: '1px solid rgba(0, 229, 255, 0.3)' }}>
-                <strong style={{ color: '#00E5FF', fontSize: 13.5 }}>Para sa iPhone / iPad (iOS Safari):</strong>
-                <ol style={{ fontSize: 12, color: '#CBD5E1', paddingLeft: 20, marginTop: 6, lineHeight: 1.6 }}>
-                  <li>Tap the <strong>Share button (⎋ / 🔲⬆)</strong> at the bottom of Safari.</li>
-                  <li>Choose <strong>&ldquo;Add to Home Screen&rdquo;</strong>.</li>
-                  <li>Tap <strong>&ldquo;Add&rdquo;</strong> to install it as a fullscreen app.</li>
+            <div style={{ display: 'grid', gap: 12 }}>
+              <div style={{ background: 'rgba(15, 23, 42, 0.75)', borderRadius: 14, padding: 14, border: '1px solid rgba(0, 229, 255, 0.3)' }}>
+                <strong style={{ color: '#00E5FF', fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>🍏</span> Apple iOS (Safari):
+                </strong>
+                <ol style={{ fontSize: 12, color: '#CBD5E1', paddingLeft: 20, marginTop: 8, lineHeight: 1.6 }}>
+                  <li>Tap the <strong>Share icon (⎋ / 🔲⬆)</strong> at bottom/top.</li>
+                  <li>Scroll and tap <strong>&ldquo;Add to Home Screen&rdquo;</strong>.</li>
+                  <li>Tap <strong>&ldquo;Add&rdquo;</strong> to launch with native fullscreen performance.</li>
                 </ol>
               </div>
 
-              <div style={{ background: 'rgba(15, 23, 42, 0.7)', borderRadius: 10, padding: 14, border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                <strong style={{ color: '#10B981', fontSize: 13.5 }}>Para sa Android (Chrome) / Desktop:</strong>
-                <p style={{ fontSize: 12, color: '#CBD5E1', marginTop: 4, lineHeight: 1.5 }}>
-                  Open the Chrome menu (⋮) and choose <strong>Install Alamat</strong> to play fullscreen and offline.
+              <div style={{ background: 'rgba(15, 23, 42, 0.75)', borderRadius: 14, padding: 14, border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                <strong style={{ color: '#10B981', fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>🤖</span> Android (Google Play / Chrome):
+                </strong>
+                <p style={{ fontSize: 12, color: '#CBD5E1', marginTop: 6, lineHeight: 1.5 }}>
+                  Open Chrome options (⋮) and tap <strong>&ldquo;Install App&rdquo;</strong> for zero-latency 60FPS esports gameplay.
                 </p>
               </div>
 
@@ -835,15 +895,17 @@ export default function HeroSelectionLobby() {
                   background: 'linear-gradient(135deg, #D97706, #B45309)',
                   border: '1.5px solid #FDE68A',
                   color: '#FFF',
-                  padding: '10px',
-                  borderRadius: 10,
+                  padding: '12px',
+                  borderRadius: 12,
                   fontWeight: 800,
+                  fontSize: 14,
                   cursor: 'pointer',
                   marginTop: 6,
+                  boxShadow: '0 4px 16px rgba(217, 119, 6, 0.5)',
                 }}
                 onClick={() => setShowInstallGuide(false)}
               >
-                Simulan ang Laban ⚔️
+                Proceed to Arena ⚔️
               </button>
             </div>
           </div>
@@ -871,17 +933,17 @@ function getRoleColor(role: string): string {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// CSS IN JS STYLING (MYTHIC LOBBY UI)
+// CSS IN JS STYLING (iOS HIG + MOBA LOBBY UI)
 // ══════════════════════════════════════════════════════════════════════════════
 
 const lobbyContainer: React.CSSProperties = {
   width: '100%',
   minHeight: '100vh',
-  background: 'radial-gradient(ellipse at center, #0F172A 0%, #020617 100%)',
+  background: 'radial-gradient(ellipse at 50% 20%, #1E293B 0%, #0B1120 60%, #020617 100%)',
   color: '#F8FAFC',
   display: 'flex',
   flexDirection: 'column',
-  fontFamily: 'system-ui, -apple-system, sans-serif',
+  fontFamily: 'var(--font-system)',
   overflowX: 'hidden',
 };
 
@@ -889,10 +951,11 @@ const topHeader: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  padding: '14px 28px',
-  borderBottom: '1px solid rgba(255, 215, 0, 0.25)',
-  background: 'rgba(15, 23, 42, 0.9)',
-  backdropFilter: 'blur(12px)',
+  padding: 'calc(var(--safe-top) + 10px) 24px 10px 24px',
+  borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+  background: 'rgba(15, 23, 42, 0.85)',
+  backdropFilter: 'blur(20px) saturate(180%)',
+  zIndex: 20,
 };
 
 const brandCol: React.CSSProperties = {
@@ -900,58 +963,122 @@ const brandCol: React.CSSProperties = {
   flexDirection: 'column',
 };
 
-const baybayinGlyph: React.CSSProperties = {
-  fontSize: 14,
-  color: '#FFD700',
-  letterSpacing: 4,
-};
-
 const brandTitle: React.CSSProperties = {
-  fontSize: 24,
+  fontSize: 20,
   fontWeight: 900,
   letterSpacing: 2,
   margin: 0,
   color: '#FFF',
+  textShadow: '0 0 12px rgba(255, 215, 0, 0.5)',
 };
 
 const brandSubtitle: React.CSSProperties = {
-  fontSize: 9.5,
+  fontSize: 9,
   color: '#94A3B8',
-  letterSpacing: 1.5,
+  letterSpacing: 1.2,
+  fontWeight: 600,
 };
 
-const masterNavTabs: React.CSSProperties = {
+const masterSegmentedControl: React.CSSProperties = {
   display: 'flex',
-  gap: 12,
+  background: 'rgba(30, 41, 59, 0.65)',
+  padding: 3,
+  borderRadius: 999,
+  border: '1px solid rgba(255, 255, 255, 0.12)',
+  gap: 2,
 };
 
-const masterNavBtn: React.CSSProperties = {
-  padding: '10px 22px',
+const segmentedTabBtn: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '6px 16px',
   borderRadius: 999,
-  border: '1.5px solid',
-  fontSize: 12.5,
+  border: '1px solid transparent',
+  fontSize: 12,
   fontWeight: 800,
   cursor: 'pointer',
-  transition: 'all 150ms ease',
+  transition: 'all 160ms ease',
+};
+
+const profileCapsule: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  background: 'rgba(30, 41, 59, 0.75)',
+  border: '1px solid rgba(255, 215, 0, 0.35)',
+  borderRadius: 999,
+  padding: '3px 12px 3px 4px',
+};
+
+const profileAvatarCircle: React.CSSProperties = {
+  width: 28,
+  height: 28,
+  borderRadius: '50%',
+  background: 'linear-gradient(135deg, #FFD700, #F59E0B)',
+  display: 'grid',
+  placeItems: 'center',
+  fontSize: 14,
+};
+
+const lvlBadge: React.CSSProperties = {
+  fontSize: 9,
+  background: '#0284C7',
+  color: '#FFF',
+  padding: '1px 5px',
+  borderRadius: 4,
+  fontWeight: 800,
+};
+
+const pwaInstallBtn: React.CSSProperties = {
+  background: 'rgba(16, 185, 129, 0.15)',
+  border: '1px solid #10B981',
+  color: '#6EE7B7',
+  borderRadius: 999,
+  padding: '6px 12px',
+  fontSize: 11,
+  fontWeight: 800,
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 5,
+};
+
+const quickPlayHeaderBtn: React.CSSProperties = {
+  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+  border: '1px solid #FDE68A',
+  color: '#FFF',
+  padding: '7px 18px',
+  borderRadius: 999,
+  fontSize: 12.5,
+  fontWeight: 900,
+  textAlign: 'center',
+  textDecoration: 'none',
+  boxShadow: '0 4px 14px rgba(217, 119, 6, 0.45)',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 4,
 };
 
 const filterSubheader: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  padding: '10px 28px',
-  background: 'rgba(30, 41, 59, 0.4)',
+  padding: '8px 24px',
+  background: 'rgba(15, 23, 42, 0.6)',
   borderBottom: '1px solid rgba(255,255,255,0.08)',
+  gap: 12,
 };
 
-const roleFilterBtn: React.CSSProperties = {
+const roleFilterPill: React.CSSProperties = {
   padding: '5px 12px',
   borderRadius: 999,
   border: '1px solid',
   fontSize: 11,
-  fontWeight: 700,
+  fontWeight: 800,
   cursor: 'pointer',
-  transition: 'all 120ms ease',
+  transition: 'all 140ms ease',
+  whiteSpace: 'nowrap',
 };
 
 const territoryDropdown: React.CSSProperties = {
@@ -959,69 +1086,67 @@ const territoryDropdown: React.CSSProperties = {
   color: '#00E5FF',
   border: '1px solid rgba(0, 229, 255, 0.4)',
   borderRadius: 8,
-  padding: '5px 12px',
-  fontSize: 12,
+  padding: '4px 10px',
+  fontSize: 11.5,
   fontWeight: 700,
   cursor: 'pointer',
-};
-
-const quickPlayHeaderBtn: React.CSSProperties = {
-  background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
-  border: '1.5px solid #FDE68A',
-  color: '#FFF',
-  padding: '8px 20px',
-  borderRadius: 999,
-  fontSize: 13,
-  fontWeight: 800,
-  textAlign: 'center',
-  textDecoration: 'none',
-  boxShadow: '0 4px 16px rgba(217, 119, 6, 0.4)',
 };
 
 const mainGrid: React.CSSProperties = {
   flex: 1,
   display: 'grid',
-  gridTemplateColumns: '320px 1fr 380px',
-  gap: 20,
-  padding: 20,
+  gridTemplateColumns: '280px 1fr 340px',
+  gap: 16,
+  padding: '16px 24px',
+  minHeight: 0,
 };
 
 const rosterSection: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
+  minHeight: 0,
 };
 
 const sectionTitle: React.CSSProperties = {
-  fontSize: 14,
+  fontSize: 12,
   fontWeight: 800,
   color: '#FFD700',
-  letterSpacing: 1.5,
-  marginBottom: 12,
+  letterSpacing: 1.2,
+  margin: 0,
 };
 
 const heroCardList: React.CSSProperties = {
   display: 'grid',
-  gap: 10,
-  maxHeight: 'calc(100vh - 200px)',
+  gap: 8,
   overflowY: 'auto',
+  flex: 1,
+  paddingRight: 2,
 };
 
 const heroCard: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  padding: 12,
-  borderRadius: 10,
-  border: '1.5px solid',
+  padding: '8px 10px',
+  borderRadius: 12,
+  border: '1px solid',
   cursor: 'pointer',
-  transition: 'transform 80ms ease, background 80ms ease',
+  transition: 'transform 100ms ease, background 100ms ease',
 };
 
 const roleBadge: React.CSSProperties = {
-  fontSize: 9,
+  fontSize: 8.5,
   fontWeight: 800,
   color: '#FFF',
-  padding: '1px 6px',
+  padding: '1px 5px',
   borderRadius: 4,
+};
+
+const roleBadgeLarge: React.CSSProperties = {
+  fontSize: 9.5,
+  fontWeight: 800,
+  color: '#FFF',
+  padding: '2px 8px',
+  borderRadius: 6,
 };
 
 const previewSection: React.CSSProperties = {
@@ -1030,135 +1155,178 @@ const previewSection: React.CSSProperties = {
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  background: 'radial-gradient(circle, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%)',
-  borderRadius: 16,
-  border: '1px solid rgba(255, 215, 0, 0.2)',
+  background: 'radial-gradient(circle at 50% 40%, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.9) 100%)',
+  borderRadius: 18,
+  border: '1px solid rgba(255, 215, 0, 0.25)',
   overflow: 'hidden',
 };
 
 const turntableOverlay: React.CSSProperties = {
   position: 'absolute',
-  bottom: 14,
+  bottom: 12,
+  left: 12,
+  right: 12,
   display: 'flex',
   flexDirection: 'column',
-  alignItems: 'center',
-  gap: 4,
-  background: 'rgba(15, 23, 42, 0.78)',
-  backdropFilter: 'blur(8px)',
+  gap: 6,
+  background: 'rgba(15, 23, 42, 0.82)',
+  backdropFilter: 'blur(16px) saturate(180%)',
   border: '1px solid rgba(255, 215, 0, 0.25)',
-  borderRadius: 14,
-  padding: '8px 18px',
+  borderRadius: 16,
+  padding: '10px 14px',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
   pointerEvents: 'none',
-  maxWidth: '90%',
 };
 
 const heroOriginBadge: React.CSSProperties = {
-  fontSize: 12,
+  fontSize: 10.5,
   color: '#00E5FF',
-  fontWeight: 600,
+  fontWeight: 700,
+  letterSpacing: 0.5,
 };
 
 const heroDisplayName: React.CSSProperties = {
-  fontSize: 32,
+  fontSize: 22,
   fontWeight: 900,
   color: '#FFF',
-  letterSpacing: 2,
-  textShadow: '0 0 24px rgba(255, 215, 0, 0.6)',
-  margin: 0,
+  letterSpacing: 1.5,
+  textShadow: '0 0 16px rgba(255, 215, 0, 0.5)',
+  margin: '1px 0 0',
 };
 
 const heroQuoteText: React.CSSProperties = {
-  fontSize: 12,
+  fontSize: 11,
   color: '#FDE68A',
   fontStyle: 'italic',
-  margin: '2px 0 6px',
-  textAlign: 'center',
-  maxWidth: 420,
+  margin: '2px 0 4px',
+  lineHeight: 1.3,
 };
 
-const heroStatChips: React.CSSProperties = {
-  display: 'flex',
-  gap: 10,
+const statGaugesContainer: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(4, 1fr)',
+  gap: 8,
   marginTop: 4,
 };
 
-const statChip: React.CSSProperties = {
-  background: 'rgba(15, 23, 42, 0.85)',
-  border: '1px solid rgba(255,255,255,0.15)',
-  padding: '4px 10px',
+const statGaugeItem: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 3,
+  background: 'rgba(30, 41, 59, 0.55)',
+  padding: '4px 6px',
+  borderRadius: 8,
+  border: '1px solid rgba(255,255,255,0.06)',
+};
+
+const statGaugeLabelRow: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+};
+
+const statTrack: React.CSSProperties = {
+  width: '100%',
+  height: 4,
+  background: 'rgba(0, 0, 0, 0.5)',
   borderRadius: 999,
-  fontSize: 11,
-  fontWeight: 700,
+  overflow: 'hidden',
+};
+
+const statFill: React.CSSProperties = {
+  height: '100%',
+  borderRadius: 999,
+  transition: 'width 200ms ease-out',
 };
 
 const dossierSection: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  gap: 16,
+  gap: 10,
+  overflowY: 'auto',
+  minHeight: 0,
 };
 
 const loreBox: React.CSSProperties = {
   background: 'rgba(15, 23, 42, 0.75)',
-  border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: 10,
-  padding: 14,
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  borderRadius: 14,
+  padding: 12,
 };
 
 const loreHeader: React.CSSProperties = {
-  fontSize: 12,
+  fontSize: 11.5,
   fontWeight: 800,
   color: '#FFD700',
   letterSpacing: 1,
-  margin: '0 0 8px',
+  margin: 0,
 };
 
 const loreText: React.CSSProperties = {
-  fontSize: 12.5,
+  fontSize: 11.5,
   color: '#CBD5E1',
-  lineHeight: 1.5,
+  lineHeight: 1.45,
   margin: 0,
 };
 
 const abilitiesBox: React.CSSProperties = {
   background: 'rgba(15, 23, 42, 0.75)',
-  border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: 10,
-  padding: 14,
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  borderRadius: 14,
+  padding: 12,
   flex: 1,
 };
 
 const abilityCard: React.CSSProperties = {
   display: 'flex',
-  alignItems: 'center',
-  background: 'rgba(30, 41, 59, 0.6)',
-  border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 8,
-  padding: 10,
+  alignItems: 'flex-start',
+  background: 'rgba(30, 41, 59, 0.55)',
+  border: '1px solid rgba(255, 255, 255, 0.08)',
+  borderRadius: 10,
+  padding: '8px 10px',
+};
+
+const abilityIconWrapper: React.CSSProperties = {
+  width: 38,
+  height: 38,
+  borderRadius: 10,
+  background: 'rgba(15, 23, 42, 0.7)',
+  border: '1px solid rgba(255, 255, 255, 0.15)',
+  display: 'grid',
+  placeItems: 'center',
+  flexShrink: 0,
 };
 
 const abilityShapeTag: React.CSSProperties = {
-  fontSize: 9,
+  fontSize: 8.5,
   fontWeight: 800,
-  background: '#334155',
+  background: 'rgba(51, 65, 85, 0.8)',
   color: '#94A3B8',
   padding: '1px 5px',
   borderRadius: 4,
 };
 
+const statBadgeSmall: React.CSSProperties = {
+  background: 'rgba(15, 23, 42, 0.65)',
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  padding: '1px 6px',
+  borderRadius: 4,
+  fontWeight: 600,
+};
+
 const launchPlayBtn: React.CSSProperties = {
-  background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
-  border: '2px solid #FDE68A',
+  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+  border: '1.5px solid #FDE68A',
   color: '#FFF',
-  padding: '14px',
-  borderRadius: 12,
-  fontSize: 14.5,
+  padding: '12px',
+  borderRadius: 14,
+  fontSize: 13.5,
   fontWeight: 900,
   textAlign: 'center',
   textDecoration: 'none',
-  boxShadow: '0 8px 24px rgba(217, 119, 6, 0.5)',
-  transition: 'transform 80ms ease',
+  boxShadow: '0 6px 20px rgba(217, 119, 6, 0.45)',
   display: 'block',
-  marginTop: 8,
+  marginTop: 4,
 };
 
 // ── TERRITORIES VIEW STYLING ────────────────────────────────────────────────
@@ -1166,18 +1334,19 @@ const territoriesViewContainer: React.CSSProperties = {
   flex: 1,
   display: 'flex',
   flexDirection: 'column',
-  padding: '16px 28px',
-  gap: 16,
+  padding: '14px 24px',
+  gap: 14,
+  minHeight: 0,
 };
 
 const territoryCardsBar: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'repeat(5, 1fr)',
-  gap: 12,
+  gap: 10,
 };
 
 const territorySelectorCard: React.CSSProperties = {
-  padding: '12px 14px',
+  padding: '10px 12px',
   borderRadius: 12,
   border: '1.5px solid',
   cursor: 'pointer',
@@ -1188,13 +1357,14 @@ const territoryDetailGrid: React.CSSProperties = {
   flex: 1,
   display: 'grid',
   gridTemplateColumns: '1.2fr 1fr',
-  gap: 20,
+  gap: 16,
+  minHeight: 0,
 };
 
 const videoPlayerContainer: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  gap: 14,
+  gap: 12,
 };
 
 const videoWrapper: React.CSSProperties = {
@@ -1217,16 +1387,16 @@ const videoElement: React.CSSProperties = {
 
 const videoOverlayControls: React.CSSProperties = {
   position: 'absolute',
-  bottom: 12,
-  left: 12,
-  right: 12,
+  bottom: 10,
+  left: 10,
+  right: 10,
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  padding: '8px 14px',
+  padding: '6px 12px',
   borderRadius: 10,
-  background: 'rgba(15, 23, 42, 0.8)',
-  backdropFilter: 'blur(8px)',
+  background: 'rgba(15, 23, 42, 0.82)',
+  backdropFilter: 'blur(10px)',
   border: '1px solid rgba(255,255,255,0.15)',
 };
 
@@ -1234,9 +1404,9 @@ const videoControlBtn: React.CSSProperties = {
   background: 'rgba(255, 215, 0, 0.2)',
   border: '1px solid #FFD700',
   color: '#FFD700',
-  padding: '4px 12px',
+  padding: '3px 10px',
   borderRadius: 6,
-  fontSize: 11,
+  fontSize: 10.5,
   fontWeight: 800,
   cursor: 'pointer',
 };
@@ -1245,72 +1415,72 @@ const territoryHeaderCard: React.CSSProperties = {
   background: 'rgba(15, 23, 42, 0.8)',
   border: '1px solid rgba(255,255,255,0.1)',
   borderRadius: 14,
-  padding: 16,
+  padding: 14,
 };
 
 const territoryBigTitle: React.CSSProperties = {
-  fontSize: 26,
+  fontSize: 22,
   fontWeight: 900,
   color: '#FFF',
-  letterSpacing: 2,
-  margin: '2px 0 0',
+  letterSpacing: 1.5,
+  margin: '1px 0 0',
 };
 
 const atmosphereBadge: React.CSSProperties = {
-  fontSize: 11,
+  fontSize: 10.5,
   fontWeight: 700,
   color: '#FFF',
   background: 'rgba(30, 41, 59, 0.8)',
   border: '1px solid',
-  padding: '4px 10px',
+  padding: '3px 8px',
   borderRadius: 999,
 };
 
 const territoryQuote: React.CSSProperties = {
-  fontSize: 12.5,
+  fontSize: 11.5,
   color: '#FDE68A',
   fontStyle: 'italic',
-  margin: '8px 0 4px',
+  margin: '6px 0 3px',
 };
 
 const territoryLoreParagraph: React.CSSProperties = {
-  fontSize: 12.5,
+  fontSize: 11.5,
   color: '#CBD5E1',
-  lineHeight: 1.5,
-  margin: '4px 0 10px',
+  lineHeight: 1.45,
+  margin: '3px 0 8px',
 };
 
 const blessingBox: React.CSSProperties = {
   background: 'rgba(30, 41, 59, 0.6)',
   border: '1.5px solid',
   borderRadius: 10,
-  padding: '10px 14px',
+  padding: '8px 12px',
 };
 
 const cultureColumn: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  gap: 12,
-  maxHeight: 'calc(100vh - 200px)',
+  gap: 10,
   overflowY: 'auto',
+  minHeight: 0,
 };
 
 const cultureSectionCard: React.CSSProperties = {
   background: 'rgba(15, 23, 42, 0.75)',
   border: '1px solid rgba(255,255,255,0.1)',
   borderRadius: 12,
-  padding: 14,
+  padding: 12,
 };
 
 const storySectionCard: React.CSSProperties = {
   background: 'rgba(15, 23, 42, 0.75)',
   border: '1px solid rgba(255, 215, 0, 0.25)',
   borderRadius: 12,
-  padding: 14,
+  padding: 12,
 };
 
 const cultureSectionTitle: React.CSSProperties = {
-  fontSize: 12,
+  fontSize: 11.5,
   fontWeight: 800,
   color: '#FFD700',
   letterSpacing: 1,
@@ -1319,23 +1489,23 @@ const cultureSectionTitle: React.CSSProperties = {
 
 const storyChapterTabs: React.CSSProperties = {
   display: 'flex',
-  gap: 8,
-  marginTop: 10,
+  gap: 6,
+  marginTop: 8,
 };
 
 const storyChapterBtn: React.CSSProperties = {
-  padding: '5px 12px',
+  padding: '4px 10px',
   borderRadius: 6,
   border: '1px solid',
-  fontSize: 11,
+  fontSize: 10.5,
   fontWeight: 800,
   cursor: 'pointer',
 };
 
 const activeStoryContent: React.CSSProperties = {
-  marginTop: 10,
+  marginTop: 8,
   background: 'rgba(30, 41, 59, 0.5)',
-  padding: 12,
+  padding: 10,
   borderRadius: 8,
   border: '1px solid rgba(255,255,255,0.06)',
 };
@@ -1343,16 +1513,16 @@ const activeStoryContent: React.CSSProperties = {
 const cultureFactBox: React.CSSProperties = {
   background: 'rgba(30, 41, 59, 0.4)',
   borderRadius: 8,
-  padding: 10,
+  padding: 8,
   border: '1px solid rgba(255,255,255,0.06)',
 };
 
 const artifactItem: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: 8,
+  gap: 6,
   background: 'rgba(30, 41, 59, 0.5)',
-  padding: '6px 10px',
+  padding: '5px 8px',
   borderRadius: 6,
   border: '1px solid rgba(255,255,255,0.06)',
 };
@@ -1360,10 +1530,11 @@ const artifactItem: React.CSSProperties = {
 const associatedHeroTag: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: 6,
+  gap: 5,
   background: 'rgba(30, 41, 59, 0.75)',
   border: '1.5px solid',
   borderRadius: 999,
-  padding: '6px 12px',
+  padding: '4px 10px',
   cursor: 'pointer',
 };
+

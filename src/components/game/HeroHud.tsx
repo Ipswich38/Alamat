@@ -980,58 +980,34 @@ export default function HeroHud({
         {/* Mini Compass Needle Overlay */}
         <div style={minimapCompass} title={`Facing ${Math.round((-compass * 180) / Math.PI)}°`}>
           <div style={{ transform: `rotate(${-compass}rad)`, width: '100%', height: '100%', display: 'grid', placeItems: 'center' }}>
-            <span style={{ color: '#FFC84A', fontSize: 10, fontWeight: 900 }}>N</span>
+            <span style={{ color: '#FFC84A', fontSize: 9, fontWeight: 900 }}>N</span>
           </div>
         </div>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          2. QUICK UTILITY MENU (BELOW MINI-MAP: top: 205px; left: 15px;)
+          2. QUICK UTILITY DOCK (HORIZONTAL PILL ROW DIRECTLY UNDER MINIMAP)
           ══════════════════════════════════════════════════════════════════════ */}
       <div style={utilityMenuStack}>
         <button
-          style={{ ...utilityBtn, borderColor: '#FFD700', background: 'rgba(255, 215, 0, 0.15)' }}
-          title="Account Profile, Rank Dossier & Daily Quests [📜]"
+          style={{ ...utilityBtn, borderColor: 'rgba(255, 215, 0, 0.4)', background: 'rgba(255, 215, 0, 0.15)' }}
+          title="Account Profile & Quests"
           onClick={() => setShowProfile(!showProfile)}
           aria-label="Profile and Quests"
         >
           <span style={utilityIcon}>📜</span>
         </button>
         <button
-          style={{ ...utilityBtn, borderColor: territory.atmosphere.primaryColor }}
-          title={`Teritoryo ng Kapuluan (${territory.name}) [🗺️]`}
-          onClick={() => setShowTerritoryCodex(!showTerritoryCodex)}
-          aria-label="Territory Lore"
-        >
-          <span style={utilityIcon}>🗺️</span>
-        </button>
-        <button
-          style={utilityBtn}
-          title="Hero Info, Lore & Passives [ℹ]"
-          onClick={() => setShowStats(!showStats)}
-          aria-label="Hero Stats"
-        >
-          <span style={utilityIcon}>ℹ</span>
-        </button>
-        <button
           style={{ ...utilityBtn, borderColor: 'rgba(255, 215, 0, 0.6)' }}
-          title={`Talisman Shop (🪙 ${playerGold}) [Shop]`}
+          title={`Talisman Item Shop (🪙 ${playerGold})`}
           onClick={() => setShowShop(!showShop)}
           aria-label="Shop"
         >
           <span style={utilityIcon}>💰</span>
         </button>
         <button
-          style={{ ...utilityBtn, borderColor: 'rgba(0, 229, 255, 0.6)' }}
-          title="Creep Codex"
-          onClick={() => setShowMinionsCodex(!showMinionsCodex)}
-          aria-label="Creep codex"
-        >
-          <span style={utilityIcon}>🛡</span>
-        </button>
-        <button
           style={{ ...utilityBtn, borderColor: 'rgba(239, 68, 68, 0.6)' }}
-          title="Mga Sigaw ng Pakikidigma (Ancestral Warcalls & Pings)"
+          title="Ancestral Warcalls & Tactical Pings"
           onClick={() => setShowBattlePings(!showBattlePings)}
           aria-label="Warcalls"
         >
@@ -1039,7 +1015,7 @@ export default function HeroHud({
         </button>
         <button
           style={utilityBtn}
-          title="Match Scoreboard & Performance [📊]"
+          title="Match Scoreboard"
           onClick={() => setShowScoreboard(!showScoreboard)}
           aria-label="Scoreboard"
         >
@@ -1047,7 +1023,15 @@ export default function HeroHud({
         </button>
         <button
           style={utilityBtn}
-          title="Game Settings [⚙]"
+          title="Hero Info & Passives"
+          onClick={() => setShowStats(!showStats)}
+          aria-label="Hero Stats"
+        >
+          <span style={utilityIcon}>ℹ</span>
+        </button>
+        <button
+          style={utilityBtn}
+          title="Game Settings"
           onClick={() => setShowSettings(!showSettings)}
           aria-label="Settings"
         >
@@ -1059,90 +1043,43 @@ export default function HeroHud({
             borderColor: isFullscreen ? '#38BDF8' : 'rgba(56, 189, 248, 0.6)',
             background: isFullscreen ? 'rgba(14, 165, 233, 0.3)' : 'rgba(15, 23, 42, 0.85)',
           }}
-          title="Toggle Fullscreen Landscape Mode [⛶]"
+          title="Toggle Fullscreen Mode"
           onClick={handleToggleFullscreen}
           aria-label="Fullscreen"
         >
           <span style={utilityIcon}>⛶</span>
         </button>
-        {gamepadConnected && (
-          <div
-            style={{
-              ...utilityBtn,
-              borderColor: '#10B981',
-              background: 'rgba(16, 185, 129, 0.25)',
-              cursor: 'default',
-            }}
-            title={`Gamepad Connected: ${gamepadName || 'Controller'}`}
-          >
-            <span style={{ fontSize: 16 }}>🎮</span>
-          </div>
-        )}
       </div>
 
-      {/* ── 1-Tap Floating Quick-Buy Pill (Under/Next to Utility Menu) ────── */}
+      {/* ── 1-Tap Floating Quick-Buy Pill ────── */}
       {recommendedItem ? (
         <div
-          style={{
-            position: 'absolute',
-            top: 205,
-            left: 60,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9))',
-            border: '1.5px solid #FFD700',
-            boxShadow: '0 0 16px rgba(255, 215, 0, 0.45)',
-            borderRadius: 24,
-            padding: '6px 14px 6px 8px',
-            cursor: 'pointer',
-            pointerEvents: 'auto',
-            zIndex: 15,
-            animation: 'pulseGold 2.5s infinite',
-          }}
+          style={quickBuyFloatingPill}
           onClick={() => {
             onBuyItem?.(recommendedItem);
             sound.playPing('select');
             haptics.tick();
-            setQuickBuyAlert(`Binili: ${recommendedItem.name} (${recommendedItem.cost}g)`);
+            setQuickBuyAlert(`Equipped: ${recommendedItem.name} (${recommendedItem.cost}g)`);
             setTimeout(() => setQuickBuyAlert(null), 2500);
           }}
           title={`Quick-Buy: ${recommendedItem.name} (${recommendedItem.cost}g)`}
-
         >
-          <span style={{ fontSize: 22 }}>{recommendedItem.emoji}</span>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 800, color: '#FFD700' }}>
+          <span style={{ fontSize: 18 }}>{recommendedItem.emoji}</span>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: '#FFD700' }}>
               🪙 {recommendedItem.cost}
             </div>
-            <div style={{ fontSize: 9.5, color: '#F1F5F9', fontWeight: 600, maxWidth: 85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 9, color: '#F1F5F9', fontWeight: 600, maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {recommendedItem.name}
             </div>
           </div>
-          <span style={{ fontSize: 9.5, background: '#FFD700', color: '#0F172A', fontWeight: 900, padding: '2px 6px', borderRadius: 8 }}>
-            BUY
-          </span>
+          <span style={quickBuyTag}>BUY</span>
         </div>
       ) : null}
 
       {/* Quick Buy Notification Toast */}
       {quickBuyAlert ? (
-        <div
-          style={{
-            position: 'absolute',
-            top: 255,
-            left: 60,
-            padding: '6px 14px',
-            borderRadius: 8,
-            background: 'rgba(16, 185, 129, 0.92)',
-            color: '#FFF',
-            fontWeight: 700,
-            fontSize: 12,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
-            zIndex: 20,
-            pointerEvents: 'none',
-          }}
-        >
+        <div style={quickBuyToast}>
           ✅ {quickBuyAlert}
         </div>
       ) : null}
@@ -1152,65 +1089,35 @@ export default function HeroHud({
         <div
           style={{
             position: 'absolute',
-            top: 18,
+            top: 14,
             left: '50%',
             transform: 'translateX(-50%)',
-            padding: '10px 28px',
-            borderRadius: 30,
+            padding: '8px 24px',
+            borderRadius: 999,
             background: isInCancelZone ? 'rgba(239, 68, 68, 0.95)' : 'rgba(15, 23, 42, 0.85)',
             border: isInCancelZone ? '2px solid #FCA5A5' : '1.5px dashed rgba(239, 68, 68, 0.7)',
             boxShadow: isInCancelZone ? '0 0 30px rgba(239, 68, 68, 0.9)' : '0 4px 20px rgba(0,0,0,0.5)',
             color: '#FFF',
             display: 'flex',
             alignItems: 'center',
-            gap: 10,
+            gap: 8,
             pointerEvents: 'none',
             zIndex: 100,
             animation: isInCancelZone ? 'pulseCancel 0.8s infinite' : 'none',
             transition: 'all 150ms ease',
           }}
         >
-          <span style={{ fontSize: 20 }}>✕</span>
-          <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: 1 }}>
-            {isInCancelZone ? 'BITAWAN PARA I-KANSELA' : 'DRAG DITO PARA I-KANSELA'}
+          <span style={{ fontSize: 18 }}>✕</span>
+          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.8 }}>
+            {isInCancelZone ? 'RELEASE TO CANCEL' : 'DRAG HERE TO CANCEL'}
           </span>
         </div>
       ) : null}
 
-      {/* TOP-CENTER TERRITORY REALM BADGE */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 10,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          background: 'rgba(15, 23, 42, 0.88)',
-          border: `1.5px solid ${territory.atmosphere.primaryColor}`,
-          boxShadow: `0 0 16px ${territory.atmosphere.accentGlow}`,
-          borderRadius: 999,
-          padding: '5px 16px',
-          cursor: 'pointer',
-          zIndex: 30,
-          backdropFilter: 'blur(8px)',
-        }}
-        onClick={() => setShowTerritoryCodex(true)}
-        title="View Realm Story, Culture & Videos"
-      >
-        <span style={{ fontSize: 13, color: territory.atmosphere.primaryColor, letterSpacing: 2 }}>
-        </span>
-        <strong style={{ fontSize: 12, color: '#FFF', letterSpacing: 1 }}>
-          {territory.name.toUpperCase()}
-        </strong>
-        <span style={{ fontSize: 10.5, color: '#94A3B8' }}>• {territory.atmosphere.weatherEffect}</span>
-      </div>
-
       {/* ══════════════════════════════════════════════════════════════════════
-          3. TOP-RIGHT SCOREBOARD & TEAM STATUS
+          3. TOP-CENTER MATCH SCOREBOARD CAPSULE & TERRITORY REALM CHIP
           ══════════════════════════════════════════════════════════════════════ */}
-      <div style={topRightScoreboard}>
+      <div style={topCenterMatchHeader}>
         <div style={scoreBarCapsule}>
           <div style={scoreAllyCol}>
             <span style={scoreBlueDot}>●</span>
@@ -1234,12 +1141,28 @@ export default function HeroHud({
           </button>
         </div>
 
-        {/* Teammate Health Portraits (Below Scoreboard) */}
+        {/* Sub-Pill: Territory Realm Info */}
+        <div
+          style={territoryHeaderChip}
+          onClick={() => setShowTerritoryCodex(true)}
+          title="View Realm Story & Lore"
+        >
+          <strong style={{ fontSize: 10, color: territory.atmosphere.primaryColor, letterSpacing: 0.5 }}>
+            {territory.name.toUpperCase()}
+          </strong>
+          <span style={{ fontSize: 9.5, color: '#94A3B8' }}>• {territory.atmosphere.weatherEffect}</span>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          4. TOP-RIGHT TEAMMATES ROW
+          ══════════════════════════════════════════════════════════════════════ */}
+      <div style={topRightScoreboard}>
         <div style={teammatesRow}>
           {teammates.map((tm, idx) => (
             <div key={idx} style={teammatePortraitBox} title={`${tm.name} (Lvl ${tm.level})`}>
               <div style={teammateAvatarCircle}>
-                <span style={{ fontSize: 18 }}>{tm.emoji}</span>
+                <span style={{ fontSize: 16 }}>{tm.emoji}</span>
                 {/* Glowing Green Ultimate Jewel */}
                 <div
                   style={{
@@ -1262,17 +1185,16 @@ export default function HeroHud({
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          4. BOTTOM-LEFT VIRTUAL TOUCH JOYSTICK (DYNAMIC FLOATING OR FIXED)
+          5. BOTTOM-LEFT VIRTUAL TOUCH JOYSTICK
           ══════════════════════════════════════════════════════════════════════ */}
-      {/* Dynamic Touch Area (Lower Left Screen Half for Mobile Dragging) */}
       {joystickMode === 'dynamic' && (
         <div
           style={{
             position: 'absolute',
             bottom: 0,
             left: 0,
-            width: '48vw',
-            height: '80vh',
+            width: '45vw',
+            height: '75vh',
             zIndex: 9,
             pointerEvents: 'auto',
             touchAction: 'none',
@@ -1293,8 +1215,8 @@ export default function HeroHud({
             ? dynamicOrigin
               ? {
                   position: 'fixed',
-                  left: dynamicOrigin.x - 75,
-                  top: dynamicOrigin.y - 75,
+                  left: dynamicOrigin.x - 55,
+                  top: dynamicOrigin.y - 55,
                   bottom: 'auto',
                   opacity: 1,
                   transform: 'none',
@@ -1327,53 +1249,46 @@ export default function HeroHud({
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          5. BOTTOM-RIGHT CIRCULAR SKILL CLUSTER & MOBILE TARGET PRIORITY
+          6. BOTTOM-CENTER HERO VITALS & QUICK SUMMONER SPELLS
           ══════════════════════════════════════════════════════════════════════ */}
-      <div
-        style={{
-          ...skillClusterContainer,
-          transform: hudScale === 'compact' ? 'scale(0.9)' : hudScale === 'large' ? 'scale(1.1)' : 'none',
-          transformOrigin: 'bottom right',
-        }}
-      >
-        {/* Available Skill Points Indicator Toast */}
-        {availableSkillPoints > 0 && (
-          <div
-            style={{
-              position: 'absolute',
-              top: -35,
-              right: 40,
-              background: 'linear-gradient(135deg, #FFD700, #F59E0B)',
-              color: '#0F172A',
-              padding: '3px 12px',
-              borderRadius: 999,
-              fontSize: 10.5,
-              fontWeight: 900,
-              boxShadow: '0 0 16px rgba(255, 215, 0, 0.7)',
-              zIndex: 30,
-              animation: 'pulseGold 1.5s infinite',
-              pointerEvents: 'none',
-            }}
-          >
-            ⚡ {availableSkillPoints} SKILL POINTS
+      <div style={bottomCenterVitalsContainer}>
+        <div style={thumbVitals}>
+          <div style={thumbVitalsHead}>
+            <span style={thumbLevelBadge}>{playerLevel}</span>
+            <span style={thumbHeroName}>{hero.name.toUpperCase()}</span>
+            <span style={thumbHpNumbers}>
+              {Math.ceil(playerHp)} / {effectiveStats?.maxHp ?? playerMaxHp}
+            </span>
           </div>
-        )}
+          <div style={thumbHpTrack}>
+            <div
+              style={{
+                ...thumbHpFill,
+                width: `${playerPct}%`,
+                background:
+                  playerPct > 50
+                    ? 'linear-gradient(90deg, #22C55E, #4ADE80)'
+                    : playerPct > 25
+                      ? 'linear-gradient(90deg, #F59E0B, #FBBF24)'
+                      : 'linear-gradient(90deg, #DC2626, #F87171)',
+              }}
+            />
+          </div>
+        </div>
 
-        {/* Health Potion, Battle Spells & Innate Passive (Row to the left of arc) */}
+        {/* Summoner Spells / Quick Action Row */}
         <div style={quickSpellsRow}>
-          {/* Innate Mythic Passive Badge */}
           {hero.passive && (
             <div
               style={{
                 ...smallSpellBtn,
                 borderColor: '#00E5FF',
-                background: 'rgba(6, 78, 59, 0.8)',
+                background: 'rgba(6, 78, 59, 0.85)',
                 cursor: 'help',
               }}
-              title={`[INNATE PASSIVE] ${hero.passive.name}: ${hero.passive.blurb} (${hero.passive.effect})`}
+              title={`[PASSIVE] ${hero.passive.name}: ${hero.passive.blurb}`}
             >
-              <span style={{ ...spellKeyBadge, background: '#0D9488', fontSize: 8 }}>PAS</span>
-              <span style={{ fontSize: 18 }}>{hero.passive.emoji}</span>
+              <span style={{ fontSize: 16 }}>{hero.passive.emoji}</span>
             </div>
           )}
 
@@ -1389,16 +1304,15 @@ export default function HeroHud({
             onPointerMove={handleAbilityPointerMove}
             onPointerUp={handleAbilityPointerUp}
             onPointerCancel={handleAbilityPointerUp}
-            title="Battle Spell: Flicker (Instant 6.5u Dash) [F]"
+            title="Battle Spell: Flicker"
           >
-            <span style={spellKeyBadge}>F</span>
-            <span style={{ fontSize: 18 }}>⚡</span>
+            <span style={{ fontSize: 16 }}>⚡</span>
             {cooldowns.spell > 0 ? (
               <span style={spellCooldownText}>{Math.ceil(cooldowns.spell)}</span>
             ) : null}
           </button>
 
-          {/* Health Potion / Regen (D) */}
+          {/* Health Potion (D) */}
           <button
             style={{
               ...smallSpellBtn,
@@ -1406,16 +1320,15 @@ export default function HeroHud({
               opacity: cooldowns.potion > 0 ? 0.55 : 1,
             }}
             onClick={() => onCast('potion')}
-            title="Health Potion / Talisman Regen (+250 HP) [D]"
+            title="Health Potion (+250 HP)"
           >
-            <span style={spellKeyBadge}>D</span>
-            <span style={{ fontSize: 18 }}>🌿</span>
+            <span style={{ fontSize: 16 }}>🌿</span>
             {cooldowns.potion > 0 ? (
               <span style={spellCooldownText}>{Math.ceil(cooldowns.potion)}</span>
             ) : null}
           </button>
 
-          {/* Recall to Base / Sanctuary (B) */}
+          {/* Recall to Base (B) */}
           <button
             style={{
               ...smallSpellBtn,
@@ -1423,57 +1336,35 @@ export default function HeroHud({
               opacity: cooldowns.recall > 0 ? 0.55 : 1,
             }}
             onClick={() => onCast('recall')}
-            title="Recall to Sanctuary Base (Channeled Teleport) [B]"
+            title="Recall to Sanctuary Base"
           >
-            <span style={spellKeyBadge}>B</span>
-            <span style={{ fontSize: 18 }}>🏠</span>
+            <span style={{ fontSize: 16 }}>🏠</span>
             {cooldowns.recall > 0 ? (
               <span style={spellCooldownText}>{Math.ceil(cooldowns.recall)}</span>
             ) : null}
           </button>
         </div>
+      </div>
 
-        {/*
-          Your own health, pinned above the action cluster.
-
-          Until now this existed ONLY as a bar floating over the character in the
-          world. In a fight the player's eyes are on the enemy and their thumb is
-          in this corner, so checking their own health meant looking away from
-          what is about to kill them. Every mobile MOBA carries the overhead bar
-          AND a readout here; Talisman had only the first.
-
-          Numbers as well as a bar: "how much health" is a decision input, and a
-          bar alone cannot answer "can I survive one more hit".
-        */}
-        <div style={thumbVitals}>
-          <div style={thumbVitalsHead}>
-            <span style={thumbLevelBadge}>{playerLevel}</span>
-            <span style={thumbHeroName}>{hero.name.toUpperCase()}</span>
-            <span style={thumbHpNumbers}>
-              {Math.ceil(playerHp)} / {effectiveStats?.maxHp ?? playerMaxHp}
-            </span>
+      {/* ══════════════════════════════════════════════════════════════════════
+          7. BOTTOM-RIGHT MASTER THUMB ACTION & ABILITY ARC (iOS MOBA STANDARD)
+          ══════════════════════════════════════════════════════════════════════ */}
+      <div
+        style={{
+          ...skillClusterContainer,
+          transform: hudScale === 'compact' ? 'scale(0.9)' : hudScale === 'large' ? 'scale(1.1)' : 'none',
+          transformOrigin: 'bottom right',
+        }}
+      >
+        {/* Available Skill Points Indicator Toast */}
+        {availableSkillPoints > 0 && (
+          <div style={skillPointsAvailableToast}>
+            ⚡ {availableSkillPoints} POINTS
           </div>
-          <div style={thumbHpTrack}>
-            <div
-              style={{
-                ...thumbHpFill,
-                width: `${playerPct}%`,
-                /* Colour is a second channel for the same fact, so it reads in
-                   peripheral vision without being looked at directly. */
-                background:
-                  playerPct > 50
-                    ? 'linear-gradient(90deg, #22C55E, #4ADE80)'
-                    : playerPct > 25
-                      ? 'linear-gradient(90deg, #F59E0B, #FBBF24)'
-                      : 'linear-gradient(90deg, #DC2626, #F87171)',
-              }}
-            />
-          </div>
-        </div>
+        )}
 
-        {/* Skill 1 (Q / Strike) at bottom: 40px; right: 140px; */}
-        <div style={{ position: 'absolute', bottom: 73, right: 197, width: 58, height: 58, pointerEvents: 'auto' }}>
-          {/* Level-Up Plus Upgrade Button */}
+        {/* Skill 1 (Strike) */}
+        <div style={skill1Slot}>
           {availableSkillPoints > 0 && skillLevels.ability0 < 5 && (
             <button
               style={skillUpgradePlusBtn}
@@ -1481,7 +1372,7 @@ export default function HeroHud({
                 e.stopPropagation();
                 handleSkillUpgrade('ability0');
               }}
-              title="Upgrade Skill 1 (+18% Damage, -6% CD)"
+              title="Upgrade Skill 1"
             >
               +
             </button>
@@ -1489,9 +1380,6 @@ export default function HeroHud({
           <button
             style={{
               ...abilityCircleBtn,
-              position: 'relative',
-              width: '100%',
-              height: '100%',
               opacity: cooldowns.ability0 > 0.05 ? 0.55 : 1,
               transform: aimSlot === 'ability0' ? `translate(${aimDragOffset.x * 0.4}px, ${aimDragOffset.y * 0.4}px) scale(1.15)` : 'none',
               boxShadow: aimSlot === 'ability0' ? '0 0 24px #00E5FF' : undefined,
@@ -1500,11 +1388,10 @@ export default function HeroHud({
             onPointerMove={handleAbilityPointerMove}
             onPointerUp={handleAbilityPointerUp}
             onPointerCancel={handleAbilityPointerUp}
-            title={`[Q / 1] ${ability0.name}: ${ability0.blurb} (Rank ${skillLevels.ability0}/5)`}
+            title={`${ability0.name}: ${ability0.blurb} (Rank ${skillLevels.ability0}/5)`}
           >
-            <span style={hotkeyBadge}>Q</span>
+            {gamepadConnected && <span style={hotkeyBadge}>Q</span>}
             <span style={abilityEmoji}>{ability0.emoji}</span>
-            <span style={abilitySubName}>{ability0.name}</span>
             {cooldowns.ability0 > 0.05 ? (
               <div style={cooldownOverlay}>
                 <span style={cooldownNumber}>
@@ -1513,7 +1400,6 @@ export default function HeroHud({
               </div>
             ) : null}
           </button>
-          {/* Rank Indicator Pips */}
           <div style={rankPipsRow}>
             {[1, 2, 3, 4, 5].map((lvl) => (
               <div
@@ -1527,9 +1413,8 @@ export default function HeroHud({
           </div>
         </div>
 
-        {/* Skill 2 (W / Shield) at bottom: 110px; right: 120px; */}
-        <div style={{ position: 'absolute', bottom: 142, right: 167, width: 58, height: 58, pointerEvents: 'auto' }}>
-          {/* Level-Up Plus Upgrade Button */}
+        {/* Skill 2 (Shield) */}
+        <div style={skill2Slot}>
           {availableSkillPoints > 0 && skillLevels.ability1 < 5 && (
             <button
               style={skillUpgradePlusBtn}
@@ -1537,7 +1422,7 @@ export default function HeroHud({
                 e.stopPropagation();
                 handleSkillUpgrade('ability1');
               }}
-              title="Upgrade Skill 2 (+18% Damage, -6% CD)"
+              title="Upgrade Skill 2"
             >
               +
             </button>
@@ -1545,9 +1430,6 @@ export default function HeroHud({
           <button
             style={{
               ...abilityCircleBtn,
-              position: 'relative',
-              width: '100%',
-              height: '100%',
               opacity: cooldowns.ability1 > 0.05 ? 0.55 : 1,
               transform: aimSlot === 'ability1' ? `translate(${aimDragOffset.x * 0.4}px, ${aimDragOffset.y * 0.4}px) scale(1.15)` : 'none',
               boxShadow: aimSlot === 'ability1' ? '0 0 24px #00E5FF' : undefined,
@@ -1556,11 +1438,10 @@ export default function HeroHud({
             onPointerMove={handleAbilityPointerMove}
             onPointerUp={handleAbilityPointerUp}
             onPointerCancel={handleAbilityPointerUp}
-            title={`[W / 2] ${ability1.name}: ${ability1.blurb} (Rank ${skillLevels.ability1}/5)`}
+            title={`${ability1.name}: ${ability1.blurb} (Rank ${skillLevels.ability1}/5)`}
           >
-            <span style={hotkeyBadge}>W</span>
+            {gamepadConnected && <span style={hotkeyBadge}>W</span>}
             <span style={abilityEmoji}>{ability1.emoji}</span>
-            <span style={abilitySubName}>{ability1.name}</span>
             {cooldowns.ability1 > 0.05 ? (
               <div style={cooldownOverlay}>
                 <span style={cooldownNumber}>
@@ -1569,7 +1450,6 @@ export default function HeroHud({
               </div>
             ) : null}
           </button>
-          {/* Rank Indicator Pips */}
           <div style={rankPipsRow}>
             {[1, 2, 3, 4, 5].map((lvl) => (
               <div
@@ -1583,9 +1463,8 @@ export default function HeroHud({
           </div>
         </div>
 
-        {/* Skill 3 (E / Burst) at bottom: 150px; right: 50px; */}
-        <div style={{ position: 'absolute', bottom: 187, right: 107, width: 58, height: 58, pointerEvents: 'auto' }}>
-          {/* Level-Up Plus Upgrade Button */}
+        {/* Skill 3 (Burst) */}
+        <div style={skill3Slot}>
           {availableSkillPoints > 0 && skillLevels.ability2 < 5 && (
             <button
               style={skillUpgradePlusBtn}
@@ -1593,7 +1472,7 @@ export default function HeroHud({
                 e.stopPropagation();
                 handleSkillUpgrade('ability2');
               }}
-              title="Upgrade Skill 3 (+18% Damage, -6% CD)"
+              title="Upgrade Skill 3"
             >
               +
             </button>
@@ -1601,9 +1480,6 @@ export default function HeroHud({
           <button
             style={{
               ...abilityCircleBtn,
-              position: 'relative',
-              width: '100%',
-              height: '100%',
               opacity: cooldowns.ability2 > 0.05 ? 0.55 : 1,
               transform: aimSlot === 'ability2' ? `translate(${aimDragOffset.x * 0.4}px, ${aimDragOffset.y * 0.4}px) scale(1.15)` : 'none',
               boxShadow: aimSlot === 'ability2' ? '0 0 24px #00E5FF' : undefined,
@@ -1612,11 +1488,10 @@ export default function HeroHud({
             onPointerMove={handleAbilityPointerMove}
             onPointerUp={handleAbilityPointerUp}
             onPointerCancel={handleAbilityPointerUp}
-            title={`[E / 3] ${ability2.name}: ${ability2.blurb} (Rank ${skillLevels.ability2}/5)`}
+            title={`${ability2.name}: ${ability2.blurb} (Rank ${skillLevels.ability2}/5)`}
           >
-            <span style={hotkeyBadge}>E</span>
+            {gamepadConnected && <span style={hotkeyBadge}>E</span>}
             <span style={abilityEmoji}>{ability2.emoji}</span>
-            <span style={abilitySubName}>{ability2.name}</span>
             {cooldowns.ability2 > 0.05 ? (
               <div style={cooldownOverlay}>
                 <span style={cooldownNumber}>
@@ -1625,7 +1500,6 @@ export default function HeroHud({
               </div>
             ) : null}
           </button>
-          {/* Rank Indicator Pips */}
           <div style={rankPipsRow}>
             {[1, 2, 3, 4, 5].map((lvl) => (
               <div
@@ -1639,17 +1513,16 @@ export default function HeroHud({
           </div>
         </div>
 
-        {/* Ultimate (R / Solar Burst) at bottom: 120px; right: 190px; (68px, Gold Glow) */}
-        <div style={{ position: 'absolute', bottom: 190, right: 26, width: 72, height: 72, pointerEvents: 'auto' }}>
-          {/* Level-Up Plus Upgrade Button for Ultimate (Unlocked at lvl 4, 8, 12) */}
+        {/* Ultimate (R / Solar Burst) */}
+        <div style={ultimateSlot}>
           {availableSkillPoints > 0 && playerLevel >= 4 && skillLevels.ultimate < 3 && (
             <button
-              style={{ ...skillUpgradePlusBtn, top: -14, right: 20, background: '#FFD700', color: '#000' }}
+              style={{ ...skillUpgradePlusBtn, top: -10, right: 12, background: '#FFD700', color: '#000' }}
               onClick={(e) => {
                 e.stopPropagation();
                 handleSkillUpgrade('ultimate');
               }}
-              title="Upgrade Ultimate (+25% Damage, -10% CD)"
+              title="Upgrade Ultimate"
             >
               +
             </button>
@@ -1657,9 +1530,6 @@ export default function HeroHud({
           <button
             style={{
               ...ultimateCircleBtn,
-              position: 'relative',
-              width: '100%',
-              height: '100%',
               opacity: cooldowns.ultimate > 0.05 ? 0.55 : 1,
               transform: aimSlot === 'ultimate' ? `translate(${aimDragOffset.x * 0.4}px, ${aimDragOffset.y * 0.4}px) scale(1.18)` : 'none',
               boxShadow: aimSlot === 'ultimate' ? '0 0 30px #FFD700' : undefined,
@@ -1668,11 +1538,10 @@ export default function HeroHud({
             onPointerMove={handleAbilityPointerMove}
             onPointerUp={handleAbilityPointerUp}
             onPointerCancel={handleAbilityPointerUp}
-            title={`[R / 4] ${hero.ultimate.name}: ${hero.ultimate.blurb} (Rank ${skillLevels.ultimate}/3)`}
+            title={`${hero.ultimate.name}: ${hero.ultimate.blurb} (Rank ${skillLevels.ultimate}/3)`}
           >
-            <span style={hotkeyBadgeUlt}>R</span>
+            {gamepadConnected && <span style={hotkeyBadgeUlt}>R</span>}
             <span style={ultimateEmoji}>{hero.ultimate.emoji}</span>
-            <span style={ultimateSubName}>{hero.ultimate.name}</span>
             {cooldowns.ultimate > 0.05 ? (
               <div style={cooldownOverlay}>
                 <span style={cooldownNumber}>
@@ -1681,7 +1550,6 @@ export default function HeroHud({
               </div>
             ) : null}
           </button>
-          {/* Ult Rank Indicator Pips (3 pips) */}
           <div style={rankPipsRow}>
             {[1, 2, 3].map((lvl) => (
               <div
@@ -1689,7 +1557,7 @@ export default function HeroHud({
                 style={{
                   ...rankPip,
                   width: 8,
-                  height: 3.5,
+                  height: 3,
                   background: lvl <= skillLevels.ultimate ? '#FFD700' : 'rgba(255,255,255,0.25)',
                 }}
               />
@@ -1697,87 +1565,47 @@ export default function HeroHud({
           </div>
         </div>
 
-        {/* ── Mobile Target Priority Attack Buttons ────────────────────────── */}
-        {/* Tower Siege Priority Attack Button (Directly Above Main Attack) */}
+        {/* ── Mobile Target Priority Satellite Buttons ── */}
+        {/* Tower Siege Priority Button */}
         <button
-          style={{
-            position: 'absolute',
-            bottom: 126,
-            right: 30,
-            width: 46,
-            height: 46,
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #1E293B, #0F172A)',
-            border: '2px solid #38BDF8',
-            color: '#38BDF8',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            boxShadow: '0 4px 14px rgba(56, 189, 248, 0.4)',
-            zIndex: 10,
-            opacity: cooldowns.basic > 0.05 ? 0.6 : 1,
-            pointerEvents: 'auto',
-          }}
+          style={towerTargetBtn}
           onClick={() => {
             if (onCastTarget) onCastTarget('basic_tower', { targetType: 'tower' });
             else onCast('basic');
           }}
-          title="Tower Siege Attack (Target Enemy Turrets / Core) [T]"
+          title="Tower Siege Attack (Target Enemy Turrets / Core)"
         >
-          <span style={{ fontSize: 18 }}>🏰</span>
-          <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: 0.5 }}>TOWER</span>
+          <span style={{ fontSize: 16 }}>🏰</span>
+          <span style={{ fontSize: 7.5, fontWeight: 900, letterSpacing: 0.5 }}>TOWER</span>
         </button>
 
-        {/* Minion / Monster Priority Attack Button (Directly to the Left of Main Attack) */}
+        {/* Minion / Creep Priority Button */}
         <button
-          style={{
-            position: 'absolute',
-            bottom: 30,
-            right: 126,
-            width: 46,
-            height: 46,
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #1E293B, #0F172A)',
-            border: '2px solid #10B981',
-            color: '#10B981',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)',
-            zIndex: 10,
-            opacity: cooldowns.basic > 0.05 ? 0.6 : 1,
-            pointerEvents: 'auto',
-          }}
+          style={creepTargetBtn}
           onClick={() => {
             if (onCastTarget) onCastTarget('basic_minion', { targetType: 'minion' });
             else onCast('basic');
           }}
-          title="Minion / Monster Farm Attack (Target Creeps) [M]"
+          title="Minion / Monster Farm Attack"
         >
-          <span style={{ fontSize: 18 }}>🌾</span>
-          <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: 0.5 }}>CREEP</span>
+          <span style={{ fontSize: 16 }}>🌾</span>
+          <span style={{ fontSize: 7.5, fontWeight: 900, letterSpacing: 0.5 }}>CREEP</span>
         </button>
 
-        {/* Main Hero / Foe Attack Button (88px, Gold Frame #E5B25D) */}
+        {/* Master Primary Attack Button */}
         <button
           style={{
             ...mainAttackBtn,
-            bottom: 30,
-            right: 30,
             opacity: cooldowns.basic > 0.05 ? 0.7 : 1,
           }}
           onClick={() => {
             if (onCastTarget) onCastTarget('basic', { targetType: 'hero' });
             else onCast('basic');
           }}
-          title={`[J / Space] Aimed Basic Attack (${effectiveStats?.attack ?? hero.attack} dmg)`}
+          title={`Basic Attack (${effectiveStats?.attack ?? hero.attack} dmg)`}
         >
-          <span style={mainAttackKey}>J</span>
-          <span style={{ fontSize: 34 }}>⚔</span>
+          {gamepadConnected && <span style={mainAttackKey}>J</span>}
+          <span style={{ fontSize: 30 }}>⚔</span>
           <span style={mainAttackText}>ATTACK</span>
         </button>
       </div>
@@ -3347,16 +3175,16 @@ const hudRoot: React.CSSProperties = {
 // ── 1. Mini-Map & Utility Menu ───────────────────────────────────────────────
 const minimapContainer: React.CSSProperties = {
   position: 'absolute',
-  top: 15,
-  left: 15,
-  width: 180,
-  height: 180,
-  borderRadius: 10,
-  border: '3px solid #2C3E50',
+  top: 'max(8px, env(safe-area-inset-top))',
+  left: 'max(10px, env(safe-area-inset-left))',
+  width: 'clamp(95px, 14vw, 115px)',
+  height: 'clamp(95px, 14vw, 115px)',
+  borderRadius: 12,
+  border: '2px solid rgba(255, 255, 255, 0.2)',
   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.65)',
   overflow: 'hidden',
-  background: 'rgba(11, 19, 32, 0.85)',
-  backdropFilter: 'blur(8px)',
+  background: 'rgba(11, 19, 32, 0.88)',
+  backdropFilter: 'blur(12px)',
   pointerEvents: 'auto',
   zIndex: 10,
 };
@@ -3369,12 +3197,12 @@ const minimapSvg: React.CSSProperties = {
 
 const minimapCompass: React.CSSProperties = {
   position: 'absolute',
-  top: 5,
-  right: 5,
-  width: 22,
-  height: 22,
+  top: 4,
+  right: 4,
+  width: 18,
+  height: 18,
   borderRadius: '50%',
-  background: 'rgba(15, 23, 42, 0.75)',
+  background: 'rgba(15, 23, 42, 0.85)',
   border: '1px solid rgba(255, 215, 0, 0.5)',
   display: 'grid',
   placeItems: 'center',
@@ -3382,73 +3210,115 @@ const minimapCompass: React.CSSProperties = {
 
 const utilityMenuStack: React.CSSProperties = {
   position: 'absolute',
-  top: 205,
-  left: 15,
+  top: 'clamp(108px, 15vw, 128px)',
+  left: 'max(10px, env(safe-area-inset-left))',
   display: 'flex',
-  flexDirection: 'column',
-  gap: 7,
+  gap: 4,
   pointerEvents: 'auto',
   zIndex: 10,
 };
 
 const utilityBtn: React.CSSProperties = {
-  width: 38,
-  height: 38,
+  width: 26,
+  height: 26,
   borderRadius: '50%',
-  border: '1.5px solid rgba(255, 255, 255, 0.3)',
-  background: 'rgba(15, 23, 42, 0.82)',
-  backdropFilter: 'blur(6px)',
+  border: '1px solid rgba(255, 255, 255, 0.25)',
+  background: 'rgba(15, 23, 42, 0.85)',
+  backdropFilter: 'blur(8px)',
   color: '#F8FAFC',
   display: 'grid',
   placeItems: 'center',
   cursor: 'pointer',
-  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
   transition: 'transform 100ms ease, background 100ms ease',
 };
 
 const utilityIcon: React.CSSProperties = {
-  fontSize: 16,
+  fontSize: 12,
 };
 
-// ── 2. Top-Right Scoreboard & Team Portraits ─────────────────────────────────
-const topRightScoreboard: React.CSSProperties = {
+const quickBuyFloatingPill: React.CSSProperties = {
   position: 'absolute',
-  top: 15,
-  right: 15,
+  top: 'max(8px, env(safe-area-inset-top))',
+  left: 'clamp(115px, 16vw, 135px)',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9))',
+  border: '1.5px solid #FFD700',
+  boxShadow: '0 0 16px rgba(255, 215, 0, 0.45)',
+  borderRadius: 20,
+  padding: '4px 10px 4px 6px',
+  cursor: 'pointer',
+  pointerEvents: 'auto',
+  zIndex: 15,
+  animation: 'pulseGold 2.5s infinite',
+};
+
+const quickBuyTag: React.CSSProperties = {
+  fontSize: 8.5,
+  background: '#FFD700',
+  color: '#0F172A',
+  fontWeight: 900,
+  padding: '2px 5px',
+  borderRadius: 6,
+};
+
+const quickBuyToast: React.CSSProperties = {
+  position: 'absolute',
+  top: 'calc(max(8px, env(safe-area-inset-top)) + 38px)',
+  left: 'clamp(115px, 16vw, 135px)',
+  padding: '4px 10px',
+  borderRadius: 6,
+  background: 'rgba(16, 185, 129, 0.92)',
+  color: '#FFF',
+  fontWeight: 700,
+  fontSize: 11,
+  boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+  zIndex: 20,
+  pointerEvents: 'none',
+};
+
+// ── 2. Top-Center Match Header & Territory Chip ──────────────────────────────
+const topCenterMatchHeader: React.CSSProperties = {
+  position: 'absolute',
+  top: 'max(6px, env(safe-area-inset-top))',
+  left: '50%',
+  transform: 'translateX(-50%)',
   display: 'flex',
   flexDirection: 'column',
-  alignItems: 'flex-end',
-  gap: 8,
+  alignItems: 'center',
+  gap: 3,
   pointerEvents: 'auto',
-  zIndex: 10,
+  zIndex: 20,
 };
 
 const scoreBarCapsule: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: 14,
-  padding: '6px 14px',
+  gap: 10,
+  padding: '4px 12px',
   borderRadius: 999,
-  background: 'rgba(15, 23, 42, 0.85)',
-  border: '1px solid #334155',
-  backdropFilter: 'blur(8px)',
-  boxShadow: '0 6px 20px rgba(0,0,0,0.4)',
+  background: 'rgba(15, 23, 42, 0.88)',
+  border: '1px solid rgba(255, 255, 255, 0.15)',
+  backdropFilter: 'blur(12px)',
+  boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
 };
 
 const scoreAllyCol: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: 6,
+  gap: 4,
 };
 
 const scoreBlueDot: React.CSSProperties = {
   color: '#00E5FF',
-  fontSize: 14,
+  fontSize: 12,
 };
 
 const scoreAllyNum: React.CSSProperties = {
   color: '#00E5FF',
-  fontSize: 18,
+  fontSize: 16,
   fontWeight: 800,
 };
 
@@ -3458,72 +3328,97 @@ const scoreTimerCol: React.CSSProperties = {
   alignItems: 'center',
   borderLeft: '1px solid rgba(255,255,255,0.15)',
   borderRight: '1px solid rgba(255,255,255,0.15)',
-  padding: '0 12px',
+  padding: '0 10px',
 };
 
 const scoreTimerText: React.CSSProperties = {
   color: '#F8FAFC',
-  fontSize: 15,
+  fontSize: 13,
   fontWeight: 700,
   letterSpacing: 0.5,
 };
 
 const fpsText: React.CSSProperties = {
   color: '#94A3B8',
-  fontSize: 10,
+  fontSize: 9,
   fontWeight: 600,
 };
 
 const scoreEnemyCol: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: 6,
+  gap: 4,
 };
 
 const scoreEnemyNum: React.CSSProperties = {
   color: '#FF3B30',
-  fontSize: 18,
+  fontSize: 16,
   fontWeight: 800,
 };
 
 const scoreRedDot: React.CSSProperties = {
   color: '#FF3B30',
-  fontSize: 14,
+  fontSize: 12,
 };
 
 const rosterToggleBtn: React.CSSProperties = {
   background: 'rgba(255,255,255,0.1)',
   border: '1px solid rgba(255,255,255,0.2)',
   borderRadius: '50%',
-  width: 28,
-  height: 28,
+  width: 24,
+  height: 24,
   color: '#FFF',
   display: 'grid',
   placeItems: 'center',
   cursor: 'pointer',
-  fontSize: 13,
+  fontSize: 11,
+};
+
+const territoryHeaderChip: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  background: 'rgba(15, 23, 42, 0.85)',
+  border: '1px solid rgba(255, 255, 255, 0.12)',
+  borderRadius: 999,
+  padding: '2px 10px',
+  cursor: 'pointer',
+  backdropFilter: 'blur(8px)',
+};
+
+// ── 3. Top-Right Teammates ──────────────────────────────────────────────────
+const topRightScoreboard: React.CSSProperties = {
+  position: 'absolute',
+  top: 'max(6px, env(safe-area-inset-top))',
+  right: 'max(10px, env(safe-area-inset-right))',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-end',
+  gap: 6,
+  pointerEvents: 'auto',
+  zIndex: 10,
 };
 
 const teammatesRow: React.CSSProperties = {
   display: 'flex',
-  gap: 6,
+  gap: 4,
 };
 
 const teammatePortraitBox: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  width: 38,
+  width: 32,
   background: 'rgba(15, 23, 42, 0.75)',
   borderRadius: 6,
-  padding: '3px 2px',
+  padding: '2px 1px',
   border: '1px solid rgba(255,255,255,0.12)',
 };
 
 const teammateAvatarCircle: React.CSSProperties = {
   position: 'relative',
-  width: 32,
-  height: 32,
+  width: 28,
+  height: 28,
   borderRadius: '50%',
   background: 'rgba(30, 41, 59, 0.8)',
   display: 'grid',
@@ -3534,18 +3429,18 @@ const ultIndicatorJewel: React.CSSProperties = {
   position: 'absolute',
   bottom: 0,
   right: 0,
-  width: 8,
-  height: 8,
+  width: 7,
+  height: 7,
   borderRadius: '50%',
   border: '1.5px solid #0F172A',
 };
 
 const teammateHpTrack: React.CSSProperties = {
   width: '100%',
-  height: 3.5,
+  height: 3,
   background: 'rgba(0,0,0,0.5)',
   borderRadius: 2,
-  marginTop: 3,
+  marginTop: 2,
   overflow: 'hidden',
 };
 
@@ -3557,10 +3452,10 @@ const teammateHpFill: React.CSSProperties = {
 
 const teammateManaTrack: React.CSSProperties = {
   width: '100%',
-  height: 2.5,
+  height: 2,
   background: 'rgba(0,0,0,0.5)',
   borderRadius: 2,
-  marginTop: 1.5,
+  marginTop: 1,
   overflow: 'hidden',
 };
 
@@ -3570,18 +3465,18 @@ const teammateManaFill: React.CSSProperties = {
   borderRadius: 2,
 };
 
-// ── 3. Virtual Touch Joystick ───────────────────────────────────────────────
+// ── 4. Virtual Touch Joystick ───────────────────────────────────────────────
 const joystickOuterRing: React.CSSProperties = {
   position: 'absolute',
-  bottom: 30,
-  left: 30,
-  width: 150,
-  height: 150,
+  bottom: 'max(14px, env(safe-area-inset-bottom))',
+  left: 'max(14px, env(safe-area-inset-left))',
+  width: 110,
+  height: 110,
   borderRadius: '50%',
-  background: 'radial-gradient(circle, rgba(15, 23, 42, 0.45) 0%, rgba(15, 23, 42, 0.8) 100%)',
+  background: 'radial-gradient(circle, rgba(15, 23, 42, 0.45) 0%, rgba(15, 23, 42, 0.85) 100%)',
   border: '2px solid rgba(255, 255, 255, 0.25)',
-  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-  backdropFilter: 'blur(6px)',
+  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
+  backdropFilter: 'blur(8px)',
   pointerEvents: 'auto',
   touchAction: 'none',
   display: 'grid',
@@ -3590,8 +3485,8 @@ const joystickOuterRing: React.CSSProperties = {
 };
 
 const joystickThumbPad: React.CSSProperties = {
-  width: 56,
-  height: 56,
+  width: 44,
+  height: 44,
   borderRadius: '50%',
   background: 'radial-gradient(circle, #38BDF8 0%, #0284C7 100%)',
   border: '2px solid #E0F2FE',
@@ -3603,18 +3498,128 @@ const joystickThumbPad: React.CSSProperties = {
 };
 
 const thumbPadInnerGlow: React.CSSProperties = {
-  width: 22,
-  height: 22,
+  width: 18,
+  height: 18,
   borderRadius: '50%',
   background: 'rgba(255,255,255,0.4)',
 };
 
-const joyNotchN: React.CSSProperties = { position: 'absolute', top: 6, color: 'rgba(255,255,255,0.3)', fontSize: 10 };
-const joyNotchS: React.CSSProperties = { position: 'absolute', bottom: 6, color: 'rgba(255,255,255,0.3)', fontSize: 10 };
-const joyNotchW: React.CSSProperties = { position: 'absolute', left: 6, color: 'rgba(255,255,255,0.3)', fontSize: 10 };
-const joyNotchE: React.CSSProperties = { position: 'absolute', right: 6, color: 'rgba(255,255,255,0.3)', fontSize: 10 };
+const joyNotchN: React.CSSProperties = { position: 'absolute', top: 4, color: 'rgba(255,255,255,0.3)', fontSize: 8 };
+const joyNotchS: React.CSSProperties = { position: 'absolute', bottom: 4, color: 'rgba(255,255,255,0.3)', fontSize: 8 };
+const joyNotchW: React.CSSProperties = { position: 'absolute', left: 4, color: 'rgba(255,255,255,0.3)', fontSize: 8 };
+const joyNotchE: React.CSSProperties = { position: 'absolute', right: 4, color: 'rgba(255,255,255,0.3)', fontSize: 8 };
 
-// ── 4. Circular Skill Cluster ───────────────────────────────────────────────
+// ── 5. Bottom Center Hero Vitals & Quick Spells ─────────────────────────────
+const bottomCenterVitalsContainer: React.CSSProperties = {
+  position: 'absolute',
+  bottom: 'max(10px, env(safe-area-inset-bottom))',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: 6,
+  pointerEvents: 'none',
+  zIndex: 12,
+};
+
+const thumbVitals: React.CSSProperties = {
+  width: 190,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 3,
+  padding: '4px 8px 5px',
+  borderRadius: 8,
+  background: 'rgba(8, 15, 26, 0.8)',
+  border: '1px solid rgba(148, 178, 209, 0.3)',
+  backdropFilter: 'blur(6px)',
+  pointerEvents: 'none',
+};
+
+const thumbVitalsHead: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+};
+
+const thumbLevelBadge: React.CSSProperties = {
+  minWidth: 16,
+  height: 16,
+  padding: '0 3px',
+  borderRadius: 4,
+  background: '#FFD700',
+  color: '#111827',
+  fontSize: 10,
+  fontWeight: 900,
+  display: 'grid',
+  placeItems: 'center',
+};
+
+const thumbHeroName: React.CSSProperties = {
+  flex: 1,
+  fontSize: 10,
+  fontWeight: 800,
+  letterSpacing: '0.05em',
+  color: '#DDE8F3',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+};
+
+const thumbHpNumbers: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 700,
+  color: '#9FB6CB',
+  fontVariantNumeric: 'tabular-nums',
+};
+
+const thumbHpTrack: React.CSSProperties = {
+  height: 7,
+  borderRadius: 4,
+  background: 'rgba(2, 8, 16, 0.85)',
+  border: '1px solid rgba(120, 150, 180, 0.3)',
+  overflow: 'hidden',
+};
+
+const thumbHpFill: React.CSSProperties = {
+  height: '100%',
+  borderRadius: 3,
+  transition: 'width 0.18s linear',
+};
+
+const quickSpellsRow: React.CSSProperties = {
+  display: 'flex',
+  gap: 8,
+  pointerEvents: 'auto',
+};
+
+const smallSpellBtn: React.CSSProperties = {
+  position: 'relative',
+  width: 36,
+  height: 36,
+  borderRadius: '50%',
+  background: 'rgba(15, 23, 42, 0.88)',
+  border: '1.5px solid #00E5FF',
+  color: '#FFF',
+  display: 'grid',
+  placeItems: 'center',
+  cursor: 'pointer',
+  boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+};
+
+const spellCooldownText: React.CSSProperties = {
+  position: 'absolute',
+  inset: 0,
+  borderRadius: '50%',
+  background: 'rgba(0,0,0,0.75)',
+  color: '#FFD700',
+  display: 'grid',
+  placeItems: 'center',
+  fontSize: 11,
+  fontWeight: 800,
+};
+
+// ── 6. Bottom-Right Action & Ability Arc (iOS MOBA Ergonomic Layout) ────────
 const skillClusterContainer: React.CSSProperties = {
   position: 'absolute',
   bottom: 0,
@@ -3625,67 +3630,125 @@ const skillClusterContainer: React.CSSProperties = {
   zIndex: 10,
 };
 
-/*
- * Sits clear of the ability arc. At right: 215 it ran straight through the
- * Q button once the abilities were placed on a proper arc. Every position in
- * this cluster is checked against every other for overlap; if one moves, re-check.
- */
-const quickSpellsRow: React.CSSProperties = {
+const skillPointsAvailableToast: React.CSSProperties = {
   position: 'absolute',
-  bottom: 30,
-  right: 285,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 8,
+  top: -28,
+  right: 30,
+  background: 'linear-gradient(135deg, #FFD700, #F59E0B)',
+  color: '#0F172A',
+  padding: '2px 10px',
+  borderRadius: 999,
+  fontSize: 9.5,
+  fontWeight: 900,
+  boxShadow: '0 0 14px rgba(255, 215, 0, 0.7)',
+  zIndex: 30,
+  animation: 'pulseGold 1.5s infinite',
+  pointerEvents: 'none',
+};
+
+const skill1Slot: React.CSSProperties = {
+  position: 'absolute',
+  bottom: 'calc(max(18px, env(safe-area-inset-bottom)) + 44px)',
+  right: 'calc(max(20px, env(safe-area-inset-right)) + 135px)',
+  width: 48,
+  height: 48,
   pointerEvents: 'auto',
 };
 
-const smallSpellBtn: React.CSSProperties = {
-  position: 'relative',
-  width: 42,
-  height: 42,
+const skill2Slot: React.CSSProperties = {
+  position: 'absolute',
+  bottom: 'calc(max(18px, env(safe-area-inset-bottom)) + 94px)',
+  right: 'calc(max(20px, env(safe-area-inset-right)) + 115px)',
+  width: 48,
+  height: 48,
+  pointerEvents: 'auto',
+};
+
+const skill3Slot: React.CSSProperties = {
+  position: 'absolute',
+  bottom: 'calc(max(18px, env(safe-area-inset-bottom)) + 130px)',
+  right: 'calc(max(20px, env(safe-area-inset-right)) + 65px)',
+  width: 48,
+  height: 48,
+  pointerEvents: 'auto',
+};
+
+const ultimateSlot: React.CSSProperties = {
+  position: 'absolute',
+  bottom: 'calc(max(18px, env(safe-area-inset-bottom)) + 136px)',
+  right: 'calc(max(20px, env(safe-area-inset-right)) + 6px)',
+  width: 58,
+  height: 58,
+  pointerEvents: 'auto',
+};
+
+const towerTargetBtn: React.CSSProperties = {
+  position: 'absolute',
+  bottom: 'calc(max(18px, env(safe-area-inset-bottom)) + 78px)',
+  right: 'calc(max(20px, env(safe-area-inset-right)) + 8px)',
+  width: 36,
+  height: 36,
   borderRadius: '50%',
-  background: 'rgba(15, 23, 42, 0.85)',
-  border: '1.5px solid #00E5FF',
-  color: '#FFF',
-  display: 'grid',
-  placeItems: 'center',
+  background: 'linear-gradient(135deg, #1E293B, #0F172A)',
+  border: '1.5px solid #38BDF8',
+  color: '#38BDF8',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
   cursor: 'pointer',
-  boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+  boxShadow: '0 4px 12px rgba(56, 189, 248, 0.4)',
+  zIndex: 10,
+  pointerEvents: 'auto',
 };
 
-const spellKeyBadge: React.CSSProperties = {
+const creepTargetBtn: React.CSSProperties = {
   position: 'absolute',
-  top: -4,
-  left: -4,
-  background: '#334155',
-  color: '#E2E8F0',
-  borderRadius: 4,
-  padding: '1px 4px',
-  fontSize: 9,
-  fontWeight: 800,
-};
-
-const spellCooldownText: React.CSSProperties = {
-  position: 'absolute',
-  inset: 0,
+  bottom: 'calc(max(18px, env(safe-area-inset-bottom)) + 6px)',
+  right: 'calc(max(20px, env(safe-area-inset-right)) + 78px)',
+  width: 36,
+  height: 36,
   borderRadius: '50%',
-  background: 'rgba(0,0,0,0.7)',
-  color: '#FFD700',
-  display: 'grid',
-  placeItems: 'center',
-  fontSize: 13,
-  fontWeight: 800,
+  background: 'linear-gradient(135deg, #1E293B, #0F172A)',
+  border: '1.5px solid #10B981',
+  color: '#10B981',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)',
+  zIndex: 10,
+  pointerEvents: 'auto',
+};
+
+const mainAttackBtn: React.CSSProperties = {
+  position: 'absolute',
+  bottom: 'max(18px, env(safe-area-inset-bottom))',
+  right: 'max(20px, env(safe-area-inset-right))',
+  width: 78,
+  height: 78,
+  borderRadius: '50%',
+  background: 'radial-gradient(circle, #D97706 0%, #78350F 100%)',
+  border: '2.5px solid #FDE68A',
+  boxShadow: '0 8px 24px rgba(217, 119, 6, 0.65)',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  pointerEvents: 'auto',
+  zIndex: 10,
 };
 
 const abilityCircleBtn: React.CSSProperties = {
-  position: 'absolute',
-  width: 58,
-  height: 58,
+  position: 'relative',
+  width: '100%',
+  height: '100%',
   borderRadius: '50%',
   background: 'radial-gradient(circle, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%)',
-  border: '2px solid rgba(255, 255, 255, 0.35)',
-  boxShadow: '0 6px 18px rgba(0,0,0,0.5)',
+  border: '1.5px solid rgba(255, 255, 255, 0.35)',
+  boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
@@ -3696,12 +3759,12 @@ const abilityCircleBtn: React.CSSProperties = {
 };
 
 const ultimateCircleBtn: React.CSSProperties = {
-  position: 'absolute',
-  width: 68,
-  height: 68,
+  position: 'relative',
+  width: '100%',
+  height: '100%',
   borderRadius: '50%',
   background: 'radial-gradient(circle, rgba(120, 53, 15, 0.9) 0%, rgba(69, 26, 3, 0.95) 100%)',
-  border: '2.5px solid #FFD700',
+  border: '2px solid #FFD700',
   boxShadow: '0 0 20px rgba(255, 215, 0, 0.55)',
   display: 'flex',
   flexDirection: 'column',
@@ -3712,117 +3775,21 @@ const ultimateCircleBtn: React.CSSProperties = {
   overflow: 'hidden',
 };
 
-/*
- * The anchor of the whole right thumb.
- *
- * 96px, and deliberately larger than every ability: it is pressed an order of
- * magnitude more often than anything else, so it is the one button the thumb
- * should find without looking. Mobile Legends and Wild Rift both do this, and
- * the abilities arc around it rather than sitting in a row beside it.
- *
- * The previous layout had this at 82px with four 58-68px abilities scattered
- * around it, and three pairs actually OVERLAPPED (attack/skill2, attack/creep,
- * skill1/creep). Positions are now computed on one arc, verified collision free.
- */
-const thumbVitals: React.CSSProperties = {
-  position: 'absolute',
-  bottom: 272,
-  right: 26,
-  width: 238,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 4,
-  padding: '6px 9px 7px',
-  borderRadius: 9,
-  background: 'rgba(8, 15, 26, 0.72)',
-  border: '1px solid rgba(148, 178, 209, 0.28)',
-  backdropFilter: 'blur(3px)',
-  pointerEvents: 'none',
-  zIndex: 11,
-};
-
-const thumbVitalsHead: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 7,
-};
-
-const thumbLevelBadge: React.CSSProperties = {
-  minWidth: 19,
-  height: 19,
-  padding: '0 4px',
-  borderRadius: 5,
-  background: '#FFD700',
-  color: '#111827',
-  fontSize: 11,
-  fontWeight: 900,
-  display: 'grid',
-  placeItems: 'center',
-};
-
-const thumbHeroName: React.CSSProperties = {
-  flex: 1,
-  fontSize: 11,
-  fontWeight: 800,
-  letterSpacing: '0.05em',
-  color: '#DDE8F3',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-};
-
-const thumbHpNumbers: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 700,
-  color: '#9FB6CB',
-  fontVariantNumeric: 'tabular-nums',
-};
-
-const thumbHpTrack: React.CSSProperties = {
-  height: 9,
-  borderRadius: 5,
-  background: 'rgba(2, 8, 16, 0.85)',
-  border: '1px solid rgba(120, 150, 180, 0.3)',
-  overflow: 'hidden',
-};
-
-const thumbHpFill: React.CSSProperties = {
-  height: '100%',
-  borderRadius: 4,
-  transition: 'width 0.18s linear',
-};
-
-const mainAttackBtn: React.CSSProperties = {
-  position: 'absolute',
-  width: 96,
-  height: 96,
-  borderRadius: '50%',
-  background: 'radial-gradient(circle, #D97706 0%, #78350F 100%)',
-  border: '3px solid #FDE68A',
-  boxShadow: '0 8px 24px rgba(217, 119, 6, 0.65)',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-  pointerEvents: 'auto',
-};
-
 const mainAttackKey: React.CSSProperties = {
   position: 'absolute',
   top: 4,
-  right: 12,
-  fontSize: 10,
+  right: 10,
+  fontSize: 9,
   fontWeight: 800,
   color: '#FEF08A',
 };
 
 const mainAttackText: React.CSSProperties = {
-  fontSize: 10,
+  fontSize: 9,
   fontWeight: 900,
   color: '#FFF',
-  letterSpacing: 1,
-  marginTop: 2,
+  letterSpacing: 0.8,
+  marginTop: 1,
 };
 
 const hotkeyBadge: React.CSSProperties = {
@@ -3844,43 +3811,11 @@ const hotkeyBadgeUlt: React.CSSProperties = {
 };
 
 const abilityEmoji: React.CSSProperties = {
-  fontSize: 20,
+  fontSize: 18,
 };
 
 const ultimateEmoji: React.CSSProperties = {
-  fontSize: 26,
-};
-
-/*
- * Ability names are NOT drawn on the buttons any more.
- *
- * They were clipped to 50px with an ellipsis, so players read "Turned Ar..."
- * and "Trailbl...". A label you cannot finish is worse than no label. Real
- * MOBAs put an icon, a cooldown number and a hotkey on the button and leave the
- * name to the tooltip, which is what the title attribute already carries.
- */
-const abilitySubName: React.CSSProperties = {
-  display: 'none',
-  fontSize: 8.5,
-  fontWeight: 700,
-  color: '#E2E8F0',
-  marginTop: 1,
-  maxWidth: 50,
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-};
-
-const ultimateSubName: React.CSSProperties = {
-  display: 'none',
-  fontSize: 9,
-  fontWeight: 800,
-  color: '#FDE68A',
-  marginTop: 1,
-  maxWidth: 58,
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
+  fontSize: 22,
 };
 
 const cooldownOverlay: React.CSSProperties = {
@@ -3894,26 +3829,26 @@ const cooldownOverlay: React.CSSProperties = {
 
 const cooldownNumber: React.CSSProperties = {
   color: '#FFD700',
-  fontSize: 15,
+  fontSize: 13,
   fontWeight: 900,
 };
 
 const skillUpgradePlusBtn: React.CSSProperties = {
   position: 'absolute',
-  top: -12,
-  right: 14,
-  width: 26,
-  height: 26,
+  top: -8,
+  right: 6,
+  width: 22,
+  height: 22,
   borderRadius: '50%',
   background: 'linear-gradient(135deg, #FFD700, #F59E0B)',
-  border: '2px solid #FFF',
+  border: '1.5px solid #FFF',
   color: '#0F172A',
-  fontSize: 18,
+  fontSize: 15,
   fontWeight: 900,
   display: 'grid',
   placeItems: 'center',
   cursor: 'pointer',
-  boxShadow: '0 0 16px rgba(255, 215, 0, 0.9)',
+  boxShadow: '0 0 14px rgba(255, 215, 0, 0.9)',
   zIndex: 35,
   animation: 'pulseGold 1.2s infinite',
   lineHeight: 1,
@@ -3921,18 +3856,18 @@ const skillUpgradePlusBtn: React.CSSProperties = {
 
 const rankPipsRow: React.CSSProperties = {
   position: 'absolute',
-  bottom: -6,
+  bottom: -5,
   left: '50%',
   transform: 'translateX(-50%)',
   display: 'flex',
-  gap: 3,
+  gap: 2.5,
   zIndex: 25,
 };
 
 const rankPip: React.CSSProperties = {
-  width: 6,
-  height: 3,
-  borderRadius: 2,
+  width: 5,
+  height: 2.5,
+  borderRadius: 1,
   boxShadow: '0 1px 3px rgba(0,0,0,0.6)',
 };
 

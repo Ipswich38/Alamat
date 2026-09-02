@@ -5,6 +5,16 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
+  
+  /* iOS & MOBA Design Tokens */
+  --ios-glass-bg: rgba(15, 23, 42, 0.75);
+  --ios-glass-border: rgba(255, 255, 255, 0.14);
+  --ios-glass-border-gold: rgba(251, 191, 36, 0.45);
+  --ios-glass-border-cyan: rgba(56, 189, 248, 0.45);
+  --gold-primary: #FFD700;
+  --gold-gradient: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  --cyan-accent: #00E5FF;
+  --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Geist", system-ui, sans-serif;
 }
 
 html {
@@ -13,6 +23,7 @@ html {
   overflow: hidden;
   position: fixed;
   overscroll-behavior: none;
+  font-family: var(--font-system);
 }
 
 body {
@@ -24,7 +35,7 @@ body {
   flex-direction: column;
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-system);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-touch-callout: none;
@@ -49,11 +60,25 @@ button {
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   touch-action: manipulation;
+  font-family: var(--font-system);
 }
 
 canvas {
   touch-action: none;
   user-select: none;
+}
+
+/* Scrollbar Styling for iOS Touch Sheets */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
 }
 
 /* Animations for Mobile HUD & Reticles */
@@ -86,133 +111,140 @@ canvas {
   }
 }
 
-/* Responsive Layouts for Mobile Screen Sizes & Small Tablets */
+/* ───────────────────────────────────────────────────────────────────────────
+   Mobile Responsive Rules for Alamat Lobby & Hero Selection
+   ─────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
+  .lobby-topbar {
+    padding: calc(var(--safe-top) + 8px) 12px 8px 12px !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+  }
   .lobby-main-grid {
     display: flex !important;
     flex-direction: column !important;
     overflow-y: auto !important;
-    height: calc(100dvh - 120px) !important;
-    padding: 10px !important;
+    height: calc(100dvh - 110px) !important;
+    padding: 8px 10px calc(var(--safe-bottom) + 70px) 10px !important;
     gap: 12px !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .lobby-roster {
+    width: 100% !important;
+    order: 1;
   }
   .lobby-hero-list {
     display: flex !important;
     flex-direction: row !important;
     overflow-x: auto !important;
     max-height: none !important;
-    padding-bottom: 8px !important;
+    padding-bottom: 6px !important;
     gap: 8px !important;
     -webkit-overflow-scrolling: touch;
   }
   .lobby-hero-card {
-    min-width: 160px !important;
-    padding: 8px !important;
+    min-width: 140px !important;
+    flex: 0 0 140px !important;
+    padding: 8px 10px !important;
   }
   .lobby-turntable {
-    min-height: 240px !important;
-    max-height: 280px !important;
+    min-height: 280px !important;
+    height: 280px !important;
+    max-height: 320px !important;
+    width: 100% !important;
+    order: 2;
+  }
+  .lobby-dossier {
+    width: 100% !important;
+    order: 3;
+    gap: 12px !important;
   }
   .lobby-territory-grid {
     display: flex !important;
     flex-direction: column !important;
     overflow-y: auto !important;
-    height: calc(100dvh - 120px) !important;
-    padding: 10px !important;
+    height: calc(100dvh - 110px) !important;
+    padding: 8px 10px calc(var(--safe-bottom) + 70px) 10px !important;
     gap: 12px !important;
+    -webkit-overflow-scrolling: touch;
   }
   .lobby-territory-picker {
     display: flex !important;
     flex-direction: row !important;
     overflow-x: auto !important;
     max-height: none !important;
-    padding-bottom: 8px !important;
+    padding-bottom: 6px !important;
     gap: 8px !important;
     -webkit-overflow-scrolling: touch;
   }
 }
 
-
-
-/* ───────────────────────────────────────────────────────────────────────────
-   Champion roster on a landscape phone.
-
-   The earlier rule stacked everything into one scrolling column and turned the
-   hero list into a row of 160px cards that still carried a name, its baybayin,
-   a subtitle and a role badge. On a 844x390 screen that overflowed 42 elements
-   past the right edge, put 77 below the fold, and pushed the champion render,
-   which is the whole point of the page, entirely off screen.
-
-   This replaces it with a two column bento: the character owns the left, and
-   the reading matter is split into cards on the right. The hero list becomes
-   PORTRAITS ONLY, because a 56px card cannot hold four pieces of text and the
-   name is already shown once, large, beside the character.
-   ─────────────────────────────────────────────────────────────────────────── */
+/* Landscape Phone Viewport Layout (iPhone & Android Flagships) */
 @media (max-width: 1000px) and (orientation: landscape) {
   .lobby-topbar {
-    /* it was three lines tall, eating a quarter of a 390px screen */
-    padding: 5px 10px !important;
+    padding: calc(var(--safe-top) + 4px) calc(var(--safe-right) + 12px) 4px calc(var(--safe-left) + 12px) !important;
     min-height: 0 !important;
     align-items: center !important;
     gap: 8px !important;
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
   }
-  .lobby-topbar button { font-size: 10.5px !important; padding: 6px 10px !important; white-space: nowrap; }
-
+  .lobby-topbar button {
+    font-size: 11px !important;
+    padding: 5px 12px !important;
+    white-space: nowrap;
+  }
   .lobby-filters {
-    padding: 4px 10px !important;
+    padding: 4px calc(var(--safe-right) + 12px) 4px calc(var(--safe-left) + 12px) !important;
     gap: 8px !important;
-    /* the role chips and the realm picker were sitting on top of each other */
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
   }
-  .lobby-filters button, .lobby-filters select { font-size: 10.5px !important; padding: 4px 9px !important; }
-
+  .lobby-filters button,
+  .lobby-filters select {
+    font-size: 11px !important;
+    padding: 4px 10px !important;
+  }
   .lobby-main-grid {
     display: grid !important;
-    grid-template-columns: 40% 1fr !important;
+    grid-template-columns: 38% 1fr !important;
     grid-template-rows: auto minmax(0, 1fr) !important;
     grid-template-areas:
       "portrait roster"
       "portrait dossier" !important;
     gap: 8px !important;
-    padding: 8px !important;
-    /* Do NOT set an explicit height here. The page root is a flex column and an
-       explicit 100dvh-minus-a-guess fought it: the grid measured 783px inside a
-       390px viewport and squashed the header to 11px, which is why the top bar
-       was cut. Let flex allocate the leftover space instead, and min-height: 0
-       so the grid is allowed to be smaller than its content. */
+    padding: 6px calc(var(--safe-right) + 10px) calc(var(--safe-bottom) + 6px) calc(var(--safe-left) + 10px) !important;
     flex: 1 1 auto !important;
     min-height: 0 !important;
     overflow: hidden !important;
   }
-
   .lobby-turntable {
     grid-area: portrait;
     min-height: 0 !important;
     max-height: none !important;
     height: 100% !important;
   }
-  /* min-width: 0 is load bearing. A grid item defaults to min-width: auto and
-     refuses to shrink below its content, so the dossier prose pushed past the
-     column and clipped mid sentence instead of wrapping. */
-  .lobby-roster  { grid-area: roster;  min-height: 0; min-width: 0; }
+  .lobby-roster {
+    grid-area: roster;
+    min-height: 0;
+    min-width: 0;
+  }
   .lobby-dossier {
     grid-area: dossier;
     min-height: 0;
     min-width: 0;
     overflow-y: auto !important;
     overflow-x: hidden !important;
+    gap: 8px !important;
   }
-  .lobby-dossier * { max-width: 100% !important; }
-  .lobby-dossier p, .lobby-dossier span, .lobby-dossier div { overflow-wrap: anywhere; }
-  /* the dossier is reference reading, not a headline: shrink it so more of it
-     fits without scrolling on a 390px tall screen */
-  .lobby-dossier { font-size: 11.5px !important; }
-  .lobby-dossier h2, .lobby-dossier h3 { font-size: 12.5px !important; }
-
-  /* the strip: portraits, nothing else */
+  .lobby-dossier * {
+    max-width: 100% !important;
+  }
+  .lobby-dossier p,
+  .lobby-dossier span,
+  .lobby-dossier div {
+    overflow-wrap: anywhere;
+  }
   .lobby-hero-list {
     display: flex !important;
     flex-direction: row !important;
@@ -224,40 +256,42 @@ canvas {
   }
   .lobby-hero-card {
     min-width: 0 !important;
-    width: 58px !important;
-    flex: 0 0 58px !important;
-    padding: 5px !important;
+    width: 60px !important;
+    flex: 0 0 60px !important;
+    padding: 4px !important;
     justify-content: center !important;
   }
-  /* the text block beside the portrait; the portrait itself is an <img> */
-  .lobby-hero-card > div { display: none !important; }
-  .lobby-hero-card > span { font-size: 24px !important; }
-  .lobby-hero-card img { width: 46px !important; height: 46px !important; margin: 0 !important; }
-
-  /* The name plate was filling the whole left panel, so the champion, which is
-     the reason the panel exists, was hidden behind its own caption. Pin it to
-     the bottom as a band and let the model own the space above it. */
+  .lobby-hero-card > div {
+    display: none !important;
+  }
+  .lobby-hero-card img {
+    width: 44px !important;
+    height: 44px !important;
+    margin: 0 !important;
+  }
   .lobby-nameplate {
     position: absolute !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    top: auto !important;
-    padding: 6px 8px !important;
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 8px !important;
+    padding: 6px 10px !important;
     gap: 2px !important;
-    background: linear-gradient(to top, rgba(4, 9, 18, 0.94), rgba(4, 9, 18, 0)) !important;
-    align-items: flex-start !important;
-    text-align: left !important;
+    background: rgba(15, 23, 42, 0.88) !important;
+    backdrop-filter: blur(12px) !important;
+    border-radius: 12px !important;
   }
-  .lobby-nameplate h2 { font-size: 17px !important; line-height: 1.05 !important; margin: 0 !important; }
-  .lobby-nameplate > span:first-child { font-size: 11px !important; letter-spacing: 3px !important; }
-  /* the quote is flavour, and flavour is the first thing to go on a 390px screen */
-  .lobby-quote { display: none !important; }
-  .lobby-nameplate span { font-size: 10px !important; }
-
-  /* Header: three lines of chrome on a 390px screen is a quarter of the game. */
-  /* the tagline is for a first visit on a desktop, not for a player who is
-     already three taps into picking a champion on a phone */
-  .lobby-tagline { display: none !important; }
-  .lobby-topbar h1 { font-size: 16px !important; line-height: 1 !important; }
+  .lobby-nameplate h2 {
+    font-size: 18px !important;
+    line-height: 1.1 !important;
+    margin: 0 !important;
+  }
+  .lobby-quote {
+    display: none !important;
+  }
+  .lobby-tagline {
+    display: none !important;
+  }
+  .lobby-topbar h1 {
+    font-size: 16px !important;
+  }
 }
