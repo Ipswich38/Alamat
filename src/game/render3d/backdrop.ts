@@ -1,4 +1,4 @@
-// the Fire Peak Volcano 3D integration: Scaled 3.5x, towering over the North-West quadrant,
+// the Fire Peak Volcano & LAVA SYSTEM — Scaled 3.5x, towering over NW quadrant, with ERUPTING crater lava lake,
 // with volcanic crater smoke/ash plume, glowing lava embers, magma fissures, basalt cliffs,
 // and volumetric god-rays streaming over the crater rim.
 //
@@ -46,6 +46,14 @@ export function createBackdrop(): Backdrop {
   // Volcanic magma fissures / vents around the base
   const fissures = buildMagmaFissures();
   mayonGroup.add(fissures.group);
+
+  // LAVA LAKE inside crater + LAVA FLOWS down slopes (real lava, not just glow)
+  const lavaLake = buildLavaLake();
+  mayonGroup.add(lavaLake.group);
+  const lavaFlows = buildLavaFlows();
+  mayonGroup.add(lavaFlows.group);
+  const lavaGlow = buildVolcanoGlow();
+  mayonGroup.add(lavaGlow);
 
   // Crater smoke plume and glowing lava embers
   const plume = buildCraterPlume();
@@ -111,6 +119,8 @@ export function createBackdrop(): Backdrop {
     },
     update: (t) => {
       fissures.update(t);
+      lavaLake.update(t);
+      lavaFlows.update(t);
       plume.update(t);
       godRays.update(t);
     },
@@ -463,4 +473,167 @@ function buildSurroundingMountainRanges(): THREE.Group {
   group.add(spireMesh);
 
   return group;
+}
+
+/**
+ * LAVA LAKE — bubbling molten core inside the crater (emissive, bloom-friendly).
+ */
+function buildLavaLake(): { group: THREE.Group; update: (t: number) => void } {
+  const group = new THREE.Group();
+  // Crater floor lava disc
+  const lakeGeo = new THREE.CircleGeometry(38, 32);
+  lakeGeo.rotateX(-Math.PI / 2);
+  const lakeMat = new THREE.MeshBasicMaterial({
+    color: 0xff4d00,
+    transparent: true,
+    opacity: 0.92,
+    toneMapped: false,
+    side: THREE.DoubleSide,
+  });
+  const lake = new THREE.Mesh(lakeGeo, lakeMat);
+  lake.position.set(0, CRATER_HEIGHT - 6, 0);
+  lake.renderOrder = 3;
+  group.add(lake);
+
+  // Brighter inner core
+  const coreGeo = new THREE.CircleGeometry(22, 24);
+  coreGeo.rotateX(-Math.PI / 2);
+  const coreMat = new THREE.MeshBasicMaterial({
+    color: 0xff8c00,
+    transparent: true,
+    opacity: 0.95,
+    toneMapped: false,
+  });
+  const core = new THREE.Mesh(coreGeo, coreMat);
+  core.position.set(0, CRATER_HEIGHT - 5.6, 0);
+  core.renderOrder = 3;
+  group.add(core);
+
+  // Point light for lava glow
+  const glow = new THREE.PointLight(0xff4500, 8, 140);
+  glow.position.set(0, CRATER_HEIGHT + 8, 0);
+  group.add(glow);
+
+  return {
+    group,
+    update: (t) => {
+      const pulse = 0.85 + Math.sin(t * 2.4) * 0.15;
+      lakeMat.opacity = 0.88 * pulse;
+      coreMat.opacity = 0.95 * pulse;
+      glow.intensity = 7 + Math.sin(t * 3.0) * 2.5;
+      // subtle bubbling scale
+      const s = 1 + Math.sin(t * 1.8) * 0.04;
+      lake.scale.set(s, 1, s);
+      core.scale.set(1 + Math.sin(t * 2.2 + 1.1) * 0.06, 1, 1 + Math.sin(t * 2.2 + 1.1) * 0.06);
+    },
+  };
+}
+
+/**
+ * LAVA FLOWS — 3 molten rivers pouring down the volcano slopes toward the jungle.
+ * Each is a plane with emissive orange + inner bright core, pulsing downstream.
+ */
+function buildLavaFlows(): { group: THREE.Group; update: (t: number) => void } {
+  const group = new THREE.Group();
+  const mats: THREE.MeshBasicMaterial[] = [];
+  const coreMats: THREE.MeshBasicMaterial[] = [];
+
+  const FLOW_COUNT = 3;
+  for (let i = 0; i < FLOW_COUNT; i++) {
+    const angle = -Math.PI * 0.18 + (i / FLOW_COUNT) * Math.PI * 0.9; // SE-facing flows
+    const length = 85 + (i % 2) * 28;
+    const width = 6.5 + (i % 2) * 2.5;
+
+    // Main lava flow plane draped on slope
+    const geo = new THREE.PlaneGeometry(width, length, 4, 12);
+    geo.rotateX(-Math.PI / 2);
+    // Bend to follow slope: raise crater end, lower jungle end
+    const pos = geo.attributes.position as THREE.BufferAttribute;
+    for (let v = 0; v < pos.count; v++) {
+      const vz = pos.getZ(v);
+      const t = (vz + length / 2) / length; // 0 at jungle, 1 at crater
+      const slopeY = t * 42 - (1 - t) * 8; // high at crater
+      pos.setY(v, pos.getY(v) + slopeY);
+      // taper width toward bottom
+      const taper = 0.7 + t * 0.5;
+      pos.setX(v, pos.getX(v) * taper);
+    }
+    geo.computeVertexNormals();
+
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xff3b00,
+      transparent: true,
+      opacity: 0.88,
+      toneMapped: false,
+      side: THREE.DoubleSide,
+    });
+    mats.push(mat);
+    const mesh = new THREE.Mesh(geo, mat);
+    // Position so top touches crater rim
+    const dist = 42;
+    mesh.position.set(Math.cos(angle) * dist, CRATER_HEIGHT - 18, Math.sin(angle) * dist);
+    mesh.rotation.y = angle;
+    mesh.renderOrder = 4;
+    group.add(mesh);
+
+    // Brighter inner flow
+    const coreGeo = new THREE.PlaneGeometry(width * 0.42, length * 0.92, 2, 8);
+    coreGeo.rotateX(-Math.PI / 2);
+    const cpos = coreGeo.attributes.position as THREE.BufferAttribute;
+    for (let v = 0; v < cpos.count; v++) {
+      const vz = cpos.getZ(v);
+      const t = (vz + length * 0.46) / (length * 0.92);
+      const slopeY = t * 42 - (1 - t) * 8;
+      cpos.setY(v, cpos.getY(v) + slopeY + 0.15);
+    }
+    coreGeo.computeVertexNormals();
+    const coreMat = new THREE.MeshBasicMaterial({
+      color: 0xffa500,
+      transparent: true,
+      opacity: 0.92,
+      toneMapped: false,
+    });
+    coreMats.push(coreMat);
+    const core = new THREE.Mesh(coreGeo, coreMat);
+    core.position.copy(mesh.position);
+    core.position.y += 0.08;
+    core.rotation.y = angle;
+    core.renderOrder = 4;
+    group.add(core);
+  }
+
+  return {
+    group,
+    update: (t) => {
+      const pulse = 0.82 + Math.sin(t * 2.0) * 0.18;
+      for (let i = 0; i < mats.length; i++) {
+        mats[i].opacity = 0.88 * (pulse + (i % 2) * 0.08);
+        coreMats[i].opacity = 0.92 * pulse;
+      }
+    },
+  };
+}
+
+/**
+ * Volcano ambient glow — large soft hemisphere light + fog tint near volcano.
+ */
+function buildVolcanoGlow(): THREE.Group {
+  const g = new THREE.Group();
+  const light = new THREE.PointLight(0xff4400, 12, 180);
+  light.position.set(15, 22, 15);
+  g.add(light);
+  // Soft glow sprite
+  const spriteGeo = new THREE.SphereGeometry(28, 12, 12);
+  const spriteMat = new THREE.MeshBasicMaterial({
+    color: 0xff4500,
+    transparent: true,
+    opacity: 0.08,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  const sprite = new THREE.Mesh(spriteGeo, spriteMat);
+  sprite.position.set(0, 12, 0);
+  sprite.scale.set(1.8, 0.7, 1.8);
+  g.add(sprite);
+  return g;
 }

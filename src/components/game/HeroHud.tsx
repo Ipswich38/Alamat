@@ -780,7 +780,9 @@ export default function HeroHud({
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const playerPct = Math.max(0, Math.min(100, (playerHp / playerMaxHp) * 100));
+  // FIXED: use effective maxHp (level+items) not base hero.health — was showing 115% at lvl 5
+  const displayMaxHp = effectiveStats?.maxHp ?? playerMaxHp;
+  const playerPct = Math.max(0, Math.min(100, (playerHp / displayMaxHp) * 100));
 
   return (
     <div style={hudRoot}>
@@ -1289,7 +1291,7 @@ export default function HeroHud({
             <span style={thumbLevelBadge}>{playerLevel}</span>
             <span style={thumbHeroName}>{hero.name.toUpperCase()}</span>
             <span style={thumbHpNumbers}>
-              {Math.ceil(playerHp)} / {effectiveStats?.maxHp ?? playerMaxHp}
+              {Math.ceil(playerHp)} / {displayMaxHp}
             </span>
           </div>
           <div style={thumbHpTrack}>
@@ -1659,7 +1661,7 @@ export default function HeroHud({
             if (onCastTarget) onCastTarget('basic', { targetType: 'hero' });
             else onCast('basic');
           }}
-          title={`Basic Attack (${effectiveStats?.attack ?? hero.attack} dmg)`}
+          title={`Basic Attack (${effectiveStats?.attack ?? hero.attack} dmg · ${Math.round(((effectiveStats?.attack ?? hero.attack) / hero.attackCooldown)*10)/10} DPS)`}
         >
           {gamepadConnected && <span style={mainAttackKey}>J</span>}
           <span style={{ fontSize: 30 }}>⚔</span>
@@ -1908,7 +1910,7 @@ export default function HeroHud({
               <div style={statItem}>
                 <span style={statLabel}>Max Health</span>
                 <strong style={statVal}>
-                  {Math.ceil(playerHp)} / {effectiveStats?.maxHp ?? playerMaxHp} HP
+                  {Math.ceil(playerHp)} / {displayMaxHp} HP
                 </strong>
               </div>
               <div style={statItem}>

@@ -483,52 +483,57 @@ export default function HeroSelectionLobby() {
                   </p>
                 )}
 
-                {/* Visual Power Attribute Gauges */}
-                <div style={statGaugesContainer}>
-                  {/* Health Gauge */}
-                  <div style={statGaugeItem}>
-                    <div style={statGaugeLabelRow}>
-                      <span style={{ color: '#4ADE80', fontSize: 10.5, fontWeight: 700 }}>❤️ HP</span>
-                      <span style={{ color: '#F8FAFC', fontSize: 10.5, fontWeight: 800 }}>{selectedHero.health}</span>
+                {/* FIXED: Roster-relative gauges + DPS + LVL15 projection (was hardcoded 1200/80/8 caps) */}
+                {(() => {
+                  const MAX_HP = Math.max(...HEROES.map(h => h.health), 1150);
+                  const MAX_ATK = Math.max(...HEROES.map(h => h.attack), 78);
+                  const MAX_SPD = Math.max(...HEROES.map(h => h.speed), 7.8);
+                  const MAX_RANGE = Math.max(...HEROES.map(h => h.attackRange), 8.5);
+                  const dps = Math.round((selectedHero.attack / selectedHero.attackCooldown) * 10) / 10;
+                  const hp15 = Math.round(selectedHero.health * 2.05);
+                  const atk15 = Math.round(selectedHero.attack * 1.84);
+                  return (
+                    <div style={statGaugesContainer}>
+                      <div style={statGaugeItem}>
+                        <div style={statGaugeLabelRow}>
+                          <span style={{ color: '#4ADE80', fontSize: 10.5, fontWeight: 700 }}>❤️ HP</span>
+                          <span style={{ color: '#F8FAFC', fontSize: 10.5, fontWeight: 800 }}>{selectedHero.health} <span style={{ color: '#94A3B8', fontWeight: 600, fontSize: 9 }}>→{hp15}</span></span>
+                        </div>
+                        <div style={statTrack}>
+                          <div style={{ ...statFill, width: `${Math.min(100, (selectedHero.health / MAX_HP) * 100)}%`, background: 'linear-gradient(90deg, #10B981, #4ADE80)' }} />
+                        </div>
+                      </div>
+                      <div style={statGaugeItem}>
+                        <div style={statGaugeLabelRow}>
+                          <span style={{ color: '#F87171', fontSize: 10.5, fontWeight: 700 }}>⚔️ ATK</span>
+                          <span style={{ color: '#F8FAFC', fontSize: 10.5, fontWeight: 800 }}>{selectedHero.attack} <span style={{ color: '#FCA5A5', fontWeight: 700, fontSize: 9 }}>{dps} DPS</span></span>
+                        </div>
+                        <div style={statTrack}>
+                          <div style={{ ...statFill, width: `${Math.min(100, (selectedHero.attack / MAX_ATK) * 100)}%`, background: 'linear-gradient(90deg, #EF4444, #F87171)' }} />
+                        </div>
+                      </div>
+                      <div style={statGaugeItem}>
+                        <div style={statGaugeLabelRow}>
+                          <span style={{ color: '#38BDF8', fontSize: 10.5, fontWeight: 700 }}>💨 SPD</span>
+                          <span style={{ color: '#F8FAFC', fontSize: 10.5, fontWeight: 800 }}>{selectedHero.speed.toFixed(1)}</span>
+                        </div>
+                        <div style={statTrack}>
+                          <div style={{ ...statFill, width: `${Math.min(100, (selectedHero.speed / MAX_SPD) * 100)}%`, background: 'linear-gradient(90deg, #0284C7, #38BDF8)' }} />
+                        </div>
+                      </div>
+                      <div style={statGaugeItem}>
+                        <div style={statGaugeLabelRow}>
+                          <span style={{ color: '#C084FC', fontSize: 10.5, fontWeight: 700 }}>🎯 REACH</span>
+                          <span style={{ color: '#F8FAFC', fontSize: 10.5, fontWeight: 800 }}>{selectedHero.attackRange.toFixed(1)}u</span>
+                        </div>
+                        <div style={statTrack}>
+                          <div style={{ ...statFill, width: `${Math.min(100, (selectedHero.attackRange / MAX_RANGE) * 100)}%`, background: 'linear-gradient(90deg, #9333EA, #C084FC)' }} />
+                        </div>
+                        <span style={{ fontSize: 8.5, color: '#64748B', textAlign: 'right', marginTop: 1 }}>LVL15: {atk15} ATK</span>
+                      </div>
                     </div>
-                    <div style={statTrack}>
-                      <div style={{ ...statFill, width: `${Math.min(100, (selectedHero.health / 1200) * 100)}%`, background: 'linear-gradient(90deg, #10B981, #4ADE80)' }} />
-                    </div>
-                  </div>
-
-                  {/* Attack Gauge */}
-                  <div style={statGaugeItem}>
-                    <div style={statGaugeLabelRow}>
-                      <span style={{ color: '#F87171', fontSize: 10.5, fontWeight: 700 }}>⚔️ ATK</span>
-                      <span style={{ color: '#F8FAFC', fontSize: 10.5, fontWeight: 800 }}>{selectedHero.attack}</span>
-                    </div>
-                    <div style={statTrack}>
-                      <div style={{ ...statFill, width: `${Math.min(100, (selectedHero.attack / 80) * 100)}%`, background: 'linear-gradient(90deg, #EF4444, #F87171)' }} />
-                    </div>
-                  </div>
-
-                  {/* Speed Gauge */}
-                  <div style={statGaugeItem}>
-                    <div style={statGaugeLabelRow}>
-                      <span style={{ color: '#38BDF8', fontSize: 10.5, fontWeight: 700 }}>💨 SPD</span>
-                      <span style={{ color: '#F8FAFC', fontSize: 10.5, fontWeight: 800 }}>{selectedHero.speed}</span>
-                    </div>
-                    <div style={statTrack}>
-                      <div style={{ ...statFill, width: `${Math.min(100, (selectedHero.speed / 8.0) * 100)}%`, background: 'linear-gradient(90deg, #0284C7, #38BDF8)' }} />
-                    </div>
-                  </div>
-
-                  {/* Range Gauge */}
-                  <div style={statGaugeItem}>
-                    <div style={statGaugeLabelRow}>
-                      <span style={{ color: '#C084FC', fontSize: 10.5, fontWeight: 700 }}>🎯 REACH</span>
-                      <span style={{ color: '#F8FAFC', fontSize: 10.5, fontWeight: 800 }}>{selectedHero.attackRange}u</span>
-                    </div>
-                    <div style={statTrack}>
-                      <div style={{ ...statFill, width: `${Math.min(100, (selectedHero.attackRange / 10.0) * 100)}%`, background: 'linear-gradient(90deg, #9333EA, #C084FC)' }} />
-                    </div>
-                  </div>
-                </div>
+                  );
+                })()}
               </div>
             </section>
 
