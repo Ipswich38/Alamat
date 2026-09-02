@@ -88,7 +88,7 @@ import {
 } from '@/game/combat';
 import { combatGroundY, createCombatFx } from '@/game/render3d/combat';
 
-const VIEW_HEIGHT = 15;
+const VIEW_HEIGHT = 22;
 const FOE_RADIUS = KAPRE.model.height * 0.13;
 const ENEMY: TeamId = 'dusk';
 

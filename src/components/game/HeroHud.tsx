@@ -989,8 +989,26 @@ export default function HeroHud({
           2. QUICK UTILITY DOCK (HORIZONTAL PILL ROW DIRECTLY UNDER MINIMAP)
           ══════════════════════════════════════════════════════════════════════ */}
       <div style={utilityMenuStack}>
+        {/* Direct Hero Roster Switcher */}
         <button
-          style={{ ...utilityBtn, borderColor: 'rgba(255, 215, 0, 0.4)', background: 'rgba(255, 215, 0, 0.15)' }}
+          style={{ ...utilityBtn, borderColor: '#FFD700', background: 'rgba(255, 215, 0, 0.22)' }}
+          title="Open Character List & Hero Switcher [👥]"
+          onClick={() => setShowRoster(true)}
+          aria-label="Roster and Heroes"
+        >
+          <span style={utilityIcon}>👥</span>
+        </button>
+        {/* Direct Exit to Lobby */}
+        <a
+          href="/"
+          style={{ ...utilityBtn, borderColor: '#38BDF8', background: 'rgba(56, 189, 248, 0.2)', textDecoration: 'none' }}
+          title="Exit to Main Champion Selection Lobby [🏠]"
+          aria-label="Lobby"
+        >
+          <span style={utilityIcon}>🏠</span>
+        </a>
+        <button
+          style={{ ...utilityBtn, borderColor: 'rgba(255, 215, 0, 0.4)', background: 'rgba(255, 215, 0, 0.12)' }}
           title="Account Profile & Quests"
           onClick={() => setShowProfile(!showProfile)}
           aria-label="Profile and Quests"
@@ -1089,10 +1107,10 @@ export default function HeroHud({
         <div
           style={{
             position: 'absolute',
-            top: 14,
+            top: 10,
             left: '50%',
             transform: 'translateX(-50%)',
-            padding: '8px 24px',
+            padding: '6px 20px',
             borderRadius: 999,
             background: isInCancelZone ? 'rgba(239, 68, 68, 0.95)' : 'rgba(15, 23, 42, 0.85)',
             border: isInCancelZone ? '2px solid #FCA5A5' : '1.5px dashed rgba(239, 68, 68, 0.7)',
@@ -1107,15 +1125,15 @@ export default function HeroHud({
             transition: 'all 150ms ease',
           }}
         >
-          <span style={{ fontSize: 18 }}>✕</span>
-          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.8 }}>
+          <span style={{ fontSize: 16 }}>✕</span>
+          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.8 }}>
             {isInCancelZone ? 'RELEASE TO CANCEL' : 'DRAG HERE TO CANCEL'}
           </span>
         </div>
       ) : null}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          3. TOP-CENTER MATCH SCOREBOARD CAPSULE & TERRITORY REALM CHIP
+          3. TOP-CENTER ULTRA-SLIM MATCH BAR & CHARACTER ROSTER / LOBBY PILL
           ══════════════════════════════════════════════════════════════════════ */}
       <div style={topCenterMatchHeader}>
         <div style={scoreBarCapsule}>
@@ -1131,26 +1149,30 @@ export default function HeroHud({
             <strong style={scoreEnemyNum}>{enemyKills}</strong>
             <span style={scoreRedDot}>●</span>
           </div>
-          <button
-            style={rosterToggleBtn}
-            onClick={() => setShowRoster(!showRoster)}
-            title="Switch Hero / Roster"
-            aria-label="Roster"
-          >
-            👥
-          </button>
-        </div>
 
-        {/* Sub-Pill: Territory Realm Info */}
-        <div
-          style={territoryHeaderChip}
-          onClick={() => setShowTerritoryCodex(true)}
-          title="View Realm Story & Lore"
-        >
-          <strong style={{ fontSize: 10, color: territory.atmosphere.primaryColor, letterSpacing: 0.5 }}>
-            {territory.name.toUpperCase()}
-          </strong>
-          <span style={{ fontSize: 9.5, color: '#94A3B8' }}>• {territory.atmosphere.weatherEffect}</span>
+          <div style={scoreDivider} />
+
+          {/* Prominent Roster / Heroes Button */}
+          <button
+            style={rosterHeaderBtn}
+            onClick={() => setShowRoster(true)}
+            title="Open Character List & Switch Hero"
+            aria-label="Character List and Roster"
+          >
+            <span style={{ fontSize: 12 }}>👥</span>
+            <span style={{ fontSize: 9.5, fontWeight: 900, color: '#FFD700', letterSpacing: 0.5 }}>HEROES</span>
+          </button>
+
+          {/* Prominent Exit to Lobby Button */}
+          <a
+            href="/"
+            style={lobbyHeaderBtn}
+            title="Return to Champion Selection Lobby"
+            aria-label="Exit to Lobby"
+          >
+            <span style={{ fontSize: 11 }}>🏠</span>
+            <span style={{ fontSize: 9.5, fontWeight: 900, color: '#38BDF8', letterSpacing: 0.5 }}>LOBBY</span>
+          </a>
         </div>
       </div>
 
@@ -1766,28 +1788,12 @@ export default function HeroHud({
         </div>
       ) : null}
 
-      {/* Streamlined Combat Broadcast Banner */}
-      <div style={combatBroadcastBar}>
-        <span style={combatLineText}>{combatLine}</span>
-        {objectiveLine ? <span style={objectiveLineText}>{objectiveLine}</span> : null}
-      </div>
-
-      {/* Minion Wave Divisions Live Ribbon */}
-      <div style={minionWaveRibbon}>
-        <div style={minionTeamBadgeDawn}>
-          <span style={{ color: '#FFD700', fontWeight: 800, fontSize: 10 }}>ANITO:</span>
-          <span style={minionCountChip} title="Spear, frontline">⚔️ {dawnSpear}</span>
-          <span style={minionCountChip} title="Archer, ranged">🏹 {dawnArcher}</span>
-          <span style={minionCountChip} title="Ram, siege">🐂 {dawnRam}</span>
+      {/* Transient Combat Event Toast (Auto-dismissed, non-blocking) */}
+      {combatLine && !combatLine.includes('Q/W/E/R') && !combatLine.includes('abilities') ? (
+        <div style={combatEventToast}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#FFD700' }}>⚡ {combatLine}</span>
         </div>
-        <div style={minionWaveDivider}>VS</div>
-        <div style={minionTeamBadgeDusk}>
-          <span style={{ color: '#F87171', fontWeight: 800, fontSize: 10 }}>MALAKAS:</span>
-          <span style={minionCountChip} title="Spear, frontline">⚔️ {duskSpear}</span>
-          <span style={minionCountChip} title="Archer, ranged">🏹 {duskArcher}</span>
-          <span style={minionCountChip} title="Ram, siege">🐂 {duskRam}</span>
-        </div>
-      </div>
+      ) : null}
 
       {/* Ping Notification Toast */}
       {pingNotification ? (
@@ -2991,13 +2997,47 @@ export default function HeroHud({
       {/* Roster Switcher Modal */}
       {showRoster ? (
         <div style={modalOverlay} onClick={() => setShowRoster(false)}>
-          <div style={modalCard} onClick={(e) => e.stopPropagation()}>
+          <div style={{ ...modalCard, maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
             <div style={modalHeader}>
-              <strong style={{ fontSize: 18, color: '#FFD700' }}>Choose Mythic Hero</strong>
+              <div>
+                <strong style={{ fontSize: 18, color: '#FFD700', letterSpacing: 0.5 }}>
+                  ⚔️ Mythic Hero Roster
+                </strong>
+                <span style={{ display: 'block', fontSize: 11.5, color: '#94A3B8', marginTop: 2 }}>
+                  Switch champion in practice match or return to the main lobby.
+                </span>
+              </div>
               <button style={closeBtn} onClick={() => setShowRoster(false)}>
                 ✕
               </button>
             </div>
+
+            {/* Prominent Return to Lobby Button */}
+            <a
+              href="/"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.4), rgba(3, 105, 161, 0.5))',
+                border: '1.5px solid #38BDF8',
+                borderRadius: 12,
+                padding: '10px 16px',
+                color: '#FFF',
+                fontWeight: 800,
+                fontSize: 13,
+                textDecoration: 'none',
+                marginBottom: 14,
+                boxShadow: '0 4px 14px rgba(56, 189, 248, 0.3)',
+                transition: 'transform 100ms ease',
+              }}
+            >
+              <span style={{ fontSize: 16 }}>🏠</span>
+              <span>Exit Match to Champion Selection Lobby</span>
+            </a>
+
+            {/* Hero Selection Grid */}
             <div style={rosterGrid}>
               {playable.map((h) => (
                 <button
@@ -3005,16 +3045,35 @@ export default function HeroHud({
                   onClick={() => {
                     onPick(h);
                     setShowRoster(false);
+                    sound.playPing('select');
+                    haptics.tick();
                   }}
                   style={{
                     ...rosterPickBtn,
-                    borderColor: h.id === hero.id ? '#FFD700' : 'rgba(255,255,255,0.2)',
-                    background: h.id === hero.id ? 'rgba(255,215,0,0.18)' : 'rgba(15,23,42,0.6)',
+                    borderColor: h.id === hero.id ? '#FFD700' : 'rgba(255,255,255,0.18)',
+                    background: h.id === hero.id ? 'rgba(255,215,0,0.22)' : 'rgba(15,23,42,0.65)',
+                    boxShadow: h.id === hero.id ? '0 0 16px rgba(255, 215, 0, 0.4)' : 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 3,
+                    padding: '8px 4px',
                   }}
                 >
-                  <span style={{ fontSize: 24 }}>{h.emoji}</span>
-                  <strong style={{ fontSize: 13, color: '#FFF' }}>{h.name}</strong>
-                  <span style={{ fontSize: 10.5, color: '#94A3B8' }}>{h.role.toUpperCase()}</span>
+                  <span style={{ fontSize: 26 }}>{h.emoji}</span>
+                  <strong style={{ fontSize: 12.5, color: '#FFF' }}>{h.name}</strong>
+                  <span style={{ fontSize: 9.5, color: '#38BDF8', fontWeight: 700 }}>
+                    {h.role.toUpperCase()}
+                  </span>
+                  {h.id === hero.id ? (
+                    <span style={{ fontSize: 8.5, background: '#FFD700', color: '#0F172A', fontWeight: 900, padding: '1px 5px', borderRadius: 4, marginTop: 2 }}>
+                      ACTIVE
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 8.5, background: 'rgba(255,255,255,0.1)', color: '#CBD5E1', fontWeight: 700, padding: '1px 5px', borderRadius: 4, marginTop: 2 }}>
+                      PICK
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -3361,29 +3420,50 @@ const scoreRedDot: React.CSSProperties = {
   fontSize: 12,
 };
 
-const rosterToggleBtn: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.1)',
-  border: '1px solid rgba(255,255,255,0.2)',
-  borderRadius: '50%',
-  width: 24,
-  height: 24,
-  color: '#FFF',
-  display: 'grid',
-  placeItems: 'center',
-  cursor: 'pointer',
-  fontSize: 11,
+const scoreDivider: React.CSSProperties = {
+  width: 1,
+  height: 14,
+  background: 'rgba(255, 255, 255, 0.2)',
 };
 
-const territoryHeaderChip: React.CSSProperties = {
+const rosterHeaderBtn: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: 6,
-  background: 'rgba(15, 23, 42, 0.85)',
-  border: '1px solid rgba(255, 255, 255, 0.12)',
+  gap: 4,
+  background: 'rgba(255, 215, 0, 0.15)',
+  border: '1px solid rgba(255, 215, 0, 0.5)',
   borderRadius: 999,
-  padding: '2px 10px',
+  padding: '3px 8px',
   cursor: 'pointer',
+  transition: 'transform 100ms ease, background 100ms ease',
+};
+
+const lobbyHeaderBtn: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 3,
+  background: 'rgba(56, 189, 248, 0.15)',
+  border: '1px solid rgba(56, 189, 248, 0.5)',
+  borderRadius: 999,
+  padding: '3px 8px',
+  cursor: 'pointer',
+  textDecoration: 'none',
+  transition: 'transform 100ms ease, background 100ms ease',
+};
+
+const combatEventToast: React.CSSProperties = {
+  position: 'absolute',
+  top: 'calc(max(6px, env(safe-area-inset-top)) + 38px)',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  background: 'rgba(15, 23, 42, 0.88)',
+  border: '1px solid rgba(255, 215, 0, 0.4)',
+  borderRadius: 999,
+  padding: '3px 14px',
   backdropFilter: 'blur(8px)',
+  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.5)',
+  zIndex: 15,
+  pointerEvents: 'none',
 };
 
 // ── 3. Top-Right Teammates ──────────────────────────────────────────────────

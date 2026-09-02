@@ -81,7 +81,7 @@ const ORBIT_RADIUS = Math.SQRT2 * 26;
 const ORBIT_HEIGHT = 30;
 const DEFAULT_YAW = Math.PI / 4;
 
-export const ZOOM_MIN = 16;
+export const ZOOM_MIN = 14;
 export const ZOOM_MAX = 90;
 
 export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string): Stage {
@@ -111,7 +111,7 @@ export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string):
   const fog = new THREE.Fog(0xbfe4e0, 65, 145);
   scene.fog = fog;
 
-  let viewHeight = 21;
+  let viewHeight = 22;
   let yaw = DEFAULT_YAW;
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 900);
   camera.position.set(
