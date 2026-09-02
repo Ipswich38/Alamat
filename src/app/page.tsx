@@ -340,6 +340,9 @@ export default function HeroSelectionLobby() {
             <span>PLAY</span>
             <span style={modePillTag}>{selectedMode.toUpperCase()}</span>
           </Link>
+          <Link href="/chess" style={{height:36,padding:'0 12px',borderRadius:999,background:'rgba(15,23,42,0.85)',border:'1px solid rgba(255,215,0,0.35)',color:'#FFD700',fontSize:12,fontWeight:900,letterSpacing:0.5,textDecoration:'none',display:'flex',alignItems:'center',gap:6}}>
+            <span>♔</span><span>CHESS</span>
+          </Link>
         </div>
       </header>
 
