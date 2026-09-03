@@ -38,23 +38,19 @@ export interface Mood {
 // Ambient particles + volumetric fog tuned here. Do not raise bloom strength without threshold.
 export const DEFAULT_MOOD: Mood = {
   /*
-   * 1.10, not 1.5.
-   *
-   * ACES already lifts the midtones. Exposure on top of it was pushing a large
-   * share of the frame past the bloom threshold, so the arena washed out to a
-   * gold haze and unit silhouettes disappeared into the ground. In a MOBA the
-   * first job of the renderer is telling hero from creep from terrain at a
-   * glance, and a blown frame destroys exactly that.
+   * 1.40 for better color visibility - adjusted to make the game less dark
+   * while still maintaining good visual quality. The original 1.10 was too dark
+   * for color appreciation. ACES tone mapping handles the highlights well.
    */
-  exposure: 1.10,
-  fogNear: 65,
-  fogFar: 145,
-  vignette: 0.22,
-  saturation: 1.08, // HYPER-REAL: was 1.20, more natural
-  contrast: 1.14,
-  gradeStrength: 0.20,
-  sun: 3.2,
-  rim: 1.8,
+  exposure: 1.40,
+  fogNear: 85,
+  fogFar: 185,
+  vignette: 0.08, // Reduced from 0.22 to avoid dark corners
+  saturation: 1.20, // Increased for more vibrant colors
+  contrast: 1.02, // Reduced from 1.14 to avoid deep shadows
+  gradeStrength: 0.15, // Reduced for more natural colors
+  sun: 3.8, // Brighter sunlight
+  rim: 2.0,
 };
 
 export interface Stage {

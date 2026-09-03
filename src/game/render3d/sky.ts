@@ -75,13 +75,13 @@ export function getTodLighting(clock: number, isEclipse: boolean, territoryTheme
     rimColor: new THREE.Color('#00E5FF'),
     rimIntensity: 1.8,
     fogColor: new THREE.Color('#B2E0DC'),
-    fogNear: 65,
-    fogFar: 145,
-    exposure: 1.12,
-    gradeStrength: 0.20,
-    contrast: 1.14,
-    saturation: 1.20,
-    vignette: 0.22,
+    fogNear: 85,
+    fogFar: 185,
+    exposure: 1.35, // Increased for brighter overall scene
+    gradeStrength: 0.15, // Reduced for more natural colors
+    contrast: 1.05, // Reduced to avoid deep shadows
+    saturation: 1.25, // Increased for more vibrant colors
+    vignette: 0.10, // Reduced to avoid dark corners
   };
 
   if (isEclipse) {
@@ -99,13 +99,13 @@ export function getTodLighting(clock: number, isEclipse: boolean, territoryTheme
     colors.rimColor.set('#FF204E');
     colors.rimIntensity = 2.6;
     colors.fogColor.set('#2E060F');
-    colors.fogNear = 45;
-    colors.fogFar = 115;
-    colors.exposure = 0.95;
-    colors.gradeStrength = 0.35;
-    colors.contrast = 1.25;
-    colors.saturation = 1.30;
-    colors.vignette = 0.38;
+    colors.fogNear = 55;
+    colors.fogFar = 125;
+    colors.exposure = 1.10; // Brighter eclipse
+    colors.gradeStrength = 0.25;
+    colors.contrast = 1.15;
+    colors.saturation = 1.40;
+    colors.vignette = 0.25;
     return colors;
   }
 
@@ -115,7 +115,7 @@ export function getTodLighting(clock: number, isEclipse: boolean, territoryTheme
     colors.zenith.set('#1E1630').lerp(new THREE.Color('#2C3E60'), p);
     colors.mid.set('#7D4A68').lerp(new THREE.Color('#E56B6F'), p);
     colors.horizon.set('#F39C80').lerp(new THREE.Color('#FFC38B'), p);
-    colors.ground.set('#2A2434');
+    colors.ground.set('#3A3444'); // Lighter ground for dawn
     colors.sunColor.set('#FFA768');
     colors.sunIntensity = 2.4 + p * 0.8;
     colors.sunPos.set(-75 + p * 10, 35 + p * 15, -75 + p * 10);
@@ -125,20 +125,20 @@ export function getTodLighting(clock: number, isEclipse: boolean, territoryTheme
     colors.rimColor.set('#FF9A76');
     colors.rimIntensity = 1.6;
     colors.fogColor.set('#7A5F70').lerp(new THREE.Color('#9DC8C8'), p);
-    colors.fogNear = 55;
-    colors.fogFar = 135;
-    colors.exposure = 1.02 + p * 0.11;
-    colors.gradeStrength = 0.24;
-    colors.contrast = 1.14;
-    colors.saturation = 1.16;
-    colors.vignette = 0.28;
+    colors.fogNear = 75;
+    colors.fogFar = 155;
+    colors.exposure = 1.15 + p * 0.20; // Brighter dawn
+    colors.gradeStrength = 0.18;
+    colors.contrast = 1.08;
+    colors.saturation = 1.20;
+    colors.vignette = 0.15;
   } else if (t < 300) {
     // ── MIDDAY (2:00 - 5:00) ────────────────────────────────────────────────
     const p = (t - 120) / 180;
-    colors.zenith.set('#15528A').lerp(new THREE.Color('#1B74BA'), p);
-    colors.mid.set('#4FA3CE').lerp(new THREE.Color('#5DB7CD'), p);
+    colors.zenith.set('#15528A').lerp(new THREE.Color('#4B8CBA'), p); // Lighter sky
+    colors.mid.set('#4FA3CE').lerp(new THREE.Color('#7DB7CD'), p); // Lighter mid
     colors.horizon.set('#FFF2D6').lerp(new THREE.Color('#FFF4E0'), p);
-    colors.ground.set('#244A42');
+    colors.ground.set('#345A42'); // Lighter ground
     colors.sunColor.set('#FFF4E0');
     colors.sunIntensity = 3.2;
     colors.sunPos.set(-60, 68, -60);
@@ -148,20 +148,20 @@ export function getTodLighting(clock: number, isEclipse: boolean, territoryTheme
     colors.rimColor.set('#00E5FF');
     colors.rimIntensity = 1.8;
     colors.fogColor.set('#B2E0DC');
-    colors.fogNear = 70;
-    colors.fogFar = 155;
-    colors.exposure = 1.12;
-    colors.gradeStrength = 0.18;
-    colors.contrast = 1.14;
-    colors.saturation = 1.20;
-    colors.vignette = 0.22;
+    colors.fogNear = 90;
+    colors.fogFar = 175;
+    colors.exposure = 1.40; // Brighter midday for best color visibility
+    colors.gradeStrength = 0.12;
+    colors.contrast = 1.02; // Reduced to avoid harsh shadows
+    colors.saturation = 1.30; // More vibrant colors
+    colors.vignette = 0.08;
   } else if (t < 420) {
     // ── DUSK (5:00 - 7:00) ──────────────────────────────────────────────────
     const p = (t - 300) / 120;
     colors.zenith.set('#1D102A').lerp(new THREE.Color('#120B20'), p);
     colors.mid.set('#C0392B').lerp(new THREE.Color('#E67E22'), 1 - p);
     colors.horizon.set('#D35400').lerp(new THREE.Color('#A93226'), p);
-    colors.ground.set('#2C1C24');
+    colors.ground.set('#3C2C34'); // Lighter ground for dusk
     colors.sunColor.set('#FF5722');
     colors.sunIntensity = 3.0 - p * 0.8;
     colors.sunPos.set(-82, 28 - p * 12, -82);
@@ -171,20 +171,20 @@ export function getTodLighting(clock: number, isEclipse: boolean, territoryTheme
     colors.rimColor.set('#FF7043');
     colors.rimIntensity = 1.8;
     colors.fogColor.set('#6E2B24').lerp(new THREE.Color('#3A1828'), p);
-    colors.fogNear = 60;
-    colors.fogFar = 135;
-    colors.exposure = 1.04;
-    colors.gradeStrength = 0.26;
-    colors.contrast = 1.20;
-    colors.saturation = 1.25;
-    colors.vignette = 0.30;
+    colors.fogNear = 70;
+    colors.fogFar = 145;
+    colors.exposure = 1.20; // Brighter dusk
+    colors.gradeStrength = 0.20;
+    colors.contrast = 1.10;
+    colors.saturation = 1.30;
+    colors.vignette = 0.18;
   } else {
     // ── NIGHT (7:00 - 10:00) ────────────────────────────────────────────────
     const p = (t - 420) / 180;
     colors.zenith.set('#081224');
     colors.mid.set('#12243D').lerp(new THREE.Color('#162D4A'), p);
     colors.horizon.set('#20395E').lerp(new THREE.Color('#15424D'), p);
-    colors.ground.set('#0E1D2A');
+    colors.ground.set('#1E2D3A'); // Lighter ground for night
     colors.sunColor.set('#88B2F0'); // Moonlight
     colors.sunIntensity = 1.6;
     colors.sunPos.set(45, 55, 45);
@@ -194,13 +194,13 @@ export function getTodLighting(clock: number, isEclipse: boolean, territoryTheme
     colors.rimColor.set('#00E5FF'); // Bioluminescent cyan rim
     colors.rimIntensity = 2.2;
     colors.fogColor.set('#122238');
-    colors.fogNear = 50;
-    colors.fogFar = 125;
-    colors.exposure = 0.97;
-    colors.gradeStrength = 0.30;
-    colors.contrast = 1.22;
-    colors.saturation = 1.18;
-    colors.vignette = 0.35;
+    colors.fogNear = 60;
+    colors.fogFar = 135;
+    colors.exposure = 1.15; // Brighter night
+    colors.gradeStrength = 0.20;
+    colors.contrast = 1.12;
+    colors.saturation = 1.25;
+    colors.vignette = 0.20;
   }
 
   // ── REGIONAL TERRITORY ATMOSPHERIC BLEND ──────────────────────────────────
