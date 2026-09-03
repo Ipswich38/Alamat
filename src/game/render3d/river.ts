@@ -156,8 +156,8 @@ function buildWater(centre: readonly { x: number; z: number; s: number; half: nu
     depthWrite: false,
     side: THREE.DoubleSide,
     envMapIntensity: 1.2, // Stronger environment reflections
-    reflectivity: 0.8, // Better reflections
-    refractionRatio: 0.88, // Light bending in water
+    // reflectivity and refractionRatio are not standard MeshStandardMaterial props
+    // but we achieve similar effects through the shader
   });
 
   mat.onBeforeCompile = (shader) => {

@@ -88,16 +88,16 @@ export function detectMobileConfig(): MobileConfig {
 
   const userAgent = navigator.userAgent || '';
   const maxTouchPoints = navigator.maxTouchPoints || 0;
-  const deviceMemory = navigator.deviceMemory || 0;
+  const deviceMemory = (navigator as any).deviceMemory || 0;
   const hardwareConcurrency = navigator.hardwareConcurrency || 0;
-  const connection = navigator.connection || {} as any;
+  const connection = (navigator as any).connection || {} as any;
 
   // Check if reduced motion is preferred
   const mediaQuery = typeof window !== 'undefined' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
   const reducedMotion = mediaQuery?.matches || false;
 
   // Check battery status if available
-  const battery = navigator.getBattery ? navigator.getBattery() : Promise.resolve(null);
+  const battery = (navigator as any).getBattery ? (navigator as any).getBattery() : Promise.resolve(null);
 
   // Check if this is a mobile device
   const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
