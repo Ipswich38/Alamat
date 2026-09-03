@@ -63,7 +63,10 @@ export function createBackdrop(): Backdrop {
   const godRays = buildVolumetricGodRays();
   mayonGroup.add(godRays.group);
 
-  // Load and scale 3D the Fire Peak Volcano model
+  // Load and scale 3D the Fire Peak Volcano model - ENHANCED VERSION
+  // Try to load the high-quality mayon.glb model first
+  let volcanoModel: THREE.Group | null = null;
+  
   new GLTFLoader()
     .loadAsync('/models/nature/mayon.glb')
     .then((gltf) => {
@@ -73,8 +76,8 @@ export function createBackdrop(): Backdrop {
       const size = new THREE.Vector3();
       box.getSize(size);
       const unit = MAYON_HEIGHT / Math.max(size.y, 0.0001);
-      model.scale.setScalar(unit);
-      model.position.set(0, -box.min.y * unit, 0);
+      model.scale.setScalar(unit * 1.1); // Slightly larger for better visibility
+      model.position.set(0, -box.min.y * unit * 1.1, 0);
       model.rotation.y = Math.PI * 0.25;
 
       model.traverse((n) => {
@@ -88,22 +91,68 @@ export function createBackdrop(): Backdrop {
         for (const mat of mats) {
           const std = mat as THREE.MeshStandardMaterial;
           std.fog = false;
-          // Volcanic dark basalt tint with subtle warm glow
-          if (std.color) std.color.set(0x282322).lerp(new THREE.Color('#382e2c'), 0.4);
-          std.roughness = 0.94;
-          std.metalness = 0.06;
+          // Enhanced volcanic material with better lighting
+          if (std.color) std.color.set(0x282322).lerp(new THREE.Color('#4a3a2e'), 0.6);
+          std.roughness = 0.85;
+          std.metalness = 0.08;
+          std.envMapIntensity = 1.5; // Better reflections
         }
       });
 
+      volcanoModel = model;
       mayonGroup.add(model);
+      
+      // Add enhanced glow effect around the volcano
+      const volcanoGlow = new THREE.PointLight(0xff6600, 2, 150);
+      volcanoGlow.position.set(0, MAYON_HEIGHT * 0.7, 0);
+      volcanoGlow.castShadow = true;
+      mayonGroup.add(volcanoGlow);
+      
+      // Add ambient glow for the volcanic area
+      const ambientGlow = new THREE.Mesh(
+        new THREE.SphereGeometry(80, 16, 16),
+        new THREE.MeshBasicMaterial({
+          color: 0xff4400,
+          transparent: true,
+          opacity: 0.15,
+          side: THREE.BackSide
+        })
+      );
+      ambientGlow.position.set(0, MAYON_HEIGHT * 0.5, 0);
+      mayonGroup.add(ambientGlow);
+      
     })
     .catch(() => {
-      /* Fallback procedural volcano cone if asset fails */
-      const coneGeo = new THREE.ConeGeometry(95, MAYON_HEIGHT, 36, 1, true);
-      const coneMat = surfaceMaterial(0x2d2422, { roughness: 0.95 });
+      /* Enhanced fallback procedural volcano if asset fails */
+      const coneGeo = new THREE.ConeGeometry(95, MAYON_HEIGHT, 48, 1, true); // More segments for smoother shape
+      const coneMat = new THREE.MeshStandardMaterial({
+        color: 0x2d2422,
+        roughness: 0.85,
+        metalness: 0.1,
+        flatShading: false
+      });
       const cone = new THREE.Mesh(coneGeo, coneMat);
       cone.position.y = MAYON_HEIGHT / 2;
+      cone.castShadow = true;
+      cone.receiveShadow = true;
       mayonGroup.add(cone);
+      
+      // Add crater effect to the top
+      const craterGeo = new THREE.CylinderGeometry(25, 30, 8, 32);
+      const craterMat = new THREE.MeshStandardMaterial({
+        color: 0x1a1210,
+        roughness: 0.95,
+        metalness: 0.05
+      });
+      const crater = new THREE.Mesh(craterGeo, craterMat);
+      crater.position.y = MAYON_HEIGHT - 4;
+      crater.rotation.x = Math.PI / 2;
+      mayonGroup.add(crater);
+      
+      // Add glow even to the fallback volcano
+      const fallbackGlow = new THREE.PointLight(0xff4400, 1.5, 100);
+      fallbackGlow.position.set(0, MAYON_HEIGHT * 0.8, 0);
+      mayonGroup.add(fallbackGlow);
     });
 
   group.add(mayonGroup);

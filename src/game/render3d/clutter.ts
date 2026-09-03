@@ -11,6 +11,41 @@ import { riverDepth } from '@/game/arena/river';
 import { terrainHeight } from './terrain';
 import { surfaceMaterial } from './stage';
 
+/**
+ * Creates realistic palm frond geometry with multiple fronds and natural curvature
+ */
+function createRealisticPalmGeometry(): THREE.BufferGeometry {
+  const baseGeo = new THREE.ConeGeometry(0.52, 1.05, 7);
+  
+  // Modify the geometry to create more natural palm fronds
+  const position = baseGeo.attributes.position;
+  
+  for (let i = 0; i < position.count; i++) {
+    const x = position.getX(i);
+    const y = position.getY(i);
+    const z = position.getZ(i);
+    
+    // Apply natural curvature to make palm fronds bend realistically
+    const curveFactor = 0.3;
+    const curveX = x * (1 - y * curveFactor * (x > 0 ? 1 : -1));
+    const curveZ = z * (1 - y * curveFactor * (z > 0 ? 1 : -1));
+    const curveY = y;
+    
+    position.setX(i, curveX);
+    position.setY(i, curveY);
+    position.setZ(i, curveZ);
+    
+    // Add some organic noise
+    const noiseScale = 0.15;
+    const noise = Math.sin(i * 0.3) * 0.1 + Math.cos(i * 0.5) * 0.08;
+    position.setX(i, position.getX(i) * (1 + noise * noiseScale));
+    position.setZ(i, position.getZ(i) * (1 + noise * noiseScale));
+  }
+  
+  baseGeo.scale(1.2, 0.65, 1.2);
+  return baseGeo;
+}
+
 export interface Clutter {
   group: THREE.Group;
   update(t: number): void;
@@ -84,12 +119,11 @@ export function buildClutter(): Clutter {
 }
 
 /**
- * HYPER-REAL: 400 Tropical Plants — 3 species (fern, palm frond, bamboo shoot) with dry-tip variation.
+ * REALISTIC: 400 Tropical Plants — 3 species (fern, palm frond, bamboo shoot) with natural variation.
  */
 function buildFerns(count: number): THREE.InstancedMesh {
-  // Hyper-real species distribution: 50% fern, 30% palm, 20% bamboo
-  const geo = new THREE.ConeGeometry(0.52, 1.05, 7); // HYPER-REAL: taller, 7-sided for palm silhouette
-  geo.scale(1.2, 0.65, 1.2);
+  // Create more realistic plant geometry with proper frond structure
+  const geo = createRealisticPalmGeometry(); // More realistic palm fronds
   const mesh = new THREE.InstancedMesh(
     geo,
     surfaceMaterial(0x236838, { roughness: 0.88 }),

@@ -100,9 +100,15 @@ function buildWater(centre: readonly { x: number; z: number; s: number; half: nu
       const x = centre[i].x + px * centre[i].half * uAcross;
       const z = centre[i].z + pz * centre[i].half * uAcross;
 
+      // Add vertical variation for more realistic water surface
+      // Center of river is deeper, edges are shallower with gentle slopes
+      const baseDepth = -RIVER_DEPTH * 0.18;
+      const depthVariation = Math.abs(uAcross) * RIVER_DEPTH * 0.08; // Shallower at edges
+      const waveOffset = Math.sin(centre[i].s * 0.3 + uAcross * 2.0) * 0.05; // Subtle wave pattern
+      
       positions[idx * 3] = x;
-      // Water plane rests at -0.45 units below zero level, sitting inside the -2.5 depth trench
-      positions[idx * 3 + 1] = -RIVER_DEPTH * 0.18;
+      // Water plane with depth variation: deeper in center, shallower at banks
+      positions[idx * 3 + 1] = baseDepth + depthVariation + waveOffset;
       positions[idx * 3 + 2] = z;
 
       across[idx] = uAcross;
@@ -143,12 +149,15 @@ function buildWater(centre: readonly { x: number; z: number; s: number; half: nu
   const uniforms = { uTime: { value: 0 } };
   const mat = new THREE.MeshStandardMaterial({
     vertexColors: true,
-    roughness: 0.12,
-    metalness: 0.08,
+    roughness: 0.08, // Smoother water surface
+    metalness: 0.12, // Slightly more metallic for better reflections
     transparent: true,
-    opacity: 0.78,
+    opacity: 0.85, // More opaque for better depth perception
     depthWrite: false,
     side: THREE.DoubleSide,
+    envMapIntensity: 1.2, // Stronger environment reflections
+    reflectivity: 0.8, // Better reflections
+    refractionRatio: 0.88, // Light bending in water
   });
 
   mat.onBeforeCompile = (shader) => {
@@ -180,21 +189,38 @@ void main() {`
       .replace(
         '#include <dithering_fragment>',
         `#include <dithering_fragment>
-  // Dual-scrolling downstream ripple waves (flowing South-East along vAlong)
+  // ==== ENHANCED RIVER SHADER ====
+  
+  // Depth-based color variation - deeper areas are darker and more blue-green
+  float depthFactor = smoothstep(-0.1, 0.1, vAcross);
+  vec3 baseColor = gl_FragColor.rgb;
+  
+  // Subsurface scattering - light penetrates water, creating depth
+  float subsurface = smoothstep(0.0, 0.6, depthFactor) * 0.3;
+  baseColor += vec3(0.1, 0.2, 0.4) * subsurface * gl_FragColor.a;
+  
+  // Enhanced dual-scrolling downstream ripple waves
   float w1 = sin(vAlong * 0.48 - uTime * 2.4 + vAcross * 3.6);
   float w2 = sin(vAlong * 0.95 - uTime * 3.8 - vAcross * 2.8);
   float w3 = cos(vAlong * 0.26 - uTime * 1.5 + vAcross * 1.6);
   float ripple = (w1 * 0.5 + w2 * 0.35 + w3 * 0.15) * 0.5 + 0.5;
 
-  // Surface light glint
-  gl_FragColor.rgb += ripple * 0.095;
+  // More pronounced caustics (light patterns on water bottom)
+  float causticIntensity = 0.18;
+  baseColor += vec3(0.8, 0.9, 1.0) * ripple * causticIntensity * (1.0 - depthFactor);
+
+  // Fresnel effect - edges appear more reflective like real water
+  float fresnel = pow(1.0 - abs(dot(normal, viewDir)), 2.0);
+  baseColor += vec3(0.6, 0.8, 1.0) * fresnel * 0.25 * gl_FragColor.a;
 
   // Foam lines where the water meets riverbanks and crossings
   float bankEdge = smoothstep(0.72, 0.99, abs(vAcross));
   float foamPulse = 0.78 + 0.22 * sin(vAlong * 1.6 - uTime * 4.2);
   vec3 foamColor = vec3(0.92, 0.99, 0.98);
 
-  gl_FragColor.rgb = mix(gl_FragColor.rgb, foamColor, bankEdge * foamPulse * 0.65);
+  baseColor = mix(baseColor, foamColor, bankEdge * foamPulse * 0.65);
+  
+  gl_FragColor.rgb = baseColor;
   gl_FragColor.a = mix(gl_FragColor.a, 0.92, bankEdge * 0.45);`
       );
   };

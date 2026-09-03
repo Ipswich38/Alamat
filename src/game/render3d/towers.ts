@@ -15,6 +15,44 @@ import { loadModel } from './models';
 import { surfaceMaterial } from './stage';
 import { terrainHeight } from './terrain';
 
+/**
+ * Creates a more realistic thatched roof geometry with natural straw texture appearance
+ * instead of perfect cone shapes. Uses a pyramid with subdivided faces for better detail.
+ */
+function createRealisticRoof(radius: number, height: number, material: THREE.Material): THREE.Mesh {
+  // Create an octagonal pyramid base for more natural roof shape
+  const geometry = new THREE.ConeGeometry(radius, height, 8); // 8 sides instead of 4 for smoother shape
+  
+  // Apply noise to make it less geometrically perfect
+  const position = geometry.attributes.position;
+  for (let i = 0; i < position.count; i++) {
+    const x = position.getX(i);
+    const y = position.getY(i);
+    const z = position.getZ(i);
+    
+    // Add subtle noise to create natural irregularities in the thatch
+    const noiseScale = 0.12;
+    const noise = Math.sin(i * 0.7) * 0.08 + 
+                  Math.cos(i * 1.3) * 0.05 + 
+                  Math.sin(y * 2.1 + i * 0.9) * 0.03;
+    
+    // Apply noise more to the edges, less to the peak
+    const edgeFactor = 1 - Math.abs(y / height);
+    const finalNoise = noise * edgeFactor * noiseScale;
+    
+    position.setX(i, x * (1 + finalNoise));
+    position.setZ(i, z * (1 + finalNoise));
+    position.setY(i, y);
+  }
+  
+  geometry.computeVertexNormals();
+  
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
 /** Tower height by tier. */
 const HEIGHT: Record<number, number> = { 1: 8.0, 2: 9.5, 3: 11.2 };
 
@@ -43,6 +81,9 @@ export function createTowers(): Towers {
     const team = TEAMS[node.team];
     const g = new THREE.Group();
     g.name = `tower:${node.id}`;
+    g.userData.index = i; // Store index for later reference
+    g.userData.towerId = node.id;
+    g.userData.team = node.team;
     const groundY = terrainHeight(node.x, node.z);
     g.position.set(node.x, groundY, node.z);
 
@@ -68,10 +109,60 @@ export function createTowers(): Towers {
     bodies.push(g);
   }
 
-  // Optional external glb asset support
+  // Load and use the high-quality watchtower model for all towers
   loadModel('/models/props/watchtower.glb', { height: 10 }).then((model) => {
-    if (!model) return;
+    if (!model) {
+      console.log('[Towers] No watchtower model found, using procedural towers');
+      return;
+    }
+    
+    // Replace all procedural towers with the loaded model
+    for (const body of bodies) {
+      // Clear existing procedural geometry
+      body.clear();
+      
+      // Clone the model for each tower
+      const towerInstance = model.clone(true);
+      towerInstance.name = `watchtower-model`;
+      towerInstance.position.y = 0; // Model is already positioned correctly
+      towerInstance.scale.setScalar(1);
+      
+      // Apply team-specific coloring
+      const towerNode = nodes[body.userData.index || 0];
+      if (towerNode) {
+        const team = TEAMS[towerNode.team];
+        applyTeamColorsToModel(towerInstance, team.light);
+      }
+      
+      towerInstance.castShadow = true;
+      towerInstance.receiveShadow = true;
+      body.add(towerInstance);
+      body.userData.hasLoadedModel = true;
+    }
   });
+
+  /**
+   * Apply team-specific colors to the watchtower model
+   */
+  function applyTeamColorsToModel(model: THREE.Group, teamColor: number): void {
+    model.traverse((node) => {
+      const mesh = node as THREE.Mesh;
+      if (!mesh.isMesh || !mesh.material) return;
+      
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      for (const mat of materials) {
+        if (mat instanceof THREE.MeshStandardMaterial) {
+          // Keep the base material properties but add team color accents
+          if (mat.color) {
+            // Blend with team color for team identification
+            const baseColor = mat.color.clone();
+            const teamVec = new THREE.Color(teamColor);
+            mat.color.copy(baseColor).lerp(teamVec, 0.2);
+          }
+        }
+      }
+    });
+  }
 
   return {
     group,
@@ -192,11 +283,8 @@ function buildWatchtowerModel(
     sawali.castShadow = true;
     g.add(sawali);
 
-    // Lower Thatched Eave Skirt
-    const lowerThatched = new THREE.Mesh(
-      new THREE.ConeGeometry(2.5, 0.9, 4),
-      thatchMat
-    );
+    // Lower Thatched Eave Skirt - Enhanced with better geometry
+    const lowerThatched = createRealisticRoof(2.5, 0.9, thatchMat);
     lowerThatched.rotation.y = Math.PI / 4;
     lowerThatched.position.y = stiltHeight * 0.72;
     lowerThatched.castShadow = true;
@@ -210,13 +298,10 @@ function buildWatchtowerModel(
     g.add(midDeck);
   }
 
-  // 5. Main Woven Thatched Roof (Nipa / Cogon style pyramid roof)
+  // 5. Main Woven Thatched Roof (Nipa / Cogon style pyramid roof) - ENHANCED
   const roofHeight = 1.8 + tier * 0.4;
   const roofRadius = 2.4 + tier * 0.35;
-  const roof = new THREE.Mesh(
-    new THREE.ConeGeometry(roofRadius, roofHeight, 4),
-    thatchMat
-  );
+  const roof = createRealisticRoof(roofRadius, roofHeight, thatchMat);
   roof.rotation.y = Math.PI / 4;
   roof.position.y = totalHeight - roofHeight * 0.35;
   roof.castShadow = true;
