@@ -6,6 +6,7 @@ export * from './dragons';
 export * from './philippineTrees';
 export * from './enhancedTerrain';
 export * from './expandedMap';
+export * from './performanceOptimizer';
 
 // Re-export existing modules for convenience
 export * from './stage';

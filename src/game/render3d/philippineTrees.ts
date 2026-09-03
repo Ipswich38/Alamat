@@ -121,7 +121,8 @@ function createAcaciaCanopy(
   width: number,
   height: number,
   speciesData: typeof PH_TREE_Species.akasya,
-  position: { x: number; z: number }
+  position: { x: number; z: number },
+  leafletMultiplier: number = 1.0
 ): THREE.Group {
   const group = new THREE.Group();
   group.name = 'acacia-canopy';
@@ -132,7 +133,8 @@ function createAcaciaCanopy(
   const density = speciesData.density;
   
   // Acacia has compound leaves (many small leaflets)
-  const leafletCount = 2000; // High detail for Mobile Legends quality
+  // Performance: Reduce count based on multiplier
+  const leafletCount = Math.max(100, Math.floor(2000 * leafletMultiplier));
   const leafletGeometry = new THREE.PlaneGeometry(leafSize.max, leafSize.max);
   const leafletMaterial = createLeafMaterial(leafColor, leafLightColor, 'akasya');
   
@@ -205,7 +207,8 @@ function createNarraCanopy(
   width: number,
   height: number,
   speciesData: typeof PH_TREE_Species.narra,
-  position: { x: number; z: number }
+  position: { x: number; z: number },
+  leafletMultiplier: number = 1.0
 ): THREE.Group {
   const group = new THREE.Group();
   group.name = 'narra-canopy';
@@ -216,7 +219,8 @@ function createNarraCanopy(
   const density = speciesData.density;
   
   // Narra has larger leaves compared to Acacia
-  const leafletCount = 1500; // Slightly fewer but larger leaves
+  // Performance: Reduce count based on multiplier
+  const leafletCount = Math.max(100, Math.floor(1500 * leafletMultiplier));
   const leafletGeometry = new THREE.PlaneGeometry(leafSize.max, leafSize.max);
   const leafletMaterial = createLeafMaterial(leafColor, leafLightColor, 'narra');
   
@@ -484,7 +488,8 @@ function createIpilIpilCanopy(
   width: number,
   height: number,
   speciesData: typeof PH_TREE_Species.ipil_ipil,
-  position: { x: number; z: number }
+  position: { x: number; z: number },
+  leafletMultiplier: number = 1.0
 ): THREE.Group {
   const group = new THREE.Group();
   group.name = 'ipil-ipil-canopy';
@@ -494,7 +499,8 @@ function createIpilIpilCanopy(
   const leafSize = speciesData.leafSize;
   
   // Ipil-Ipil has very fine, fern-like leaves
-  const leafletCount = 3000; // Very high detail
+  // Performance: Reduce count based on multiplier
+  const leafletCount = Math.max(100, Math.floor(3000 * leafletMultiplier));
   const leafletGeometry = new THREE.PlaneGeometry(leafSize.max, leafSize.max);
   const leafletMaterial = createLeafMaterial(leafColor, leafLightColor, 'ipil_ipil');
   
@@ -561,6 +567,7 @@ export interface TreeConfig {
   isGiant?: boolean;
   name?: string;
   hasFruit?: boolean;
+  leafletMultiplier?: number; // Performance: 0.0-1.0 to reduce leaf count
 }
 
 export interface Tree {
@@ -583,7 +590,8 @@ export function createPhilippineTree(config: TreeConfig): Tree {
     position,
     isGiant = false,
     name = 'Philippine Tree',
-    hasFruit = false
+    hasFruit = false,
+    leafletMultiplier = 1.0
   } = config;
   
   const group = new THREE.Group();
@@ -621,7 +629,8 @@ export function createPhilippineTree(config: TreeConfig): Tree {
         scaledCanopyWidth, 
         scaledHeight, 
         speciesData, 
-        position
+        position,
+        leafletMultiplier
       );
       break;
     case 'narra':
@@ -629,7 +638,8 @@ export function createPhilippineTree(config: TreeConfig): Tree {
         scaledCanopyWidth, 
         scaledHeight, 
         speciesData, 
-        position
+        position,
+        leafletMultiplier
       );
       break;
     case 'ipil_ipil':
@@ -637,7 +647,8 @@ export function createPhilippineTree(config: TreeConfig): Tree {
         scaledCanopyWidth, 
         scaledHeight, 
         speciesData, 
-        position
+        position,
+        leafletMultiplier
       );
       break;
     default:
@@ -646,7 +657,8 @@ export function createPhilippineTree(config: TreeConfig): Tree {
         scaledCanopyWidth, 
         scaledHeight, 
         speciesData, 
-        position
+        position,
+        leafletMultiplier
       );
   }
   

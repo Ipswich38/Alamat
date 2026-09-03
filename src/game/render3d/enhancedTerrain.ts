@@ -15,6 +15,7 @@ import { surfaceMaterial } from './stage';
 import { ARENA_SIZE, OBSTACLES } from '@/game/arena/layout';
 import { LANES, LANE_WIDTH, laneDistance } from '@/game/arena/lanes';
 import { RIVER_WIDTH as TERRAIN_RIVER_WIDTH, riverAt, riverDepth, riverFloor, groundHeight, onCrossing } from '@/game/arena/river';
+import { getPerformanceSettings, PERFORMANCE_PRESETS } from './performanceOptimizer';
 
 // Biome color definitions
 export const BIOME_COLORS = {
@@ -164,8 +165,9 @@ export function buildEnhancedTerrain(config?: Partial<EnhancedTerrainConfig>): {
   const extent = size + skirt;
   const totalSize = extent * 2;
   
-  // Calculate optimal segment count for smooth terrain
-  const segmentCount = Math.floor(totalSize / 0.8); // ~0.8 units per segment for detail
+  // Calculate optimal segment count based on performance settings
+  const perfSettings = getPerformanceSettings();
+  const segmentCount = Math.floor(totalSize / (280 / perfSettings.terrain.segmentCount));
   const geometry = new THREE.PlaneGeometry(totalSize, totalSize, segmentCount, segmentCount);
   geometry.rotateX(-Math.PI / 2);
   

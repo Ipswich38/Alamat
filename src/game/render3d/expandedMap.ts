@@ -17,6 +17,7 @@ import { createPhilippineTree, TreeConfig, createGiantTreeLocations, createTreeG
 import { createDragon, DragonConfig, Dragon, DragonType, createDragonSpawnPoints, DRAGON_BOSSES } from './dragons';
 import { buildEnhancedTerrain, getEnhancedTerrainHeight, EnhancedTerrainConfig, BIOME_COLORS } from './enhancedTerrain';
 import { terrainHeight } from './terrain';
+import { getPerformanceSettings } from './performanceOptimizer';
 
 export interface ExpandedMap {
   group: THREE.Group;
@@ -90,6 +91,9 @@ export function createExpandedMap(config: Partial<MapConfig> = {}): ExpandedMap 
   const group = new THREE.Group();
   group.name = 'expanded-map';
   
+  // Get performance settings
+  const perfSettings = getPerformanceSettings();
+  
   // Create enhanced terrain
   const terrain = buildEnhancedTerrain(finalConfig.biomeConfig);
   terrain.group.name = 'expanded-terrain';
@@ -103,8 +107,15 @@ export function createExpandedMap(config: Partial<MapConfig> = {}): ExpandedMap 
   let currentQuality: 'low' | 'medium' | 'high' | 'ultra' = 'high';
   let windIntensity = 0.3;
   
-  // Create giant trees at predefined locations
-  const giantTreeConfigs = createGiantTreeLocations().map(treeConfig => ({
+  // Get max trees from performance settings
+  const maxTrees = perfSettings.trees.maxTrees;
+  const leafletMultiplier = perfSettings.trees.leafletCount;
+  const enableGiantTreeEffects = perfSettings.trees.giantTreeEffects;
+  
+  // Create giant trees at predefined locations (limited by performance)
+  const giantTreeConfigs = createGiantTreeLocations()
+    .slice(0, Math.max(1, Math.floor(maxTrees * 0.3))) // Use 30% of max for giant trees
+    .map(treeConfig => ({
     ...treeConfig,
     position: {
       ...treeConfig.position,
@@ -114,45 +125,57 @@ export function createExpandedMap(config: Partial<MapConfig> = {}): ExpandedMap 
   }));
   
   for (const treeConfig of giantTreeConfigs) {
-    const tree = createPhilippineTree(treeConfig);
+    // Apply performance-based leaflet reduction
+    const optimizedConfig = {
+      ...treeConfig,
+      isGiant: treeConfig.isGiant && leafletMultiplier >= 0.5,
+      hasFruit: treeConfig.hasFruit && leafletMultiplier >= 0.7,
+    };
+    const tree = createPhilippineTree(optimizedConfig);
     tree.setWindIntensity(windIntensity);
     trees.push(tree);
     group.add(tree.group);
   }
   
-  // Create tree groves in different biomes
-  const forestGrove = createTreeGrove(
-    { x: 20, z: 30 },
-    15,
-    'akasya',
-    8,
-    false
-  );
+  // Calculate remaining tree budget for groves
+  const remainingTreeBudget = Math.max(0, maxTrees - giantTreeConfigs.length);
+  const treesPerGrove = Math.max(1, Math.floor(remainingTreeBudget / 3));
   
-  const narraGrove = createTreeGrove(
-    { x: -30, z: -40 },
-    20,
-    'narra',
-    6,
-    false
-  );
+  // Create tree groves in different biomes (limited by performance)
+  const groveConfigs = [
+    { center: { x: 20, z: 30 }, radius: 15, species: 'akasya' as const, count: Math.min(8, treesPerGrove) },
+    { center: { x: -30, z: -40 }, radius: 20, species: 'narra' as const, count: Math.min(6, treesPerGrove) },
+    { center: { x: 90, z: -70 }, radius: 18, species: 'ipil_ipil' as const, count: Math.min(10, treesPerGrove) },
+  ];
   
-  const jungleGrove = createTreeGrove(
-    { x: 90, z: -70 },
-    18,
-    'ipil_ipil',
-    10,
-    false
-  );
+  const groves = groveConfigs
+    .filter(config => config.count > 0)
+    .flatMap(config => {
+      const grove = createTreeGrove(
+        config.center,
+        config.radius,
+        config.species,
+        config.count,
+        false
+      );
+      return grove.map(tree => ({
+        tree,
+        species: config.species
+      }));
+    });
   
-  [...forestGrove, ...narraGrove, ...jungleGrove].forEach(tree => {
+  groves.forEach(({ tree }) => {
     tree.setWindIntensity(windIntensity);
     trees.push(tree);
     group.add(tree.group);
   });
   
+  // Get dragon limits from performance settings
+  const dragonComplexity = perfSettings.dragons.complexity;
+  const maxDragons = Math.max(1, Math.floor(maxTrees * 0.5)); // Limit dragons relative to trees
+  
   // Create dragon spawn points
-  const dragonSpawns = createDragonSpawnPoints();
+  const dragonSpawns = createDragonSpawnPoints().slice(0, maxDragons);
   
   // Initial dragon spawns
   for (const spawn of dragonSpawns) {
@@ -161,9 +184,9 @@ export function createExpandedMap(config: Partial<MapConfig> = {}): ExpandedMap 
     
     const dragonConfig: DragonConfig = {
       type: spawn.type,
-      size: spawn.isBoss ? 4 : 2.5,
+      size: spawn.isBoss ? 4 * dragonComplexity : 2.5 * dragonComplexity,
       position: { x: spawn.position.x, y: terrainY + 2, z: spawn.position.z },
-      isBoss: spawn.isBoss,
+      isBoss: spawn.isBoss && dragonComplexity >= 0.7,
       name: `${spawn.type.charAt(0).toUpperCase() + spawn.type.slice(1)} ${spawn.isBoss ? 'Boss' : 'Creature'}`
     };
     

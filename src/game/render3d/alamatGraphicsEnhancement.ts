@@ -18,6 +18,7 @@ import { createExpandedMap, ExpandedMap, getExpandedMapBounds, isWithinExpandedM
 import { createDragon, DragonType, Dragon, DragonConfig, DRAGON_BOSSES, DRAGON_COLORS } from './dragons';
 import { createPhilippineTree, TreeConfig, Tree, PH_TREE_Species, createGiantTreeLocations, createTreeGrove } from './philippineTrees';
 import { buildEnhancedTerrain, EnhancedTerrainConfig, BIOME_COLORS, getEnhancedTerrainHeight } from './enhancedTerrain';
+import { setPerformancePreset, getPerformanceSettings, PerformancePreset, PerformanceSettings, initializePerformance, fpsMonitor } from './performanceOptimizer';
 
 // Graphics quality settings
 export interface GraphicsSettings {
@@ -94,12 +95,40 @@ export class AlamatGraphicsEnhancement {
   }
   
   /**
+   * Set performance preset for automatic optimization
+   */
+  setPerformancePreset(preset: PerformancePreset): void {
+    setPerformancePreset(preset);
+    // Update internal quality setting to match
+    const presetToQuality: Record<PerformancePreset, 'low' | 'medium' | 'high' | 'ultra'> = {
+      ultra: 'ultra',
+      high: 'high',
+      medium: 'medium',
+      low: 'low',
+      minimal: 'low'
+    };
+    this.settings.quality = presetToQuality[preset] || 'medium';
+    this.expandedMap.setGraphicsQuality(this.settings.quality);
+  }
+
+  /**
    * Set graphics quality settings
    */
   setGraphicsQuality(settings: Partial<GraphicsSettings>): void {
     this.settings = { ...this.settings, ...settings };
     this.expandedMap.setGraphicsQuality(this.settings.quality);
     this.expandedMap.setWindIntensity(this.settings.windIntensity);
+    
+    // Map graphics quality to performance preset
+    const qualityToPreset: Record<'low' | 'medium' | 'high' | 'ultra', PerformancePreset> = {
+      low: 'low',
+      medium: 'medium',
+      high: 'high',
+      ultra: 'ultra'
+    };
+    if (this.settings.quality && qualityToPreset[this.settings.quality]) {
+      setPerformancePreset(qualityToPreset[this.settings.quality]);
+    }
   }
   
   /**
