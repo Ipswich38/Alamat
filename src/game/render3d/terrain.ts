@@ -394,42 +394,61 @@ function buildWaterfallCascades(): { group: THREE.Group; update: (t: number) => 
     const uTime = { value: 0 };
     fallUniforms.push({ uTime });
 
-    // Water cascade sheet
+    // Water cascade sheet - using ShaderMaterial for full control
     const sheetGeo = new THREE.PlaneGeometry(loc.width, loc.height, 8, 12);
     sheetGeo.translate(0, -loc.height / 2, 0);
 
-    const sheetMat = new THREE.MeshStandardMaterial({
-      color: 0x88e2ff,
-      roughness: 0.1,
-      metalness: 0.1,
+    const sheetMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0 },
+        uColor: { value: new THREE.Color(0x88e2ff) },
+      },
+      vertexShader: `
+        uniform float uTime;
+        varying vec2 vUv;
+        
+        void main() {
+          vUv = uv;
+          
+          // Add wave animation to the water sheet
+          float wave = sin(position.y * 3.0 - uTime * 6.0) * 0.12;
+          vec3 pos = position;
+          pos.z += wave;
+          
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float uTime;
+        uniform vec3 uColor;
+        varying vec2 vUv;
+        
+        void main() {
+          // Water base color with transparency
+          vec3 baseColor = uColor;
+          float alpha = 0.85;
+          
+          // Add foam effect at the bottom
+          float foam = sin(vUv.y * 18.0 - uTime * 8.0) * 0.5 + 0.5;
+          vec3 foamColor = vec3(0.95, 0.99, 1.0);
+          baseColor = mix(baseColor, foamColor, foam * 0.5);
+          
+          // Edge fading
+          float edgeFactor = smoothstep(0.0, 0.1, vUv.y);
+          alpha *= edgeFactor;
+          
+          gl_FragColor = vec4(baseColor, alpha);
+        }
+      `,
       transparent: true,
-      opacity: 0.85,
       side: THREE.DoubleSide,
+      depthWrite: false,
     });
 
-    sheetMat.onBeforeCompile = (shader) => {
-      shader.uniforms.uTime = uTime;
-      shader.vertexShader = shader.vertexShader.replace(
-        '#include <begin_vertex>',
-        `#include <begin_vertex>
-        float wave = sin(position.y * 3.0 - uTime * 6.0) * 0.12;
-        transformed.z += wave;`
-      );
-      shader.fragmentShader = shader.fragmentShader
-        .replace(
-          'void main() {',
-          `uniform float uTime;
-          void main() {`
-        )
-        .replace(
-          '#include <dithering_fragment>',
-          `#include <dithering_fragment>
-          float foam = sin(vUv.y * 18.0 - uTime * 8.0) * 0.5 + 0.5;
-          gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.95, 0.99, 1.0), foam * 0.5);`
-        );
-    };
-
     const sheetMesh = new THREE.Mesh(sheetGeo, sheetMat);
+    // Connect the uniform to the material
+    (sheetMesh.material as THREE.ShaderMaterial).uniforms.uTime = uTime;
+    
     fg.add(sheetMesh);
 
     // Splash foam ring at the bottom

@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
    * alone. NEVER set DIST_DIR in a deploy environment.
    */
   distDir: process.env.DIST_DIR || '.next',
+  
+  // Capacitor export configuration - enables static export for mobile app
+  output: process.env.CAP_BUILD === '1' ? 'export' : undefined,
+  
   /* config options here */
 };
 
