@@ -7,6 +7,7 @@ export * from './philippineTrees';
 export * from './enhancedTerrain';
 export * from './expandedMap';
 export * from './performanceOptimizer';
+export * from './offlineSupport';
 
 // Re-export existing modules for convenience
 export * from './stage';

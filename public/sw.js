@@ -31,6 +31,11 @@ const PRECACHE_URLS = [
   '/manifest.webmanifest',
   '/icon.svg',
   '/favicon.ico',
+  // Graphics enhancement files
+  '/_next/static/chunks/pages/play-*.js',
+  '/_next/static/*',
+  // Models and assets
+  '/models/*',
 ];
 
 if (IS_DEV) {
@@ -90,23 +95,36 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
       return fetch(event.request).then((networkResponse) => {
+        // Clone and cache successful responses for assets
         if (
           networkResponse &&
           networkResponse.status === 200 &&
           (event.request.url.includes('/models/') ||
             event.request.url.includes('/_next/') ||
             event.request.url.endsWith('.glb') ||
+            event.request.url.endsWith('.gltf') ||
+            event.request.url.endsWith('.bin') ||
             event.request.url.endsWith('.svg') ||
             event.request.url.endsWith('.png') ||
-            event.request.url.endsWith('.json'))
+            event.request.url.endsWith('.jpg') ||
+            event.request.url.endsWith('.jpeg') ||
+            event.request.url.endsWith('.webp') ||
+            event.request.url.endsWith('.json') ||
+            event.request.url.endsWith('.js') ||
+            event.request.url.endsWith('.css'))
         ) {
           const clone = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
         return networkResponse;
+      }).catch(() => {
+        // Offline fallback - return cached fallback or error page
+        if (event.request.mode === 'navigate') {
+          return caches.match('/play') || caches.match('/');
+        }
+        // For asset requests, try to return a placeholder or fail gracefully
+        return caches.match('/icon.svg') || new Response(null, { status: 404 });
       });
-    }).catch(() => {
-      // Offline fallback
     })
   );
 });

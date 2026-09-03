@@ -19,6 +19,7 @@ import { createDragon, DragonType, Dragon, DragonConfig, DRAGON_BOSSES, DRAGON_C
 import { createPhilippineTree, TreeConfig, Tree, PH_TREE_Species, createGiantTreeLocations, createTreeGrove } from './philippineTrees';
 import { buildEnhancedTerrain, EnhancedTerrainConfig, BIOME_COLORS, getEnhancedTerrainHeight } from './enhancedTerrain';
 import { setPerformancePreset, getPerformanceSettings, PerformancePreset, PerformanceSettings, initializePerformance, fpsMonitor } from './performanceOptimizer';
+import { shouldUseOfflineMode, initOfflineSupport, preloadCriticalAssets } from './offlineSupport';
 
 // Graphics quality settings
 export interface GraphicsSettings {
@@ -248,11 +249,24 @@ export class AlamatGraphicsEnhancement {
 
 /**
  * Create the enhanced graphics system and integrate with existing scene
+ * Automatically initializes offline support for PWA and static export modes
  */
 export function createEnhancedGraphicsSystem(
   scene: THREE.Scene, 
   canvas: HTMLCanvasElement
 ): AlamatGraphicsEnhancement {
+  // Initialize offline support
+  if (typeof window !== 'undefined') {
+    initOfflineSupport();
+    preloadCriticalAssets().catch(console.warn);
+    
+    // Auto-adjust performance for offline mode
+    if (shouldUseOfflineMode()) {
+      console.log('[Alamat] Offline mode detected - adjusting performance');
+      setPerformancePreset('medium');
+    }
+  }
+  
   return new AlamatGraphicsEnhancement(scene, canvas);
 }
 
