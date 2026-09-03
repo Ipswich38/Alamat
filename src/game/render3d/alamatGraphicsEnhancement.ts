@@ -20,6 +20,8 @@ import { createPhilippineTree, TreeConfig, Tree, PH_TREE_Species, createGiantTre
 import { buildEnhancedTerrain, EnhancedTerrainConfig, BIOME_COLORS, getEnhancedTerrainHeight } from './enhancedTerrain';
 import { setPerformancePreset, getPerformanceSettings, PerformancePreset, PerformanceSettings, initializePerformance, fpsMonitor } from './performanceOptimizer';
 import { shouldUseOfflineMode, initOfflineSupport, preloadCriticalAssets } from './offlineSupport';
+import { FightingEffectsSystem, initializeFightingEffects, EffectManager, createSlashEffect, createImpactFlash, createFireballEffect, createDragonBreath, createStatusEffect, createDeathEffect } from './fightingEffects';
+import { CameraController, createCameraController, CameraMode, ZoomReactionSystem } from './cameraController';
 
 // Graphics quality settings
 export interface GraphicsSettings {
@@ -52,10 +54,19 @@ export class AlamatGraphicsEnhancement {
   private lastFrameTime: number = 0;
   private animationFrameId: number = 0;
   
+  // Fighting effects system
+  private fightingEffects: FightingEffectsSystem | null = null;
+  private effectManager: EffectManager;
+  
+  // Camera controller
+  private cameraController: CameraController | null = null;
+  private zoomReactionSystem: ZoomReactionSystem | null = null;
+  
   constructor(private scene: THREE.Scene, private canvas: HTMLCanvasElement) {
     this.settings = { ...DEFAULT_GRAPHICS_SETTINGS };
     this.expandedMap = createExpandedMap();
     this.scene.add(this.expandedMap.group);
+    this.effectManager = new EffectManager();
     this.startAnimationLoop();
   }
   
@@ -84,6 +95,19 @@ export class AlamatGraphicsEnhancement {
     
     // Update expanded map
     this.expandedMap.update(dt, clock, this.getPlayerPosition());
+    
+    // Update fighting effects
+    this.effectManager.update(dt, clock);
+    
+    // Update camera controller if available
+    if (this.cameraController) {
+      this.cameraController.update(dt, clock);
+    }
+    
+    // Update zoom reaction system if available
+    if (this.zoomReactionSystem) {
+      this.zoomReactionSystem.update(dt);
+    }
   }
   
   /**
@@ -245,6 +269,197 @@ export class AlamatGraphicsEnhancement {
   setEffectsEnabled(enabled: boolean): void {
     this.settings.effectsEnabled = enabled;
   }
+
+  /**
+   * Initialize fighting effects system with a camera
+   */
+  initializeFightingEffects(camera: THREE.Camera): FightingEffectsSystem {
+    this.fightingEffects = new FightingEffectsSystem(this.scene, camera);
+    
+    // Connect camera controller if it exists
+    if (this.cameraController) {
+      this.cameraController.setFightingEffects(this.fightingEffects);
+    }
+    
+    return this.fightingEffects;
+  }
+
+  /**
+   * Initialize camera controller
+   */
+  initializeCameraController(camera: THREE.PerspectiveCamera, initialTarget?: THREE.Object3D): CameraController {
+    this.cameraController = createCameraController(camera, this.scene, this.canvas, initialTarget);
+    
+    // Connect to fighting effects if it exists
+    if (this.fightingEffects) {
+      this.cameraController.setFightingEffects(this.fightingEffects);
+    }
+    
+    return this.cameraController;
+  }
+
+  /**
+   * Initialize zoom reaction system
+   */
+  initializeZoomReactions(camera: THREE.Camera): ZoomReactionSystem {
+    this.zoomReactionSystem = new ZoomReactionSystem(camera, this.scene);
+    return this.zoomReactionSystem;
+  }
+
+  /**
+   * Create and add a fighting effect
+   */
+  createFightingEffect(effect: any): any {
+    if (!this.fightingEffects) {
+      console.warn('Fighting effects not initialized. Call initializeFightingEffects first.');
+      return null;
+    }
+    return this.fightingEffects.createEffect(effect);
+  }
+
+  /**
+   * Create a slash effect between two points
+   */
+  createSlashEffect(start: THREE.Vector3, end: THREE.Vector3, color?: number, duration?: number): any {
+    const effect = createSlashEffect(start, end, color, duration);
+    this.scene.add(effect.group);
+    this.effectManager.addEffect(effect);
+    return effect;
+  }
+
+  /**
+   * Create an impact flash effect
+   */
+  createImpactEffect(position: THREE.Vector3, color?: number, radius?: number): any {
+    const effect = createImpactFlash(position, color, radius);
+    this.scene.add(effect.group);
+    this.effectManager.addEffect(effect);
+    return effect;
+  }
+
+  /**
+   * Create a fireball effect
+   */
+  createFireball(start: THREE.Vector3, target: THREE.Vector3, speed?: number, onHit?: () => void): any {
+    const effect = createFireballEffect(start, target, speed, 0xff4500, 1.0, onHit);
+    this.scene.add(effect.group);
+    this.effectManager.addEffect(effect);
+    return effect;
+  }
+
+  /**
+   * Create a dragon breath effect
+   */
+  createDragonBreath(dragonPosition: THREE.Vector3, direction: THREE.Vector3, dragonType?: 'bakunawa' | 'naga' | 'tikbalang' | 'sarimanok'): any {
+    const effect = createDragonBreath(dragonPosition, direction, dragonType || 'tikbalang');
+    this.scene.add(effect.group);
+    this.effectManager.addEffect(effect);
+    return effect;
+  }
+
+  /**
+   * Create a status effect on a target
+   */
+  createStatusEffect(target: THREE.Object3D, statusType: any, duration?: number): any {
+    const effect = createStatusEffect(target, statusType, duration);
+    this.scene.add(effect.group);
+    this.effectManager.addEffect(effect);
+    return effect;
+  }
+
+  /**
+   * Create a death effect
+   */
+  createDeathEffect(position: THREE.Vector3, color?: number, radius?: number): any {
+    const effect = createDeathEffect(position, color, radius);
+    this.scene.add(effect.group);
+    this.effectManager.addEffect(effect);
+    return effect;
+  }
+
+  /**
+   * Get the fighting effects system
+   */
+  getFightingEffects(): FightingEffectsSystem | null {
+    return this.fightingEffects;
+  }
+
+  /**
+   * Get the camera controller
+   */
+  getCameraController(): CameraController | null {
+    return this.cameraController;
+  }
+
+  /**
+   * Get the zoom reaction system
+   */
+  getZoomReactionSystem(): ZoomReactionSystem | null {
+    return this.zoomReactionSystem;
+  }
+
+  /**
+   * Set the camera mode
+   */
+  setCameraMode(mode: CameraMode, transitionTime?: number): void {
+    if (this.cameraController) {
+      this.cameraController.setMode(mode, transitionTime);
+    }
+  }
+
+  /**
+   * Add camera shake
+   */
+  addCameraShake(intensity: number = 0.1, duration: number = 0.3, frequency: number = 30): void {
+    if (this.cameraController) {
+      this.cameraController.addCameraShake(intensity, duration, frequency);
+    }
+  }
+
+  /**
+   * Focus camera on combat
+   */
+  focusCameraOnCombat(characters: THREE.Object3D[]): void {
+    if (this.cameraController) {
+      this.cameraController.focusOnCombat(characters);
+    }
+  }
+
+  /**
+   * Focus camera on character death
+   */
+  focusCameraOnDeath(character: THREE.Object3D): void {
+    if (this.cameraController) {
+      this.cameraController.focusOnDeath(character);
+    }
+  }
+
+  /**
+   * Focus camera on ultimate ability
+   */
+  focusCameraOnUltimate(character: THREE.Object3D): void {
+    if (this.cameraController) {
+      this.cameraController.focusOnUltimate(character);
+    }
+  }
+
+  /**
+   * Focus camera on ability
+   */
+  focusCameraOnAbility(character: THREE.Object3D): void {
+    if (this.cameraController) {
+      this.cameraController.focusOnAbility(character);
+    }
+  }
+
+  /**
+   * Shake camera on hit
+   */
+  cameraShakeOnHit(intensity: 'light' | 'medium' | 'heavy' | 'critical' = 'medium'): void {
+    if (this.cameraController) {
+      this.cameraController.shakeOnHit(intensity);
+    }
+  }
 }
 
 /**
@@ -335,6 +550,21 @@ export function setupEnhancedGraphics(
     shadowQuality: isMobile ? 'medium' : 'high',
     drawDistance: isMobile ? 150 : 200,
   });
+  
+  // Initialize fighting effects if camera is available
+  if (camera instanceof THREE.PerspectiveCamera) {
+    enhancement.initializeFightingEffects(camera);
+    enhancement.initializeCameraController(camera);
+    enhancement.initializeZoomReactions(camera);
+    
+    // Set mobile-specific camera settings
+    if (isMobile) {
+      const cameraController = enhancement.getCameraController();
+      if (cameraController) {
+        cameraController.updatePerformanceSettings('medium');
+      }
+    }
+  }
   
   return enhancement;
 }

@@ -8,6 +8,8 @@ export * from './enhancedTerrain';
 export * from './expandedMap';
 export * from './performanceOptimizer';
 export * from './offlineSupport';
+export * from './fightingEffects';
+export * from './cameraController';
 
 // Re-export existing modules for convenience
 export * from './stage';
@@ -72,6 +74,61 @@ export {
   isWithinExpandedMap,
   getExpandedMapHeight,
 } from './expandedMap';
+
+// Fighting Effects system
+export type { 
+  FightingEffect,
+  EffectType,
+  StatusEffectType,
+  EffectConfig,
+  ProjectileConfig,
+} from './fightingEffects';
+
+export { 
+  EffectManager,
+  globalEffectManager,
+  createSlashEffect,
+  createImpactFlash,
+  createBloodSplatter,
+  createScreenShake,
+  createFireballEffect,
+  createLightningBolt,
+  createHealingEffect,
+  createDragonBreath,
+  createAoEIndicator,
+  createExplosionEffect,
+  createStatusEffect,
+  createStunnedEffect,
+  createDeathEffect,
+  createSoulAscension,
+  createDragonAttackEffect,
+  FightingEffectsSystem,
+  globalFightingEffects,
+  initializeFightingEffects,
+} from './fightingEffects';
+
+// Camera Controller system
+export type { 
+  CameraPreset,
+  CameraTarget,
+  CombatState,
+  CameraMode,
+  CharacterPortrait,
+  ActiveShake,
+} from './cameraController';
+
+export { 
+  CameraController,
+  createCameraController,
+  CameraAnimation,
+  smoothLookAt,
+  calculateCameraDistance,
+  clamp,
+  lerp,
+  lerpVector3,
+  ZoomReactionSystem,
+  createZoomReactionSystem,
+} from './cameraController';
 
 // Type exports for TypeScript support
 export type {
