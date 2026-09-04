@@ -11,7 +11,7 @@
 // 6. Volumetric god-rays streaming over the crater rim toward the map center.
 
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { gltfLoader } from './gltf';
 import { surfaceMaterial } from './stage';
 
 /** World location of the Fire Peak at the North-West boundary */
@@ -67,7 +67,7 @@ export function createBackdrop(): Backdrop {
   // Try to load the high-quality mayon.glb model first
   let volcanoModel: THREE.Group | null = null;
   
-  new GLTFLoader()
+  gltfLoader
     .loadAsync('/models/nature/mayon.glb')
     .then((gltf) => {
       const model = gltf.scene;

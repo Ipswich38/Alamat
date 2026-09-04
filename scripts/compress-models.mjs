@@ -11,21 +11,38 @@
  *      `walkGltf.animations` and nothing else, so its mesh, material and full
  *      size texture were shipped to every player and never drawn.
  *
- * Run: node scripts/compress-models.mjs [--write]
+ *   3. Textures were already handled by an earlier run, so the remaining bulk
+ *      is GEOMETRY: 16.8 MB of the 21 MB. --meshopt compresses vertex and
+ *      animation data, which nothing else here touched.
+ *
+ * Meshopt rather than Draco because three.js already ships the decoder module,
+ * so it bundles with the app. Draco needs its decoder files hosted and fetched,
+ * which is one more thing to break in an offline Android build.
+ *
+ * ⚠ Meshopt output only loads through a loader with the decoder installed. That
+ * is src/game/render3d/gltf.ts, and every loader in the app goes through it.
+ * Compressing without that wiring makes every model fail to load.
+ *
+ * Run: node scripts/compress-models.mjs [--meshopt] [--write]
  * Without --write it reports what it would save and touches nothing.
  */
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { prune, dedup, textureCompress } from '@gltf-transform/functions';
+import { prune, dedup, textureCompress, meshopt } from '@gltf-transform/functions';
+import { MeshoptEncoder } from 'meshoptimizer';
 import sharp from 'sharp';
 import { readdirSync, statSync, copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const WRITE = process.argv.includes('--write');
+const MESHOPT = process.argv.includes('--meshopt');
 const ROOT = 'public/models';
 const BACKUP = 'assets-src/uncompressed';
 
-const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
+await MeshoptEncoder.ready;
+const io = new NodeIO()
+  .registerExtensions(ALL_EXTENSIONS)
+  .registerDependencies({ 'meshopt.encoder': MeshoptEncoder });
 const mb = (b) => (b / 1048576).toFixed(2);
 
 function walkDir(d) {
@@ -49,12 +66,14 @@ for (const file of walkDir(ROOT)) {
     for (const mat of doc.getRoot().listMaterials()) mat.dispose();
     for (const tex of doc.getRoot().listTextures()) tex.dispose();
     await doc.transform(prune(), dedup());
+    if (MESHOPT) await doc.transform(meshopt({ encoder: MeshoptEncoder }));
   } else {
     await doc.transform(
       textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [1024, 1024], quality: 88 }),
       prune(),
       dedup(),
     );
+    if (MESHOPT) await doc.transform(meshopt({ encoder: MeshoptEncoder }));
   }
 
   const out = await io.writeBinary(doc);

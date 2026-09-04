@@ -16,7 +16,7 @@
 // mean two places to fix the next thing the generator does oddly.
 
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { gltfLoader as loader } from './gltf';
 
 export type Motion = 'idle' | 'walk' | 'run';
 
@@ -46,7 +46,6 @@ export interface Actor {
   dispose(): void;
 }
 
-const loader = new GLTFLoader();
 
 export async function createActor(spec: ActorModel): Promise<Actor> {
   const gltf = await loader.loadAsync(spec.rigged);

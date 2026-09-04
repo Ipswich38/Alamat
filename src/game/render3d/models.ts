@@ -18,9 +18,8 @@
 // place rather than leaving a hole in the arena.
 
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { gltfLoader as loader } from './gltf';
 
-const loader = new GLTFLoader();
 
 /**
  * Fit a loaded model to a size in world units, standing on y = 0.

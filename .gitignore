@@ -47,3 +47,9 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
+
+# Pre-compression model originals, written by scripts/compress-models.mjs.
+# Byte-identical to what git already holds from before the meshopt pass, so
+# committing 116 MB of them would store the same files twice. Recover one with:
+#   git show <sha-before-compression>:public/models/<path>.glb > out.glb
+assets-src/uncompressed/
