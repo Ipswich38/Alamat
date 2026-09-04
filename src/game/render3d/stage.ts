@@ -80,15 +80,39 @@ const DEFAULT_YAW = Math.PI / 4;
 export const ZOOM_MIN = 14;
 export const ZOOM_MAX = 90;
 
+/*
+ * Is this a phone or tablet?
+ *
+ * Deliberately a few lines here rather than an import. The repo already had
+ * THREE separate device/quality systems (platform/mobile.ts, performanceOptimizer,
+ * alamatGraphicsEnhancement) and not one of them was wired to this renderer, so
+ * quality sat pinned at 'high' on every device. Adding a fourth abstraction was
+ * not the fix; asking the question where the answer is used is.
+ */
+function isHandheld(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+  const ua = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+  return coarse || ua;
+}
+
 export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string): Stage {
+  const handheld = isHandheld();
+
   const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: true,
+    // MSAA is pointless once everything goes through EffectComposer, and on a
+    // phone the multisampled buffer is pure cost. Desktop keeps it.
+    antialias: !handheld,
     powerPreference: 'high-performance',
     stencil: false,
     depth: true,
   });
-  renderer.setPixelRatio(Math.min(2.2, window.devicePixelRatio || 1));
+  /*
+   * 2.2 on a DPR-3 phone is 4.8x the fragments of DPR 1, before five post
+   * passes run over the same pixels. Desktop keeps the sharp setting.
+   */
+  renderer.setPixelRatio(Math.min(handheld ? 1.5 : 2.2, window.devicePixelRatio || 1));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -125,7 +149,8 @@ export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string):
   const sun = new THREE.DirectionalLight(0xfff6e8, 2.6);
   sun.position.set(-58, 62, -58);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048); // 4k is overkill on mobile — 2k stable + lower bias
+  // 2k is still a lot of depth rendering for 177 shadow casters on a phone.
+  sun.shadow.mapSize.set(handheld ? 1024 : 2048, handheld ? 1024 : 2048);
   const s = 32;
   sun.shadow.camera.left = -s;
   sun.shadow.camera.right = s;
@@ -177,8 +202,14 @@ export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string):
     0.90
   );
   composer.addPass(bloom);
-  // SSAO — HQ but subtle: deepens crevices without darkening whole arena
-  try {
+  /*
+   * SSAO deepens crevices, and costs a second pass over the whole scene to do
+   * it: SAO renders depth and normals for all 177 shadow casters again, then
+   * blurs. On a phone that is the most expensive pass in the frame for the
+   * least visible gain at this camera distance, so handhelds skip it entirely.
+   * Desktop keeps the look unchanged.
+   */
+  if (!handheld) try {
     const sao = new SAOPass(scene, camera);
     // @ts-ignore — SAO params vary by three version
     sao.params = sao.params || {};

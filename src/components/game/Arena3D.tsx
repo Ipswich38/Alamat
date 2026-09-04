@@ -531,6 +531,20 @@ export default function Arena3D({
     let last = 0;
     let clock = 0;
     let yawShown = Math.PI / 4;
+
+    /*
+     * The last keyboard vector handed to React, so the frame loop can skip the
+     * setState when nothing changed. Plain locals rather than state: the loop
+     * must never re-render just to remember what it already sent.
+     */
+    let kbShownX = 0;
+    let kbShownZ = 0;
+    const pushKeyboardVector = (x: number, z: number) => {
+      if (x === kbShownX && z === kbShownZ) return;
+      kbShownX = x;
+      kbShownZ = z;
+      setKeyboardVector({ x, z });
+    };
     let frames = 0;
     let fpsClock = 0;
     let combatUiClock = 0;
@@ -1425,19 +1439,31 @@ export default function Arena3D({
         setCompass(camera.yaw);
       }
 
-      let ix = joyRef.current.x;
-      let iz = joyRef.current.z;
-      if (keys.has('w') || keys.has('arrowup')) iz -= 1;
-      if (keys.has('s') || keys.has('arrowdown')) iz += 1;
-      if (keys.has('a') || keys.has('arrowleft')) ix -= 1;
-      if (keys.has('d') || keys.has('arrowright')) ix -= 1;
-
       const kx = (keys.has('d') || keys.has('arrowright') ? 1 : 0) - (keys.has('a') || keys.has('arrowleft') ? 1 : 0);
       const kz = (keys.has('s') || keys.has('arrowdown') ? 1 : 0) - (keys.has('w') || keys.has('arrowup') ? 1 : 0);
+
+      /*
+       * Movement used to be derived twice, and the two disagreed: this block
+       * did `ix -= 1` for BOTH 'a' and 'd', so pressing D walked you left and
+       * holding A+D walked you left twice instead of cancelling, while kx below
+       * computed the same intent correctly for the HUD arrow. One source now.
+       */
+      const ix = joyRef.current.x + kx;
+      const iz = joyRef.current.z + kz;
+
+      /*
+       * Only push to React when the value actually changes.
+       *
+       * This used to allocate a new object every frame, and the idle branch ran
+       * on every frame the player was standing still. A new object fails React's
+       * identity check every time, so the whole tree re-rendered at 60fps,
+       * HeroHud included, and the game was at its most expensive while nothing
+       * was happening.
+       */
       if (kx !== 0 || kz !== 0) {
-        setKeyboardVector({ x: kx, z: kz });
+        pushKeyboardVector(kx, kz);
       } else if (joyRef.current.x === 0 && joyRef.current.z === 0) {
-        setKeyboardVector({ x: 0, z: 0 });
+        pushKeyboardVector(0, 0);
       }
 
       let moving = false;
