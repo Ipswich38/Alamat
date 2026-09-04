@@ -125,7 +125,15 @@ export interface PlayerProfile {
   name: string;
   accountLevel: number;
   accountXp: number;
-  gold: number;
+  gold: number; // soft currency — "Ginto" (keep key for compat)
+  // monetization — low-cost mass-market economy
+  diamonds: number;
+  hasFirstRecharge: boolean;
+  transactions: { id: string; at: number; currency: 'ginto'|'diamante'; delta: number; reason: string; balanceAfter: number }[];
+  ownedSkins: string[];
+  equippedSkins: Record<string, string>; // heroId -> skinId
+  pity: Record<string, number>; // drawId -> pulls since last high-tier
+  pass: { seasonId: string; level: number; xp: number; premium: boolean };
   totalMatches: number;
   totalWins: number;
   totalKills: number;
@@ -235,6 +243,13 @@ export function getDefaultProfile(): PlayerProfile {
     accountLevel: 1,
     accountXp: 0,
     gold: 500,
+    diamonds: 0,
+    hasFirstRecharge: false,
+    transactions: [],
+    ownedSkins: [],
+    equippedSkins: {},
+    pity: {},
+    pass: { seasonId: 'lakbay_s1_amarillo', level: 1, xp: 0, premium: false },
     totalMatches: 0,
     totalWins: 0,
     totalKills: 0,
@@ -275,6 +290,14 @@ export function loadPlayerProfile(): PlayerProfile {
     return {
       ...base,
       ...parsed,
+      gold: typeof parsed.gold === 'number' ? parsed.gold : base.gold,
+      diamonds: typeof parsed.diamonds === 'number' ? parsed.diamonds : base.diamonds,
+      hasFirstRecharge: typeof parsed.hasFirstRecharge === 'boolean' ? parsed.hasFirstRecharge : base.hasFirstRecharge,
+      transactions: Array.isArray(parsed.transactions) ? parsed.transactions : base.transactions,
+      ownedSkins: Array.isArray(parsed.ownedSkins) ? parsed.ownedSkins : base.ownedSkins,
+      equippedSkins: parsed.equippedSkins && typeof parsed.equippedSkins === 'object' ? parsed.equippedSkins : base.equippedSkins,
+      pity: parsed.pity && typeof parsed.pity === 'object' ? parsed.pity : base.pity,
+      pass: parsed.pass && typeof parsed.pass === 'object' ? parsed.pass as PlayerProfile['pass'] : base.pass,
       settings: { ...base.settings, ...(parsed.settings || {}) },
       heroMasteries: { ...base.heroMasteries, ...(parsed.heroMasteries || {}) },
       dailyQuests: parsed.dailyQuests && parsed.dailyQuests.length > 0 ? parsed.dailyQuests : DEFAULT_QUESTS,
