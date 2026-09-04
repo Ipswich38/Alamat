@@ -70,9 +70,9 @@ export function createNexus(): Nexus {
         if (a.broken) continue;
 
         if (a.team === 'dawn') {
-          // Dynamic flame/sunlight flicker (3.5 base intensity, 15u radius)
-          const flicker = 3.5 + Math.sin(t * 8.5 + a.seed) * 0.35 + Math.sin(t * 14.3) * 0.22 + Math.cos(t * 22.1) * 0.15;
-          a.lamp.intensity = flicker * 28;
+          // HQ: flicker 4.2-5.8 range (was 98 blown out)
+          const flicker = 4.8 + Math.sin(t * 8.5 + a.seed) * 0.35 + Math.sin(t * 14.3) * 0.22 + Math.cos(t * 22.1) * 0.15;
+          a.lamp.intensity = flicker;
           a.crystal.rotation.y = t * 0.5 + a.seed;
           a.crystal.position.y = CORE_HEIGHT + Math.sin(t * 1.2 + a.seed) * 0.22;
 
@@ -80,9 +80,9 @@ export function createNexus(): Nexus {
           const runePulse = 1.6 + Math.sin(t * 2.0) * 0.4;
           for (const mat of a.runes) mat.emissiveIntensity = runePulse;
         } else {
-          // Smooth 0.4Hz breathing / pulsing emission (3.5 base intensity, 15u radius)
-          const pulse = 3.5 + Math.sin(t * 2.5 + a.seed) * 0.85;
-          a.lamp.intensity = pulse * 28;
+          // HQ: pulse 4.5-6.2 range
+          const pulse = 5.2 + Math.sin(t * 2.5 + a.seed) * 0.85;
+          a.lamp.intensity = pulse;
           a.crystal.rotation.y = -t * 0.45 + a.seed;
           a.crystal.position.y = CORE_HEIGHT + Math.sin(t * 0.9 + a.seed) * 0.25;
 
@@ -150,11 +150,11 @@ function buildDawnBase(team: Team): { group: THREE.Group; artifact: BaseArtifact
   boundary.position.y = 0.46;
   g.add(boundary);
 
-  // 2. Raised Stone Altar (Multi-Tier Basalt & Limestone Altar)
+  // 2. Raised Stone Altar (Multi-Tier Basalt & Limestone — HQ: more segments, less faceting)
   const altarGroup = new THREE.Group();
   const tier1 = new THREE.Mesh(
-    new THREE.CylinderGeometry(6.2, 7.0, 0.6, 8),
-    surfaceMaterial(0x5a5247, { roughness: 0.94 })
+    new THREE.CylinderGeometry(6.2, 7.0, 0.6, 24),
+    surfaceMaterial(0x5a5247, { roughness: 0.88 })
   );
   tier1.position.y = 0.5;
   tier1.castShadow = true;
@@ -162,8 +162,8 @@ function buildDawnBase(team: Team): { group: THREE.Group; artifact: BaseArtifact
   altarGroup.add(tier1);
 
   const tier2 = new THREE.Mesh(
-    new THREE.CylinderGeometry(4.6, 5.4, 0.7, 8),
-    surfaceMaterial(0x73695c, { roughness: 0.9 })
+    new THREE.CylinderGeometry(4.6, 5.4, 0.7, 24),
+    surfaceMaterial(0x73695c, { roughness: 0.84 })
   );
   tier2.position.y = 1.1;
   tier2.castShadow = true;
@@ -171,8 +171,8 @@ function buildDawnBase(team: Team): { group: THREE.Group; artifact: BaseArtifact
   altarGroup.add(tier2);
 
   const tier3 = new THREE.Mesh(
-    new THREE.CylinderGeometry(3.2, 3.8, 0.6, 8),
-    surfaceMaterial(0x8a7f70, { roughness: 0.85 })
+    new THREE.CylinderGeometry(3.2, 3.8, 0.6, 20),
+    surfaceMaterial(0x8a7f70, { roughness: 0.80 })
   );
   tier3.position.y = 1.7;
   tier3.castShadow = true;
@@ -216,36 +216,45 @@ function buildDawnBase(team: Team): { group: THREE.Group; artifact: BaseArtifact
   brassPedestal.add(brassCup);
   g.add(brassPedestal);
 
-  // 5. Central Floating Artifact: Glowing Gold/Amber Sun Crystal (#FFB300)
+  // 5. Central Floating Artifact: Glowing Sun Crystal — HQ: Physical material, crisp halos
   const sunCrystal = new THREE.Group();
   sunCrystal.name = 'core:dawn';
 
-  // Primary Octahedron Sun Gem
-  const gemMat = new THREE.MeshBasicMaterial({
+  // Primary gem — HQ: MeshPhysical with emissive instead of flat MeshBasic (was washing out)
+  const gemMat = new THREE.MeshPhysicalMaterial({
     color: 0xffb300,
-    toneMapped: false,
+    emissive: 0xff8c00,
+    emissiveIntensity: 1.4,
+    roughness: 0.18,
+    metalness: 0.12,
+    transmission: 0.18,
+    thickness: 0.6,
+    clearcoat: 0.6,
+    clearcoatRoughness: 0.18,
   });
-  const gem = new THREE.Mesh(new THREE.OctahedronGeometry(1.4, 0), gemMat);
+  const gem = new THREE.Mesh(new THREE.OctahedronGeometry(1.4, 1), gemMat);
   sunCrystal.add(gem);
 
-  // Nested rotating golden solar halo rings
-  const ringMat = new THREE.MeshBasicMaterial({
+  // Nested rotating solar halos — HQ: more segments, subtle
+  const haloMat = new THREE.MeshStandardMaterial({
     color: 0xffd54f,
-    wireframe: true,
-    toneMapped: false,
+    emissive: 0xffb300,
+    emissiveIntensity: 0.8,
+    roughness: 0.35,
+    metalness: 0.15,
   });
-  const solarRing1 = new THREE.Mesh(new THREE.TorusGeometry(1.9, 0.08, 8, 24), ringMat);
+  const solarRing1 = new THREE.Mesh(new THREE.TorusGeometry(1.9, 0.06, 10, 48), haloMat);
   solarRing1.rotation.x = Math.PI / 3;
   sunCrystal.add(solarRing1);
 
-  const solarRing2 = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.06, 8, 24), ringMat);
+  const solarRing2 = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.05, 10, 48), haloMat);
   solarRing2.rotation.y = Math.PI / 4;
   sunCrystal.add(solarRing2);
 
-  // 4 Orbiting Golden Prisms
+  // 4 Orbiting Prisms — HQ: physical too
   for (let k = 0; k < 4; k++) {
     const a = (k / 4) * Math.PI * 2;
-    const shard = new THREE.Mesh(new THREE.TetrahedronGeometry(0.35), gemMat);
+    const shard = new THREE.Mesh(new THREE.TetrahedronGeometry(0.32), gemMat);
     shard.position.set(Math.cos(a) * 2.5, Math.sin(a * 2) * 0.4, Math.sin(a) * 2.5);
     sunCrystal.add(shard);
   }
@@ -253,8 +262,8 @@ function buildDawnBase(team: Team): { group: THREE.Group; artifact: BaseArtifact
   sunCrystal.position.y = CORE_HEIGHT;
   g.add(sunCrystal);
 
-  // 6. Lighting: Warm radial point light (Radius: 15u, Intensity: 3.5, Color: #FFA000)
-  const lamp = new THREE.PointLight(0xffa000, 3.5 * 28, 15, 2);
+  // 6. Lighting: Warm point light — HQ: much lower intensity (was 3.5*28=98 blown out)
+  const lamp = new THREE.PointLight(0xffa000, 5.5, 15, 2);
   lamp.position.set(0, CORE_HEIGHT + 0.4, 0);
   g.add(lamp);
 
@@ -329,62 +338,76 @@ function buildDuskBase(team: Team): { group: THREE.Group; artifact: BaseArtifact
   basin.receiveShadow = true;
   g.add(basin);
 
-  // Spirit fluid in stone basin
+  // Spirit fluid — HQ: lit, not flat
   const fluid = new THREE.Mesh(
-    new THREE.CircleGeometry(2.35, 24),
-    new THREE.MeshBasicMaterial({
+    new THREE.CircleGeometry(2.35, 32),
+    new THREE.MeshStandardMaterial({
       color: 0x00b0ff,
+      emissive: 0x0066aa,
+      emissiveIntensity: 0.6,
+      roughness: 0.18,
+      metalness: 0.12,
       transparent: true,
-      opacity: 0.75,
-      toneMapped: false,
+      opacity: 0.82,
     })
   );
   fluid.rotation.x = -Math.PI / 2;
   fluid.position.y = 2.82;
   g.add(fluid);
 
-  // 4. Central Floating Artifact: Glowing Sapphire/Cyan Mana Crystal (#00E5FF)
+  // 4. Central Floating Artifact: Mana Crystal — HQ: Physical, not Basic
   const manaCrystal = new THREE.Group();
   manaCrystal.name = 'core:dusk';
 
-  const manaGemMat = new THREE.MeshBasicMaterial({
+  const manaGemMat = new THREE.MeshPhysicalMaterial({
     color: 0x00e5ff,
-    toneMapped: false,
+    emissive: 0x0088cc,
+    emissiveIntensity: 1.2,
+    roughness: 0.16,
+    metalness: 0.1,
+    transmission: 0.22,
+    thickness: 0.6,
+    clearcoat: 0.5,
   });
 
-  // Central Cyan Crystalline Prism
-  const gemCore = new THREE.Mesh(new THREE.IcosahedronGeometry(1.35, 1), manaGemMat);
+  // Central Prism — higher subdiv
+  const gemCore = new THREE.Mesh(new THREE.IcosahedronGeometry(1.35, 2), manaGemMat);
   gemCore.scale.set(0.9, 1.4, 0.9);
   manaCrystal.add(gemCore);
 
-  // 4 Orbiting Mana Crystal Shards
-  const shardMat = new THREE.MeshBasicMaterial({
+  // 4 Orbiting Shards — physical too
+  const shardMat = new THREE.MeshPhysicalMaterial({
     color: 0x80d8ff,
-    toneMapped: false,
+    emissive: 0x3399ff,
+    emissiveIntensity: 0.7,
+    roughness: 0.2,
+    transmission: 0.15,
   });
   for (let k = 0; k < 4; k++) {
     const a = (k / 4) * Math.PI * 2;
-    const shard = new THREE.Mesh(new THREE.OctahedronGeometry(0.45, 0), shardMat);
+    const shard = new THREE.Mesh(new THREE.OctahedronGeometry(0.45, 1), shardMat);
     shard.scale.set(0.7, 1.3, 0.7);
     shard.position.set(Math.cos(a) * 2.2, Math.sin(a * 2) * 0.35, Math.sin(a) * 2.2);
     manaCrystal.add(shard);
   }
 
-  // Cyan Aura Halo
-  const haloMat = new THREE.MeshBasicMaterial({
+  // Halo — HQ: more segments, subtle
+  const haloMat = new THREE.MeshStandardMaterial({
     color: 0x00e5ff,
+    emissive: 0x00aaff,
+    emissiveIntensity: 0.4,
     transparent: true,
-    opacity: 0.25,
-    toneMapped: false,
+    opacity: 0.22,
+    roughness: 0.4,
   });
-  const halo = new THREE.Mesh(new THREE.SphereGeometry(1.9, 12, 8), haloMat);
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(1.9, 24, 16), haloMat);
   manaCrystal.add(halo);
 
   manaCrystal.position.y = CORE_HEIGHT;
   g.add(manaCrystal);
 
-  // 5. Lighting: Cool radial point light (Radius: 15u, Intensity: 3.5, Color: #00B0FF)
-  const lamp = new THREE.PointLight(0x00b0ff, 3.5 * 28, 15, 2);
+  // 5. Lighting: Cool point light — HQ: lower (was 98)
+  const lamp = new THREE.PointLight(0x00b0ff, 5.8, 15, 2);
   lamp.position.set(0, CORE_HEIGHT + 0.4, 0);
   g.add(lamp);
 

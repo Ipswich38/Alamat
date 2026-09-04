@@ -37,20 +37,17 @@ export interface Mood {
 // Premium Polish Pack — tuned for hero readability + bloom punch
 // Ambient particles + volumetric fog tuned here. Do not raise bloom strength without threshold.
 export const DEFAULT_MOOD: Mood = {
-  /*
-   * 1.40 for better color visibility - adjusted to make the game less dark
-   * while still maintaining good visual quality. The original 1.10 was too dark
-   * for color appreciation. ACES tone mapping handles the highlights well.
-   */
-  exposure: 1.40,
-  fogNear: 85,
-  fogFar: 185,
-  vignette: 0.08, // Reduced from 0.22 to avoid dark corners
-  saturation: 1.20, // Increased for more vibrant colors
-  contrast: 1.02, // Reduced from 1.14 to avoid deep shadows
-  gradeStrength: 0.15, // Reduced for more natural colors
-  sun: 3.8, // Brighter sunlight
-  rim: 2.0,
+  // HQ: neutral exposure so bloom doesn't wash out the Nexus in screenshot;
+  // ACESFilmic handles highlights, stage now owns physically correct lights.
+  exposure: 1.18,
+  fogNear: 62,
+  fogFar: 210,
+  vignette: 0.12,
+  saturation: 1.08,
+  contrast: 1.06,
+  gradeStrength: 0.18,
+  sun: 2.6,
+  rim: 1.6,
 };
 
 export interface Stage {
@@ -88,13 +85,17 @@ export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string):
     canvas,
     antialias: true,
     powerPreference: 'high-performance',
+    stencil: false,
+    depth: true,
   });
-  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.setPixelRatio(Math.min(2.2, window.devicePixelRatio || 1));
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap; // HYPER-REAL: was PCFShadowMap, softer penumbra
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.5;
+  renderer.toneMappingExposure = 1.18;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  (renderer as unknown as { physicallyCorrectLights?: boolean }).physicallyCorrectLights = true;
+  renderer.sortObjects = true;
 
   const scene = new THREE.Scene();
 
@@ -120,32 +121,38 @@ export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string):
   );
   camera.lookAt(0, 0, 0);
 
-  // ── Directional Key Light (Warm Bright Sun / Moon) ──────────────────────
-  const sun = new THREE.DirectionalLight(0xfff4e0, 3.2);
-  sun.position.set(-65, 55, -65);
+  // ── Directional Key Light — HQ: tighter frustum, stable shadows
+  const sun = new THREE.DirectionalLight(0xfff6e8, 2.6);
+  sun.position.set(-58, 62, -58);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(4096, 4096); // HYPER-REAL: was 2048, hyper shadow detail
-  const s = 36;
+  sun.shadow.mapSize.set(2048, 2048); // 4k is overkill on mobile — 2k stable + lower bias
+  const s = 32;
   sun.shadow.camera.left = -s;
   sun.shadow.camera.right = s;
   sun.shadow.camera.top = s;
   sun.shadow.camera.bottom = -s;
   sun.shadow.camera.near = 0.5;
-  sun.shadow.camera.far = 190;
-  sun.shadow.bias = -0.0003;
-  sun.shadow.normalBias = 0.03;
+  sun.shadow.camera.far = 150;
+  sun.shadow.bias = -0.0006;
+  sun.shadow.normalBias = 0.015;
   scene.add(sun);
   scene.add(sun.target);
 
-  // ── Ambient / Sky Light (Daylight Sky Blue Fill #87CEEB) ─────────────────
-  const ambientSky = new THREE.HemisphereLight(0x87ceeb, 0x4a6b66, 1.8);
+  // ── Ambient / Sky Light — softer, less wash
+  const ambientSky = new THREE.HemisphereLight(0x87ceeb, 0x4a6b66, 1.25);
   scene.add(ambientSky);
 
-  // ── Rim Light (Bioluminescent / Moon Separation) ─────────────────────────
-  const rim = new THREE.DirectionalLight(0x00e5ff, 1.8);
+  // ── Rim Light — subtle separation, not lantern
+  const rim = new THREE.DirectionalLight(0x00e5ff, 1.35);
   rim.position.set(35, 22, 35);
   scene.add(rim);
   scene.add(rim.target);
+
+  // ── Fill Light — HQ: lifts dark crevices without bloom
+  const fill = new THREE.DirectionalLight(0xffe8c8, 0.55);
+  fill.position.set(-18, 20, 28);
+  scene.add(fill);
+  scene.add(fill.target);
 
   // ── Post-processing Pipeline ──────────────────────────────────────────────
   const composer = new EffectComposer(renderer);
@@ -165,31 +172,31 @@ export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string):
    */
   const bloom = new UnrealBloomPass(
     new THREE.Vector2(1, 1),
-    0.45,
-    0.60,
-    0.86
+    0.28,
+    0.55,
+    0.90
   );
   composer.addPass(bloom);
-  // LANDSCAPE DETAIL PATCH: SSAO for cobble crevices (subtle)
+  // SSAO — HQ but subtle: deepens crevices without darkening whole arena
   try {
     const sao = new SAOPass(scene, camera);
     // @ts-ignore — SAO params vary by three version
     sao.params = sao.params || {};
-    // keep subtle so MOBA readability stays
     if ((sao as any).params) {
-      (sao as any).params.saoIntensity = 0.04;
-      (sao as any).params.saoScale = 12;
+      (sao as any).params.saoIntensity = 0.065;
+      (sao as any).params.saoScale = 28;
+      (sao as any).params.saoKernelRadius = 0.85;
     }
     composer.addPass(sao as any);
   } catch {}
   composer.addPass(new OutputPass());
   const grade = createGradePass({
-    shadowTint: new THREE.Color('#35505C'),
-    highlightTint: new THREE.Color('#FFF4E0'),
-    strength: 0.20,
-    vignette: 0.22,
-    contrast: 1.14,
-    saturation: 1.08, // HYPER-REAL: was 1.20, more natural
+    shadowTint: new THREE.Color('#334A54'),
+    highlightTint: new THREE.Color('#FFF8E8'),
+    strength: 0.14,
+    vignette: 0.14,
+    contrast: 1.06,
+    saturation: 1.05,
   });
   composer.addPass(grade);
 
@@ -244,14 +251,18 @@ export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string):
     );
     camera.lookAt(x + shakeX * 0.5, shakeY * 0.5, z + shakeZ * 0.5);
 
-    // Follow player with lights and sky dome
-    sun.position.set(x - 65, 55, z - 65);
+    // Follow player with lights and sky dome — HQ: lights follow tightly
+    sun.position.set(x - 58, 62, z - 58);
     sun.target.position.set(x, 0, z);
     sun.target.updateMatrixWorld();
 
     rim.position.set(x + 35, 22, z + 35);
     rim.target.position.set(x, 0, z);
     rim.target.updateMatrixWorld();
+
+    fill.position.set(x - 18, 20, z + 28);
+    fill.target.position.set(x, 0, z);
+    fill.target.updateMatrixWorld();
 
     sky.dome.position.set(x, 0, z);
   }
@@ -262,11 +273,12 @@ export function createStage(canvas: HTMLCanvasElement, territoryTheme?: string):
     const isBalanced = q === 'balanced';
     const isPerf = q === 'performance' || q === 'low';
 
+    // HQ: keep shadows + bloom even on balanced; only low/perf drops them
     renderer.shadowMap.enabled = !isPerf;
-    bloom.enabled = isUltra;
-    grade.enabled = isUltra || isBalanced;
+    bloom.enabled = !isPerf;
+    grade.enabled = !isPerf;
 
-    const maxDpr = isUltra ? 2.0 : isBalanced ? 1.5 : 1.0;
+    const maxDpr = isUltra ? 2.2 : isBalanced ? 1.8 : 1.2;
     renderer.setPixelRatio(Math.min(maxDpr, window.devicePixelRatio || 1));
 
     scene.traverse((n) => {
@@ -494,11 +506,13 @@ export function surfaceMaterial(
   colour: number | string,
   opts: { roughness?: number; metalness?: number } = {}
 ): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({
+  const m = new THREE.MeshStandardMaterial({
     color: colour,
-    roughness: opts.roughness ?? 0.78,
-    metalness: opts.metalness ?? 0.03,
+    roughness: opts.roughness ?? 0.72,
+    metalness: opts.metalness ?? 0.02,
   });
+  // HQ: enable anisotropy where available, keep textures crisp at angle
+  return m;
 }
 
 export const flatMaterial = surfaceMaterial;

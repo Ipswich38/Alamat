@@ -137,23 +137,25 @@ export function detectMobileConfig(): MobileConfig {
  * Get optimal performance settings based on device configuration
  */
 export function getPerformanceSettings(config: MobileConfig): PerformanceSettings {
+  // HQ fix: screenshot's washout/soft blur was mostly mobile forcing 'performance' (no shadows, 1.5 DPR, off post)
+  // Keep balanced on all mobiles unless truly low-end; high-end mobiles get high.
   if (config.isLowEnd || config.batterySaver) {
-    return DEFAULT_SETTINGS.low;
+    return DEFAULT_SETTINGS.balanced; // was low — never drop to off shadows on modern phones
   }
-  
+
   if (config.isMobile) {
     if (config.isHighEnd) {
       return DEFAULT_SETTINGS.high;
     }
-    return DEFAULT_SETTINGS.performance;
+    return DEFAULT_SETTINGS.balanced; // was performance — HQ default
   }
-  
+
   // Desktop/laptop defaults
   if (config.isHighEnd) {
     return DEFAULT_SETTINGS.ultra;
   }
-  
-  return DEFAULT_SETTINGS.balanced;
+
+  return DEFAULT_SETTINGS.high;
 }
 
 /**
@@ -169,22 +171,24 @@ export function getQualitySetting(config: MobileConfig): 'ultra' | 'high' | 'bal
  */
 export function applyMobileOptimizations(renderer: any, config: MobileConfig): void {
   const settings = getPerformanceSettings(config);
-  
-  // Adjust pixel ratio for mobile devices to improve performance
+
+  // HQ: keep crisp on retina — cap 1.8 on balanced, 2.2 on high (was 1.5 flat)
   if (config.isMobile && typeof window !== 'undefined') {
-    const mobilePixelRatio = Math.min(1.5, window.devicePixelRatio || 1);
+    const isHigh = settings.quality === 'high' || settings.quality === 'ultra';
+    const mobilePixelRatio = Math.min(isHigh ? 2.2 : 1.8, window.devicePixelRatio || 1);
     renderer.setPixelRatio(mobilePixelRatio);
   }
-  
-  // Adjust shadow map quality
+
+  // HQ: never disable shadows on modern devices; lowest is PCFSoft with half res
   if (settings.shadowQuality === 'off') {
-    renderer.shadowMap.enabled = false;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = 2; // THREE.PCFSoftShadowMap (was off)
   } else if (settings.shadowQuality === 'low') {
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = 0; // THREE.BasicShadowMap
+    renderer.shadowMap.type = 2; // THREE.PCFSoftShadowMap (was Basic)
   } else if (settings.shadowQuality === 'medium') {
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = 1; // THREE.PCFShadowMap
+    renderer.shadowMap.type = 2; // THREE.PCFSoftShadowMap (was PCF)
   } else {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = 2; // THREE.PCFSoftShadowMap
