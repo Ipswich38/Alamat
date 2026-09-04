@@ -93,6 +93,11 @@ export interface GachaDraw {
   costDiamonds: number;
   costDiamonds10: number;
   pity: number; // pulls to guarantee high tier
-  odds: Record<SkinTier, number>; // for disclosure
+  /*
+   * No `odds` field on purpose. It used to be typed by hand here and
+   * contradicted the pool on every line, including advertising a tier that had
+   * no items in it. Real odds come from `tierOdds(draw)` in ./gacha, worked out
+   * from the same pool rollGacha draws from, so the two cannot disagree.
+   */
   pool: GachaPoolItem[];
 }

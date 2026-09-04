@@ -1,6 +1,6 @@
 // Mystic draws — budget 30/270, pity 45
 
-import type { GachaDraw } from './types';
+import type { GachaDraw, SkinTier } from './types';
 
 export const MYSTIC_DRAW_S1: GachaDraw = {
   id: 'mystic_draw_s1',
@@ -9,13 +9,6 @@ export const MYSTIC_DRAW_S1: GachaDraw = {
   costDiamonds: 30,
   costDiamonds10: 270,
   pity: 45,
-  odds: {
-    elite: 0.25,
-    epic: 0.04,
-    collector: 0.012,
-    legend: 0.008,
-    prime: 0.002,
-  },
   pool: [
     { id: 'veer_spirit_woods', weight: 25, tier: 'elite' },
     { id: 'thistle_thread_veil', weight: 25, tier: 'elite' },
@@ -30,6 +23,42 @@ export const MYSTIC_DRAW_S1: GachaDraw = {
 
 // Back-compat alias
 export const ANITO_DRAW_S1 = MYSTIC_DRAW_S1;
+
+/*
+ * The real chance of each tier, worked out from the pool that rollGacha
+ * actually draws from.
+ *
+ * This replaces a hand-written `odds` field on the draw, which nothing read and
+ * which disagreed with the pool on every single line. It declared elite 25%
+ * against a real 84.75%, legend 0.8% against 6.78%, summed to 31.2% rather than
+ * 100%, and advertised `collector` at 1.2% when the pool holds no collector
+ * item at all, so it could never be drawn.
+ *
+ * If this is ever shown to a player, or filed on a store listing, it has to be
+ * derived and not typed. Two sources drift, and here the drift meant
+ * advertising a chance at something unobtainable.
+ *
+ * Note this is the per-pull chance and ignores pity: a pull made at
+ * `pity - 1` is forced to epic, so epic over a long run is higher than shown.
+ */
+export function tierOdds(draw: GachaDraw = MYSTIC_DRAW_S1): Record<string, number> {
+  const total = draw.pool.reduce((sum, item) => sum + item.weight, 0);
+  const byTier: Record<string, number> = {};
+  for (const item of draw.pool) {
+    byTier[item.tier] = (byTier[item.tier] ?? 0) + item.weight;
+  }
+  for (const tier of Object.keys(byTier)) byTier[tier] /= total;
+  return byTier;
+}
+
+/** Every tier a player can actually draw, best first. For a disclosure table. */
+export function tierOddsTable(draw: GachaDraw = MYSTIC_DRAW_S1): { tier: SkinTier; chance: number }[] {
+  const order: SkinTier[] = ['prime', 'legend', 'collector', 'epic', 'elite'];
+  const odds = tierOdds(draw);
+  return order
+    .filter((t) => (odds[t] ?? 0) > 0)
+    .map((t) => ({ tier: t, chance: odds[t] }));
+}
 
 export function rollGacha(draw: GachaDraw = MYSTIC_DRAW_S1, pityCount: number = 0, rng: () => number = Math.random): string {
   // pity guarantee: on pity-1 next pull forces epic+ (lowest epic)
