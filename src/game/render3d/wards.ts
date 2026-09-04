@@ -1,7 +1,7 @@
-// Bulul Vision Ward (Anito Totem) 3D Rendering & Line-of-Sight Vision System
+// Guardian Vision Ward 3D Rendering & Line-of-Sight Vision System
 //
 // ── PURPOSE ─────────────────────────────────────────────────────────────────
-// Renders placed Bulul guardian totems on the battlefield.
+// Renders placed guardian totems on the battlefield.
 // Reveals fog of war, jungle brush concealment, and minimap tracking within 16u.
 // Zero external asset dependencies: Built with Three.js procedural geometry & materials.
 
@@ -33,7 +33,7 @@ export interface WardManager {
 
 export function createWardManager(): WardManager {
   const group = new THREE.Group();
-  group.name = 'bulul-wards';
+  group.name = 'guardian-wards';
 
   const wards = new Map<string, WardInstance>();
 
@@ -85,7 +85,7 @@ export function createWardManager(): WardManager {
     poleMesh.castShadow = true;
     wardGroup.add(poleMesh);
 
-    // 2. Anito Mask / Head
+    // 2. Guardian Mask / Head
     const headGeo = new THREE.BoxGeometry(0.48, 0.55, 0.45);
     const headMesh = new THREE.Mesh(headGeo, woodMat);
     headMesh.position.y = 1.95;

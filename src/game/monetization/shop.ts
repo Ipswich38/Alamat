@@ -2,16 +2,16 @@
 
 import { TOPUP_BUNDLES } from './types';
 import { SKINS } from './skins';
-import { ANITO_DRAW_S1 } from './gacha';
-import { LAKBAY_S1 } from './passes';
+import { MYSTIC_DRAW_S1, ANITO_DRAW_S1 } from './gacha';
+import { BATTLE_PASS_S1, LAKBAY_S1 } from './passes';
 
 export type ShopTab = 'skins' | 'pass' | 'draw' | 'heroes' | 'topup';
 
 export function getShopData() {
   return {
     skins: SKINS,
-    draw: ANITO_DRAW_S1,
-    pass: LAKBAY_S1,
+    draw: MYSTIC_DRAW_S1,
+    pass: BATTLE_PASS_S1,
     bundles: TOPUP_BUNDLES,
   };
 }

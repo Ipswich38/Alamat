@@ -722,27 +722,27 @@ export default function HeroHud({
     setTimeout(() => setPingNotification(null), 3000);
   };
 
-  const triggerWarCall = (warCallType: 'sulong' | 'iwas' | 'tabi' | 'tulong' | 'chime') => {
+  const triggerWarCall = (warCallType: 'attack' | 'danger' | 'stealth' | 'defend' | 'blessing') => {
     setShowBattlePings(false);
-    if (warCallType === 'sulong') {
+    if (warCallType === 'attack') {
       sound.playPing('danger');
       setPingNotification('⚔ ATTACK! Push the enemy line');
       onPing?.('attack');
-    } else if (warCallType === 'iwas') {
+    } else if (warCallType === 'danger') {
       sound.playPing('danger');
       setPingNotification('⚠️ DANGER! Watch the jungle');
       onPing?.('retreat');
-    } else if (warCallType === 'tabi') {
+    } else if (warCallType === 'stealth') {
       sound.playReedTwang();
       setPingNotification('🌿 FALL BACK! Hide and regroup');
       onPing?.('stealth');
-    } else if (warCallType === 'tulong') {
+    } else if (warCallType === 'defend') {
       sound.playPing('gather');
       setPingNotification('🛡 HELP! Defend the tower');
       onPing?.('assist');
-    } else if (warCallType === 'chime') {
+    } else if (warCallType === 'blessing') {
       sound.playChimeChime();
-      setPingNotification('🎶 KULINTANG: the Willow bless this fight');
+      setPingNotification('🎶 Blessing: Willow guards this fight');
       onPing?.('blessing');
     }
     setTimeout(() => setPingNotification(null), 3500);
@@ -1778,10 +1778,10 @@ export default function HeroHud({
         >
           <div style={{ fontSize: 64, marginBottom: 16 }}>📱 ↻</div>
           <strong style={{ fontSize: 22, color: '#FFD700', letterSpacing: 1.5, marginBottom: 8 }}>
-            I-IKOT ANG TELEPONO SA LANDSCAPE
+            ROTATE TO LANDSCAPE
           </strong>
           <p style={{ fontSize: 14, color: '#94A3B8', maxWidth: 360, lineHeight: 1.6 }}>
-            Ang Alamat ay idinisenyo para sa <strong style={{ color: '#00E5FF' }}>Pahiga (Landscape)</strong> na kontrol ng dalawang kamay. I-rotate ang iyong device para magpatuloy sa labanan!
+            Alamat is designed for <strong style={{ color: '#00E5FF' }}>Landscape</strong> two-hand controls. Rotate your device to continue the battle!
           </p>
           <button
             style={{
@@ -1798,7 +1798,7 @@ export default function HeroHud({
             }}
             onClick={handleToggleFullscreen}
           >
-            ⛶ I-Fullscreen & I-Lock ang Screen
+            ⛶ Fullscreen & Lock Screen
           </button>
         </div>
       ) : null}
@@ -3315,7 +3315,7 @@ export default function HeroHud({
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <button
-                onClick={() => triggerWarCall('sulong')}
+                onClick={() => triggerWarCall('attack')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -3331,13 +3331,13 @@ export default function HeroHud({
               >
                 <span style={{ fontSize: 24 }}>⚔️</span>
                 <div>
-                  <strong style={{ display: 'block', fontSize: 13, color: '#EF4444' }}>SULONG! (Attack)</strong>
+                  <strong style={{ display: 'block', fontSize: 13, color: '#EF4444' }}>ATTACK!</strong>
                   <span style={{ fontSize: 10.5, color: '#94A3B8' }}>Push the lane & strike enemy</span>
                 </div>
               </button>
 
               <button
-                onClick={() => triggerWarCall('iwas')}
+                onClick={() => triggerWarCall('danger')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -3353,13 +3353,13 @@ export default function HeroHud({
               >
                 <span style={{ fontSize: 24 }}>⚠️</span>
                 <div>
-                  <strong style={{ display: 'block', fontSize: 13, color: '#F59E0B' }}>IWAS! (Danger)</strong>
+                  <strong style={{ display: 'block', fontSize: 13, color: '#F59E0B' }}>DANGER!</strong>
                   <span style={{ fontSize: 10.5, color: '#94A3B8' }}>Watch out for ambush</span>
                 </div>
               </button>
 
               <button
-                onClick={() => triggerWarCall('tabi')}
+                onClick={() => triggerWarCall('stealth')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -3375,13 +3375,13 @@ export default function HeroHud({
               >
                 <span style={{ fontSize: 24 }}>🌿</span>
                 <div>
-                  <strong style={{ display: 'block', fontSize: 13, color: '#10B981' }}>TABI! (Stealth)</strong>
+                  <strong style={{ display: 'block', fontSize: 13, color: '#10B981' }}>STEALTH!</strong>
                   <span style={{ fontSize: 10.5, color: '#94A3B8' }}>Hide in brush & regroup</span>
                 </div>
               </button>
 
               <button
-                onClick={() => triggerWarCall('tulong')}
+                onClick={() => triggerWarCall('defend')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -3397,13 +3397,13 @@ export default function HeroHud({
               >
                 <span style={{ fontSize: 24 }}>🛡️</span>
                 <div>
-                  <strong style={{ display: 'block', fontSize: 13, color: '#38BDF8' }}>TULONG! (Defend)</strong>
+                  <strong style={{ display: 'block', fontSize: 13, color: '#38BDF8' }}>DEFEND!</strong>
                   <span style={{ fontSize: 10.5, color: '#94A3B8' }}>Protect tower & allies</span>
                 </div>
               </button>
 
               <button
-                onClick={() => triggerWarCall('chime')}
+                onClick={() => triggerWarCall('blessing')}
                 style={{
                   gridColumn: '1 / -1',
                   display: 'flex',
@@ -3420,8 +3420,8 @@ export default function HeroHud({
               >
                 <span style={{ fontSize: 24 }}>🎶</span>
                 <div>
-                  <strong style={{ display: 'block', fontSize: 13, color: '#C084FC' }}>KULINTANG (Blessing)</strong>
-                  <span style={{ fontSize: 10.5, color: '#94A3B8' }}>Rouse spirit and inspire ancient bravery</span>
+                  <strong style={{ display: 'block', fontSize: 13, color: '#C084FC' }}>BLESSING</strong>
+                  <span style={{ fontSize: 10.5, color: '#94A3B8' }}>Rouse spirit and inspire bravery</span>
                 </div>
               </button>
             </div>
@@ -3542,7 +3542,7 @@ export default function HeroHud({
                 style={victoryBtn}
                 onClick={() => window.location.reload()}
               >
-                ⚔️ LUMABAN MULI / PLAY AGAIN
+                ⚔️ PLAY AGAIN
               </button>
               <button
                 style={{

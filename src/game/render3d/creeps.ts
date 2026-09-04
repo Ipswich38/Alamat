@@ -248,7 +248,7 @@ export function createCreepRender(): CreepRender {
       g.add(unitG);
       unitObj = unitG;
     } else if (creep.kind === 'scuttler') {
-      // Gintong Alimango (Golden River Scuttler / Crab)
+      // Gold River Crab (Golden River Scuttler)
       barColor = 0xffd700; // Bright Gold
       barWidth = 1.4;
       barY = 1.6;

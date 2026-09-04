@@ -20,7 +20,7 @@ function ensure(p: PlayerProfile & Record<string, unknown>): EnrichedProfile {
   if (typeof a['hasFirstRecharge'] !== 'boolean') a['hasFirstRecharge'] = false;
   if (typeof a['pity'] !== 'object' || a['pity'] === null) a['pity'] = {};
   if (!Array.isArray(a['transactions'])) a['transactions'] = [];
-  if (typeof a['pass'] !== 'object') a['pass'] = { seasonId: 'lakbay_s1_amarillo', level: 1, xp: 0, premium: false };
+  if (typeof a['pass'] !== 'object') a['pass'] = { seasonId: 'battle_pass_s1_amarillo', level: 1, xp: 0, premium: false };
   return p as unknown as EnrichedProfile;
 }
 

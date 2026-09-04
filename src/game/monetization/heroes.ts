@@ -1,6 +1,6 @@
-// Hero unlock costs — low friction: 2,800 Ginto or 79 diamonds; bundle 99
+// Hero unlock costs — low friction: 2,800 Gold or 79 diamonds; bundle 99
 
-export const HERO_UNLOCK_GINTO = 2800;
+export const HERO_UNLOCK_GOLD = 2800;
 export const HERO_UNLOCK_DIAMONDS = 79;
 export const HERO_BUNDLE_DIAMONDS = 99; // hero + elite
 

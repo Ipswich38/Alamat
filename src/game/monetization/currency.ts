@@ -1,5 +1,5 @@
-// Dual-currency ledger — Ginto (soft, grind) + Diamante (hard, premium)
-// Low-cost tuning: 1 USD ≈ 200 💎, bundles cap at ₱149. First recharge +100% up to 100.
+// Dual-currency ledger — Gold (soft, grind) + Diamonds (hard, premium)
+// Low-cost tuning: 1 USD ≈ 200 gems, bundles cap at low price. First recharge +100% up to 100.
 
 import type { CurrencyId, TopUpBundle, Transaction, FIRST_RECHARGE_MAX_BONUS } from './types';
 import { TOPUP_BUNDLES } from './types';
@@ -32,7 +32,7 @@ function pushTx(profile: PlayerProfile & { transactions: Transaction[] }, curren
   if (profile.transactions.length > 80) profile.transactions = profile.transactions.slice(0, 80);
 }
 
-export function getGinto(): number {
+export function getGold(): number {
   return loadPlayerProfile().gold;
 }
 
@@ -41,19 +41,19 @@ export function getDiamonds(): number {
   return typeof p.diamonds === 'number' ? p.diamonds : 0;
 }
 
-export function addGinto(amount: number, reason: string): PlayerProfile {
+export function addGold(amount: number, reason: string): PlayerProfile {
   const p = ensureMonetizationFields(loadPlayerProfile() as unknown as PlayerProfile & Record<string, unknown>);
   p.gold += amount;
-  pushTx(p, 'ginto', amount, reason, p.gold);
+  pushTx(p, 'gold', amount, reason, p.gold);
   savePlayerProfile(p);
   return p;
 }
 
-export function spendGinto(amount: number, reason: string): { ok: boolean; profile: PlayerProfile } {
+export function spendGold(amount: number, reason: string): { ok: boolean; profile: PlayerProfile } {
   const p = ensureMonetizationFields(loadPlayerProfile() as unknown as PlayerProfile & Record<string, unknown>);
   if (p.gold < amount) return { ok: false, profile: p };
   p.gold -= amount;
-  pushTx(p, 'ginto', -amount, reason, p.gold);
+  pushTx(p, 'gold', -amount, reason, p.gold);
   savePlayerProfile(p);
   return { ok: true, profile: p };
 }
@@ -62,7 +62,7 @@ export function addDiamonds(amount: number, reason: string): PlayerProfile {
   const p = ensureMonetizationFields(loadPlayerProfile() as unknown as PlayerProfile & Record<string, unknown>);
   // first-recharge bonus applies only via topUpWithBundle, not generic add
   p.diamonds += amount;
-  pushTx(p, 'diamante', amount, reason, p.diamonds);
+  pushTx(p, 'diamonds', amount, reason, p.diamonds);
   savePlayerProfile(p);
   return p;
 }
@@ -71,7 +71,7 @@ export function spendDiamonds(amount: number, reason: string): { ok: boolean; pr
   const p = ensureMonetizationFields(loadPlayerProfile() as unknown as PlayerProfile & Record<string, unknown>);
   if (p.diamonds < amount) return { ok: false, profile: p };
   p.diamonds -= amount;
-  pushTx(p, 'diamante', -amount, reason, p.diamonds);
+  pushTx(p, 'diamonds', -amount, reason, p.diamonds);
   savePlayerProfile(p);
   return { ok: true, profile: p };
 }
@@ -90,7 +90,7 @@ export function topUpWithBundle(bundleId: string): { ok: boolean; added: number;
   }
   const total = bundle.baseDiamonds + bonus;
   p.diamonds += total;
-  pushTx(p, 'diamante', total, `topup:${bundle.id} (+${bonus} bonus)`, p.diamonds);
+  pushTx(p, 'diamonds', total, `topup:${bundle.id} (+${bonus} bonus)`, p.diamonds);
   savePlayerProfile(p);
   return { ok: true, added: bundle.baseDiamonds, bonus, profile: p, reason: bundle.id };
 }

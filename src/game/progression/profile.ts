@@ -125,11 +125,11 @@ export interface PlayerProfile {
   name: string;
   accountLevel: number;
   accountXp: number;
-  gold: number; // soft currency — "Ginto" (keep key for compat)
-  // monetization — low-cost mass-market economy
+  gold: number; // soft currency — Gold
+  // monetization — low-cost mass-market economy (English default)
   diamonds: number;
   hasFirstRecharge: boolean;
-  transactions: { id: string; at: number; currency: 'ginto'|'diamante'; delta: number; reason: string; balanceAfter: number }[];
+  transactions: { id: string; at: number; currency: 'gold'|'diamonds'; delta: number; reason: string; balanceAfter: number }[];
   ownedSkins: string[];
   equippedSkins: Record<string, string>; // heroId -> skinId
   pity: Record<string, number>; // drawId -> pulls since last high-tier
@@ -249,7 +249,7 @@ export function getDefaultProfile(): PlayerProfile {
     ownedSkins: [],
     equippedSkins: {},
     pity: {},
-    pass: { seasonId: 'lakbay_s1_amarillo', level: 1, xp: 0, premium: false },
+    pass: { seasonId: 'battle_pass_s1_amarillo', level: 1, xp: 0, premium: false },
     totalMatches: 0,
     totalWins: 0,
     totalKills: 0,

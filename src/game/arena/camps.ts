@@ -103,7 +103,7 @@ export const CAMPS: Camp[] = [
   // ── River Scuttler / Gold Crab (River Objectives) ───────────────────────
   {
     id: 'scuttler-nw',
-    name: 'Gintong Alimango (Gold River Crab)',
+    name: 'Gold River Crab',
     boon: 'River Stride: +35% river speed & grants river vision shrine for 60s.',
     x: -24,
     z: -24,
@@ -112,7 +112,7 @@ export const CAMPS: Camp[] = [
   },
   {
     id: 'scuttler-se',
-    name: 'Gintong Alimango (Gold River Crab)',
+    name: 'Gold River Crab',
     boon: 'River Stride: +35% river speed & grants river vision shrine for 60s.',
     x: 24,
     z: 24,

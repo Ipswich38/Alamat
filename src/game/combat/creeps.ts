@@ -184,7 +184,7 @@ export function createCreepManager(): CreepManager {
         id: camp.id + "-crab",
         campId: camp.id,
         kind: "scuttler",
-        name: "Gintong Alimango",
+        name: "Gold River Crab",
         anchorX: camp.x,
         anchorZ: camp.z,
         x: camp.x,

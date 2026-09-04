@@ -1,7 +1,7 @@
 // Monetization shared types — low-cost mass-market economy
 // Single source for currencies, transactions, entitlements, pass, gacha.
 
-export type CurrencyId = 'ginto' | 'diamante';
+export type CurrencyId = 'gold' | 'diamonds';
 
 export interface Transaction {
   id: string;
@@ -32,17 +32,16 @@ export const TOPUP_BUNDLES: TopUpBundle[] = [
 export const FIRST_RECHARGE_MAX_BONUS = 100;
 
 export type SkinTier = 'elite' | 'epic' | 'collector' | 'legend' | 'prime';
-// Filipino flavor mapping for UI only
-export const SKIN_TIER_LABEL: Record<SkinTier, { en: string; tl: string; color: string }> = {
-  elite: { en: 'Elite', tl: 'Anito', color: '#38bdf8' },
-  epic: { en: 'Epic', tl: 'Diwata', color: '#a855f7' },
-  collector: { en: 'Collector', tl: 'Datu', color: '#f59e0b' },
-  legend: { en: 'Legend', tl: 'Bathala', color: '#f43f5e' },
-  prime: { en: 'Prime', tl: 'Apolaki', color: '#00e5ff' },
+export const SKIN_TIER_LABEL: Record<SkinTier, { en: string; color: string }> = {
+  elite: { en: 'Elite', color: '#38bdf8' },
+  epic: { en: 'Epic', color: '#a855f7' },
+  collector: { en: 'Collector', color: '#f59e0b' },
+  legend: { en: 'Legend', color: '#f43f5e' },
+  prime: { en: 'Prime', color: '#00e5ff' },
 };
 
 export interface SkinCost {
-  ginto?: number;
+  gold?: number;
   diamonds?: number;
 }
 
@@ -51,7 +50,6 @@ export interface HeroSkin {
   heroId: string;
   tier: SkinTier;
   name: string;
-  tagalogName?: string;
   blurb: string;
   cost: SkinCost;
   // Cosmetic-only assets; must not carry stats
@@ -63,7 +61,7 @@ export interface HeroSkin {
 }
 
 export interface PassTierReward {
-  ginto?: number;
+  gold?: number;
   diamonds?: number;
   skinId?: string;
   ticket?: number; // draw ticket
