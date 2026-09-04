@@ -287,6 +287,22 @@ export default function HeroHud({
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIosInstallGuide, setShowIosInstallGuide] = useState(false);
   const [dynamicOrigin, setDynamicOrigin] = useState<{ x: number; y: number } | null>(null);
+  // ── HUD Arena-Clarity Controls (fix: top bar was opaque and blocked center lane) ─
+  const [topBarCollapsed, setTopBarCollapsed] = useState(false);
+  const [topBarHovered, setTopBarHovered] = useState(false);
+  const [topBarPinned, setTopBarPinned] = useState(false);
+  const [bottomBarCollapsed, setBottomBarCollapsed] = useState(false);
+  const [bottomBarHovered, setBottomBarHovered] = useState(false);
+  const [quickBuyMinimized, setQuickBuyMinimized] = useState(false);
+
+  // Auto-hide top bar when pinned off and no recent hover/combat
+  useEffect(() => {
+    if (topBarPinned || topBarCollapsed) return;
+    if (topBarHovered) return;
+    // keep visible for 4s after mount, then dim to idle translucency (not fully hidden)
+    // actual collapse is manual only — idle just dims via opacity
+    return;
+  }, [topBarPinned, topBarCollapsed, topBarHovered]);
 
   // HUD Premium Polish — tactile cooldown sweep + gold halo on ult ready
   // Skills animate via CSS pulseGold; this hook ensures haptics fire once per ready state.
@@ -787,9 +803,13 @@ export default function HeroHud({
   return (
     <div style={hudRoot}>
       {/* ══════════════════════════════════════════════════════════════════════
-          1. MINI-MAP (TOP-LEFT ANCHOR: 15px, 15px, 180x180, #2C3E50 BORDER)
+          1. MINI-MAP — now translucent + dim when not hovered so top stays readable
           ══════════════════════════════════════════════════════════════════════ */}
-      <div style={minimapContainer}>
+      <div
+        style={{ ...minimapContainer, opacity: topBarHovered ? 0.96 : 0.72, transition: 'opacity 180ms ease' }}
+        onMouseEnter={() => setTopBarHovered(true)}
+        onMouseLeave={() => setTopBarHovered(false)}
+      >
         <svg
           style={{ ...minimapSvg, cursor: 'crosshair', touchAction: 'none' }}
           viewBox="0 0 180 180"
@@ -1000,7 +1020,7 @@ export default function HeroHud({
       {/* ══════════════════════════════════════════════════════════════════════
           2. QUICK UTILITY DOCK (HORIZONTAL PILL ROW DIRECTLY UNDER MINIMAP)
           ══════════════════════════════════════════════════════════════════════ */}
-      <div style={utilityMenuStack}>
+      <div style={{ ...utilityMenuStack, opacity: topBarHovered ? 0.96 : 0.72, transition: 'opacity 180ms ease' }} onMouseEnter={() => setTopBarHovered(true)} onMouseLeave={() => setTopBarHovered(false)}>
         {/* Direct Hero Roster Switcher */}
         <button
           style={{ ...utilityBtn, borderColor: '#FFD700', background: 'rgba(255, 215, 0, 0.22)' }}
@@ -1081,10 +1101,10 @@ export default function HeroHud({
         </button>
       </div>
 
-      {/* ── 1-Tap Floating Quick-Buy Pill ────── */}
-      {recommendedItem ? (
+      {/* ── Quick-Buy: docked below utility strip (was overlapping top bar) ─ */}
+      {recommendedItem && !quickBuyMinimized ? (
         <div
-          style={quickBuyFloatingPill}
+          style={{ ...quickBuyFloatingPill, opacity: topBarHovered ? 0.96 : 0.72, transition: 'opacity 180ms ease' }}
           onClick={() => {
             onBuyItem?.(recommendedItem);
             sound.playPing('select');
@@ -1094,17 +1114,35 @@ export default function HeroHud({
           }}
           title={`Quick-Buy: ${recommendedItem.name} (${recommendedItem.cost}g)`}
         >
-          <span style={{ fontSize: 18 }}>{recommendedItem.emoji}</span>
+          <span style={{ fontSize: 16 }}>{recommendedItem.emoji}</span>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div style={{ fontSize: 10, fontWeight: 800, color: '#FFD700' }}>
               🪙 {recommendedItem.cost}
             </div>
-            <div style={{ fontSize: 9, color: '#F1F5F9', fontWeight: 600, maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 9, color: '#F1F5F9', fontWeight: 600, maxWidth: 66, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {recommendedItem.name}
             </div>
           </div>
           <span style={quickBuyTag}>BUY</span>
+          <button
+            onClick={(e) => { e.stopPropagation(); setQuickBuyMinimized(true); haptics.tick(); }}
+            style={{ marginLeft: 2, width: 18, height: 18, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(15,23,42,0.7)', color: '#94A3B8', fontSize: 10, display: 'grid', placeItems: 'center', cursor: 'pointer' }}
+            title="Hide quick-buy"
+            aria-label="Hide quick-buy"
+          >
+            ✕
+          </button>
         </div>
+      ) : recommendedItem && quickBuyMinimized ? (
+        <button
+          style={{ ...quickBuyFloatingPill, padding: '4px 8px', gap: 4, cursor: 'pointer' }}
+          onClick={() => { setQuickBuyMinimized(false); haptics.tick(); }}
+          title="Show quick-buy"
+          aria-label="Show quick-buy"
+        >
+          <span style={{ fontSize: 12 }}>{recommendedItem.emoji}</span>
+          <span style={{ fontSize: 9, fontWeight: 800, color: '#FFD700' }}>BUY</span>
+        </button>
       ) : null}
 
       {/* Quick Buy Notification Toast */}
@@ -1145,53 +1183,71 @@ export default function HeroHud({
       ) : null}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          3. TOP-CENTER ULTRA-SLIM MATCH BAR & CHARACTER ROSTER / LOBBY PILL
+          3. TOP-CENTER COMPACT SCORE BAR — translucent + collapsible (fix: was opaque pill blocking lane)
+          Duplicated HEROES/LOBBY moved to left utility dock; bar now only score+timer.
           ══════════════════════════════════════════════════════════════════════ */}
-      <div style={topCenterMatchHeader}>
-        <div style={scoreBarCapsule}>
-          <div style={scoreAllyCol}>
-            <span style={scoreBlueDot}>●</span>
-            <strong style={scoreAllyNum}>{allyKills}</strong>
+      {/* Top-center sentinel hit-area that reveals bar when collapsed */}
+      {topBarCollapsed ? (
+        <button
+          style={topBarRevealTab}
+          onClick={() => { setTopBarCollapsed(false); setTopBarHovered(true); haptics.tick(); }}
+          aria-label="Show match bar"
+          title="Show match info"
+        >
+          <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: 0.6, color: '#F8FAFC' }}>{formatTime(matchTime)} · {allyKills}:{enemyKills}</span>
+          <span style={{ fontSize: 10 }}>⌄</span>
+        </button>
+      ) : (
+        <div
+          style={{
+            ...topCenterMatchHeader,
+            opacity: topBarHovered || topBarPinned ? 0.96 : 0.58,
+            transition: 'opacity 220ms ease, transform 220ms ease',
+            transform: topBarCollapsed ? 'translate(-50%, -130%)' : 'translateX(-50%)',
+          }}
+          onMouseEnter={() => setTopBarHovered(true)}
+          onMouseLeave={() => setTopBarHovered(false)}
+          onPointerEnter={() => setTopBarHovered(true)}
+        >
+          <div style={scoreBarCapsuleCompact}>
+            <div style={scoreAllyCol}>
+              <span style={scoreBlueDot}>●</span>
+              <strong style={scoreAllyNum}>{allyKills}</strong>
+            </div>
+            <div style={scoreTimerCol}>
+              <span style={scoreTimerText}>{formatTime(matchTime)}</span>
+              <span style={fpsText}>{fps} FPS</span>
+            </div>
+            <div style={scoreEnemyCol}>
+              <strong style={scoreEnemyNum}>{enemyKills}</strong>
+              <span style={scoreRedDot}>●</span>
+            </div>
+            <div style={scoreDivider} />
+            {/* Pin keeps bar opaque during fight */}
+            <button
+              style={{ ...hudMiniIconBtn, background: topBarPinned ? 'rgba(255,215,0,0.22)' : 'rgba(255,255,255,0.08)', borderColor: topBarPinned ? '#FFD700' : 'rgba(255,255,255,0.18)' }}
+              onClick={() => { setTopBarPinned(v => !v); haptics.tick(); }}
+              title={topBarPinned ? 'Unpin — bar will dim when idle' : 'Pin — keep bar opaque'}
+              aria-label="Pin match bar"
+            >
+              <span style={{ fontSize: 10 }}>{topBarPinned ? '📌' : '📍'}</span>
+            </button>
+            <button
+              style={hudMiniIconBtn}
+              onClick={() => { setTopBarCollapsed(true); haptics.tick(); }}
+              title="Hide match bar (tap top peek to restore)"
+              aria-label="Hide match bar"
+            >
+              <span style={{ fontSize: 11 }}>⌃</span>
+            </button>
           </div>
-          <div style={scoreTimerCol}>
-            <span style={scoreTimerText}>{formatTime(matchTime)}</span>
-            <span style={fpsText}>{fps} FPS</span>
-          </div>
-          <div style={scoreEnemyCol}>
-            <strong style={scoreEnemyNum}>{enemyKills}</strong>
-            <span style={scoreRedDot}>●</span>
-          </div>
-
-          <div style={scoreDivider} />
-
-          {/* Prominent Roster / Heroes Button */}
-          <button
-            style={rosterHeaderBtn}
-            onClick={() => setShowRoster(true)}
-            title="Open Character List & Switch Hero"
-            aria-label="Character List and Roster"
-          >
-            <span style={{ fontSize: 12 }}>👥</span>
-            <span style={{ fontSize: 9.5, fontWeight: 900, color: '#FFD700', letterSpacing: 0.5 }}>HEROES</span>
-          </button>
-
-          {/* Prominent Exit to Lobby Button */}
-          <a
-            href="/"
-            style={lobbyHeaderBtn}
-            title="Return to Champion Selection Lobby"
-            aria-label="Exit to Lobby"
-          >
-            <span style={{ fontSize: 11 }}>🏠</span>
-            <span style={{ fontSize: 9.5, fontWeight: 900, color: '#38BDF8', letterSpacing: 0.5 }}>LOBBY</span>
-          </a>
         </div>
-      </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          4. TOP-RIGHT TEAMMATES ROW
+          4. TOP-RIGHT TEAMMATES — translucent so it never blocks north lane
           ══════════════════════════════════════════════════════════════════════ */}
-      <div style={topRightScoreboard}>
+      <div style={{ ...topRightScoreboard, opacity: topBarHovered ? 0.96 : 0.68, transition: 'opacity 180ms ease' }}>
         <div style={teammatesRow}>
           {teammates.map((tm, idx) => (
             <div key={idx} style={teammatePortraitBox} title={`${tm.name} (Lvl ${tm.level})`}>
@@ -1283,9 +1339,40 @@ export default function HeroHud({
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          6. BOTTOM-CENTER HERO VITALS & QUICK SUMMONER SPELLS
+          6. BOTTOM-CENTER HERO VITALS & QUICK SPELLS — translucent + collapsible (was blocking floor)
           ══════════════════════════════════════════════════════════════════════ */}
-      <div style={bottomCenterVitalsContainer}>
+      {bottomBarCollapsed ? (
+        <button
+          style={bottomBarRevealTab}
+          onClick={() => { setBottomBarCollapsed(false); setBottomBarHovered(true); haptics.tick(); }}
+          aria-label="Show vitals"
+          title="Show vitals"
+        >
+          <span style={{ fontSize: 9, fontWeight: 800, color: '#F8FAFC' }}>{hero.name.toUpperCase()} · {Math.ceil(playerHp)}/{displayMaxHp}</span>
+          <span style={{ fontSize: 10 }}>⌃</span>
+        </button>
+      ) : (
+      <div
+        style={{
+          ...bottomCenterVitalsContainer,
+          opacity: bottomBarHovered ? 0.96 : 0.62,
+          transition: 'opacity 180ms ease, transform 180ms ease',
+        }}
+        onMouseEnter={() => setBottomBarHovered(true)}
+        onMouseLeave={() => setBottomBarHovered(false)}
+        onPointerEnter={() => setBottomBarHovered(true)}
+      >
+        {/* collapse pin row */}
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end', width: '100%', marginBottom: -2 }}>
+          <button
+            style={{ ...hudMiniIconBtn, width: 18, height: 18, fontSize: 9 }}
+            onClick={() => { setBottomBarCollapsed(true); haptics.tick(); }}
+            title="Hide vitals bar (tap bottom peek to restore)"
+            aria-label="Hide vitals"
+          >
+            ⌄
+          </button>
+        </div>
         <div style={thumbVitals}>
           <div style={thumbVitalsHead}>
             <span style={thumbLevelBadge}>{playerLevel}</span>
@@ -1404,6 +1491,7 @@ export default function HeroHud({
           </button>
         </div>
       </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════
           7. BOTTOM-RIGHT MASTER THUMB ACTION & ABILITY ARC (iOS MOBA STANDARD)
@@ -1803,10 +1891,10 @@ export default function HeroHud({
       ))}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          8. TOP-CENTER EPIC BOSS HEALTH BAR & COMBAT ANNOUNCEMENTS
+          8. BOSS BAR — nudged below score bar & translucent (was overlapping center)
           ══════════════════════════════════════════════════════════════════════ */}
       {bossName && bossHp > 0 ? (
-        <div style={bossBarContainer}>
+        <div style={{ ...bossBarContainer, top: topBarCollapsed ? 22 : 44, opacity: topBarHovered ? 0.96 : 0.72, transition: 'top 180ms ease, opacity 180ms ease' }}>
           <div style={bossTitleRow}>
             <span style={bossCrown}>⚔ EPIC BOSS OBJECTIVE</span>
             <strong style={bossNameStyle}>{bossName}</strong>
@@ -1825,10 +1913,10 @@ export default function HeroHud({
         </div>
       ) : null}
 
-      {/* Transient Combat Event Toast (Auto-dismissed, non-blocking) */}
+      {/* Combat toast — smaller, translucent, below score bar so it never covers hero */}
       {combatLine && !combatLine.includes('Q/W/E/R') && !combatLine.includes('abilities') ? (
-        <div style={combatEventToast}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#FFD700' }}>⚡ {combatLine}</span>
+        <div style={{ ...combatEventToast, top: topBarCollapsed ? 'calc(max(6px, env(safe-area-inset-top)) + 26px)' : bossName && bossHp > 0 ? 'calc(max(6px, env(safe-area-inset-top)) + 82px)' : 'calc(max(6px, env(safe-area-inset-top)) + 34px)', opacity: topBarHovered ? 0.92 : 0.68, backdropFilter: 'blur(6px)', fontSize: 10, padding: '2px 10px', borderWidth: 1 }}>
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: '#FFD700' }}>⚡ {combatLine}</span>
         </div>
       ) : null}
 
@@ -3558,14 +3646,15 @@ const utilityIcon: React.CSSProperties = {
 
 const quickBuyFloatingPill: React.CSSProperties = {
   position: 'absolute',
-  top: 'max(8px, env(safe-area-inset-top))',
-  left: 'clamp(115px, 16vw, 135px)',
+  // Docked BELOW utility strip so it never overlaps the compact top bar (was at top:8px blocking lane)
+  top: 'calc(clamp(108px, 15vw, 128px) + 34px)',
+  left: 'max(10px, env(safe-area-inset-left))',
   display: 'flex',
   alignItems: 'center',
   gap: 6,
-  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9))',
+  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.88))',
   border: '1.5px solid #FFD700',
-  boxShadow: '0 0 16px rgba(255, 215, 0, 0.45)',
+  boxShadow: '0 0 14px rgba(255, 215, 0, 0.4)',
   borderRadius: 20,
   padding: '4px 10px 4px 6px',
   cursor: 'pointer',
@@ -3585,8 +3674,8 @@ const quickBuyTag: React.CSSProperties = {
 
 const quickBuyToast: React.CSSProperties = {
   position: 'absolute',
-  top: 'calc(max(8px, env(safe-area-inset-top)) + 38px)',
-  left: 'clamp(115px, 16vw, 135px)',
+  top: 'calc(clamp(108px, 15vw, 128px) + 72px)',
+  left: 'max(10px, env(safe-area-inset-left))',
   padding: '4px 10px',
   borderRadius: 6,
   background: 'rgba(16, 185, 129, 0.92)',
@@ -3622,6 +3711,71 @@ const scoreBarCapsule: React.CSSProperties = {
   border: '1px solid rgba(255, 255, 255, 0.15)',
   backdropFilter: 'blur(12px)',
   boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+};
+
+const scoreBarCapsuleCompact: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '2px 8px 2px 10px',
+  borderRadius: 999,
+  background: 'rgba(15, 23, 42, 0.72)',
+  border: '1px solid rgba(255, 255, 255, 0.14)',
+  backdropFilter: 'blur(10px)',
+  boxShadow: '0 4px 16px rgba(0,0,0,0.45)',
+};
+
+const hudMiniIconBtn: React.CSSProperties = {
+  width: 20,
+  height: 20,
+  borderRadius: '50%',
+  border: '1px solid rgba(255,255,255,0.22)',
+  background: 'rgba(255,255,255,0.08)',
+  color: '#F8FAFC',
+  display: 'grid',
+  placeItems: 'center',
+  cursor: 'pointer',
+  backdropFilter: 'blur(6px)',
+};
+
+const topBarRevealTab: React.CSSProperties = {
+  position: 'absolute',
+  top: 'max(4px, env(safe-area-inset-top))',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '2px 10px',
+  borderRadius: 999,
+  background: 'rgba(15, 23, 42, 0.78)',
+  border: '1px solid rgba(255,255,255,0.18)',
+  color: '#F8FAFC',
+  backdropFilter: 'blur(8px)',
+  boxShadow: '0 4px 16px rgba(0,0,0,0.45)',
+  cursor: 'pointer',
+  pointerEvents: 'auto',
+  zIndex: 20,
+};
+
+const bottomBarRevealTab: React.CSSProperties = {
+  position: 'absolute',
+  bottom: 'max(6px, env(safe-area-inset-bottom))',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '4px 12px',
+  borderRadius: 999,
+  background: 'rgba(8, 15, 26, 0.82)',
+  border: '1px solid rgba(148,178,209,0.28)',
+  color: '#F8FAFC',
+  backdropFilter: 'blur(8px)',
+  boxShadow: '0 4px 16px rgba(0,0,0,0.45)',
+  cursor: 'pointer',
+  pointerEvents: 'auto',
+  zIndex: 12,
 };
 
 const scoreAllyCol: React.CSSProperties = {
@@ -3850,6 +4004,7 @@ const joyNotchW: React.CSSProperties = { position: 'absolute', left: 4, color: '
 const joyNotchE: React.CSSProperties = { position: 'absolute', right: 4, color: 'rgba(255,255,255,0.3)', fontSize: 8 };
 
 // ── 5. Bottom Center Hero Vitals & Quick Spells ─────────────────────────────
+// Now container is pointerEvents auto so hover can dim/brighten; inner vitals stays non-blocking
 const bottomCenterVitalsContainer: React.CSSProperties = {
   position: 'absolute',
   bottom: 'max(10px, env(safe-area-inset-bottom))',
@@ -3858,8 +4013,8 @@ const bottomCenterVitalsContainer: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  gap: 6,
-  pointerEvents: 'none',
+  gap: 4,
+  pointerEvents: 'auto',
   zIndex: 12,
 };
 
