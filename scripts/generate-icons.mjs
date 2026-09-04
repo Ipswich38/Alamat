@@ -78,32 +78,20 @@ async function generateIcons() {
     
     console.log(`✅ Generated ${featureGraphic.name} (${featureGraphic.width}x${featureGraphic.height})`);
     
-    // Create capacitor config file if it doesn't exist
-    const capacitorConfig = {
-      appId: 'com.plaidelab.alamat',
-      appName: 'Alamat',
-      webDir: 'out',
-      bundledWebRuntime: false,
-      android: {
-        packageType: 'bundle'
-      }
-    };
-    
-    const capConfigPath = path.resolve(rootDir, 'capacitor.config.json');
-    try {
-      await fs.access(capConfigPath);
-      console.log('✅ capacitor.config.json already exists');
-    } catch {
-      await fs.writeFile(capConfigPath, JSON.stringify(capacitorConfig, null, 2));
-      console.log('📝 Created capacitor.config.json');
-    }
-    
+    /*
+     * This used to write a capacitor.config.json holding appId
+     * 'com.plaidelab.alamat'. capacitor.config.ts already defines the app, with
+     * a different id, so the two configs disagreed about the one value that can
+     * never be changed after the first upload to Play. An icon generator has no
+     * business deciding the package name. Removed; capacitor.config.ts is the
+     * single source.
+     */
+
     console.log('\n🎉 Icon generation complete!');
     console.log('\nNext steps:');
     console.log('1. Run: CAP_BUILD=1 npm run build');
-    console.log('2. Run: npx cap init "Alamat" com.plaidelab.alamat --web-dir out');
-    console.log('3. Run: npx cap add android');
-    console.log('4. Set JAVA_HOME and run: npx cap assembleDebug');
+    console.log('2. Run: npx cap sync android   (appId comes from capacitor.config.ts)');
+    console.log('3. cd android && ./gradlew assembleDebug   with JAVA_HOME on JDK 21+');
     
   } catch (error) {
     console.error('❌ Error generating icons:', error);
@@ -112,3 +100,38 @@ async function generateIcons() {
 }
 
 generateIcons();
+/*
+ * Android launcher icons.
+ *
+ * Without this the app ships Capacitor's default blue X, which is what an
+ * unfinished port looks like on a home screen. The legacy ic_launcher takes the
+ * full square artwork; the adaptive foreground takes the emblem-only variant,
+ * because a launcher masks the foreground to a circle or squircle and the title
+ * text at the bottom of the square would simply be cropped off.
+ */
+import { existsSync as _exists, mkdirSync as _mkdir } from 'node:fs';
+import path2 from 'node:path';
+import sharp2 from 'sharp';
+
+const ANDROID_RES = path2.resolve(process.cwd(), 'android/app/src/main/res');
+const DENSITIES = { mdpi: 48, hdpi: 72, xhdpi: 96, xxhdpi: 144, xxxhdpi: 192 };
+// Adaptive foregrounds are drawn on a 108dp canvas, so they are larger.
+const FOREGROUND = { mdpi: 108, hdpi: 162, xhdpi: 216, xxhdpi: 324, xxxhdpi: 432 };
+
+if (!_exists(ANDROID_RES)) {
+  console.log('\nNo android/ project yet, skipping launcher icons.');
+} else {
+  const square = path2.resolve(process.cwd(), 'public/icon.svg');
+  const emblem = path2.resolve(process.cwd(), 'public/icon-foreground.svg');
+  for (const [density, size] of Object.entries(DENSITIES)) {
+    const dir = path2.join(ANDROID_RES, `mipmap-${density}`);
+    _mkdir(dir, { recursive: true });
+    await sharp2(square, { density: 400 }).resize(size, size).png()
+      .toFile(path2.join(dir, 'ic_launcher.png'));
+    await sharp2(square, { density: 400 }).resize(size, size).png()
+      .toFile(path2.join(dir, 'ic_launcher_round.png'));
+    await sharp2(emblem, { density: 400 }).resize(FOREGROUND[density], FOREGROUND[density]).png()
+      .toFile(path2.join(dir, 'ic_launcher_foreground.png'));
+  }
+  console.log(`\nAndroid launcher icons written for ${Object.keys(DENSITIES).length} densities.`);
+}

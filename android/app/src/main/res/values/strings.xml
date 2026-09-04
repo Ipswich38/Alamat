@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Alamat</string>
+    <string name="title_activity_main">Alamat</string>
+    <string name="package_name">com.kreativloops.alamat</string>
+    <string name="custom_url_scheme">com.kreativloops.alamat</string>
+</resources>

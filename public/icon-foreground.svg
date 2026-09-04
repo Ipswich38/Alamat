@@ -20,11 +20,8 @@
     </filter>
   </defs>
 
-  <!-- Background Base -->
-  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" stroke="#38bdf8" stroke-width="6" />
-
   <!-- Outer Sacred Sunburst Rays (8 Rays of the Philippine Sun) -->
-  <g transform="translate(256, 256)" filter="url(#glow)">
+  <g transform="translate(256, 256) scale(0.62)" filter="url(#glow)">
     <!-- 8 Sun Rays -->
     <path d="M 0,-210 L 16,-120 L -16,-120 Z" fill="url(#goldGrad)" />
     <path d="M 0,210 L 16,120 L -16,120 Z" fill="url(#goldGrad)" />
@@ -47,7 +44,4 @@
     <circle cx="28" cy="-4" r="6" fill="#00e5ff" />
   </g>
 
-  <!-- Title Ribbon -->
-  <text x="256" y="440" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="38" fill="#f8fafc" text-anchor="middle" letter-spacing="8">ALAMAT</text>
-  <text x="256" y="470" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="16" fill="#00e5ff" text-anchor="middle" letter-spacing="4">PHILIPPINE MOBA</text>
-</svg>
+  </svg>
