@@ -13,11 +13,17 @@
  *
  * A build passing proves none of that is absent. This does.
  *
- *   node scripts/audit-wiring.mjs
+ *   node scripts/audit-wiring.mjs              compare against the baseline
+ *   node scripts/audit-wiring.mjs --all        show every finding
+ *   node scripts/audit-wiring.mjs --baseline   accept today's findings as the floor
  *
- * Exit 1 if anything is reported, so it can gate a commit or a CI step.
+ * A legacy codebase has findings on day one. Blocking on all of them blocks
+ * everything, so the default is a RATCHET: it fails only on findings that are
+ * new, and on oversized files that grew. Things can get better, never worse.
+ *
+ * Exit 1 on a regression, so it can gate a commit or a CI step.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync, writeFileSync, existsSync } from 'node:fs';
 import { join, relative, resolve, dirname } from 'node:path';
 
 const ROOT = process.cwd();
@@ -88,25 +94,52 @@ const oversized = files
   .filter(([, n]) => n > MAX_LINES)
   .sort((a, b) => b[1] - a[1]);
 
-// ── report ──────────────────────────────────────────────────────────────────
-let found = 0;
-const section = (title, rows, fmt) => {
-  if (!rows.length) return;
-  found += rows.length;
-  console.log(`\n${title}  (${rows.length})`);
-  for (const r of rows.slice(0, 25)) console.log('  ' + fmt(r));
-  if (rows.length > 25) console.log(`  ... and ${rows.length - 25} more`);
-};
+// ── findings as stable keys, so a baseline can be compared ──────────────────
+const findings = new Map();
+for (const f of orphans) findings.set(`dead:${rel(f)}`, 1);
+for (const f of barrelOnly) findings.set(`barrel:${rel(f)}`, 1);
+for (const [n] of competing) findings.set(`competing:${n}`, 1);
+for (const [f, n] of oversized) findings.set(`oversized:${rel(f)}`, n);
 
-section('DEAD: nothing imports these', orphans, rel);
-section('BARREL-ONLY: re-exported but never actually used', barrelOnly, rel);
-section('COMPETING: same export name in several modules', competing,
-  ([n, s]) => `${n}  <-  ${[...s].map(rel).join('  |  ')}`);
-section(`OVERSIZED: past ${MAX_LINES} lines`, oversized, ([f, n]) => `${n.toString().padStart(5)}  ${rel(f)}`);
+const label = (k) => ({
+  dead: 'DEAD, nothing imports it',
+  barrel: 'BARREL-ONLY, re-exported but never used',
+  competing: 'COMPETING, same export name in several modules',
+  oversized: `OVERSIZED, past ${MAX_LINES} lines`,
+}[k.split(':')[0]]);
 
-if (!found) {
-  console.log('wiring clean: every module is reached, no competing exports, no oversized files');
+const BASELINE = join(ROOT, '.wiring-baseline.json');
+const ALL = process.argv.includes('--all');
+
+if (process.argv.includes('--baseline')) {
+  writeFileSync(BASELINE, JSON.stringify(Object.fromEntries([...findings].sort()), null, 2) + '\n');
+  console.log(`baseline written: ${findings.size} finding(s) accepted as the floor`);
+  console.log('they are now the ceiling too. Nothing may be added, and oversized files may not grow.');
   process.exit(0);
 }
-console.log(`\n${found} finding(s). Each one is code that ships but may not do what its author thought.`);
+
+if (ALL || !existsSync(BASELINE)) {
+  for (const [k, v] of [...findings].sort()) {
+    console.log(`  ${label(k)}: ${k.split(':').slice(1).join(':')}${k.startsWith('oversized') ? `  (${v} lines)` : ''}`);
+  }
+  console.log(`\n${findings.size} finding(s).`);
+  if (!existsSync(BASELINE)) console.log('no baseline yet. Run with --baseline to accept these as the floor.');
+  process.exit(ALL ? 0 : findings.size ? 1 : 0);
+}
+
+const base = JSON.parse(readFileSync(BASELINE, 'utf8'));
+const added = [...findings].filter(([k]) => !(k in base));
+const grew = [...findings].filter(([k, v]) => k in base && k.startsWith('oversized') && v > base[k]);
+const fixed = Object.keys(base).filter((k) => !findings.has(k));
+
+if (fixed.length) console.log(`fixed since the baseline: ${fixed.length}. Re-run with --baseline to lock the gain in.`);
+
+if (!added.length && !grew.length) {
+  console.log(`wiring ok: no new findings (${findings.size} known, unchanged)`);
+  process.exit(0);
+}
+for (const [k] of added) console.log(`  NEW  ${label(k)}: ${k.split(':').slice(1).join(':')}`);
+for (const [k, v] of grew) console.log(`  GREW ${k.split(':').slice(1).join(':')}: ${base[k]} -> ${v} lines`);
+console.log(`\n${added.length + grew.length} regression(s). This is code that ships but may not do what its author thought.`);
+console.log('Fix it, or if it is genuinely intended, run --baseline and say why in the commit.');
 process.exit(1);
