@@ -27,27 +27,62 @@ import { readdirSync, readFileSync, statSync, writeFileSync, existsSync } from '
 import { join, relative, resolve, dirname } from 'node:path';
 
 const ROOT = process.cwd();
-const SRC = join(ROOT, 'src');
 const MAX_LINES = 800;          // matches the house code-quality rule
 const ENTRY_HINTS = [/\/app\/.*\/(page|layout|route)\.tsx?$/, /\/app\/[^/]+\.tsx?$/];
+const SKIP = /(^|\/)(node_modules|\.next|dist|build|out|android|ios|coverage|\.git)(\/|$)/;
+
+/*
+ * Not every project keeps code in src/. This estate has Next apps with app/ and
+ * lib/ at the root and no src/ at all, so scan whichever of these exist rather
+ * than assuming one layout and silently auditing nothing.
+ */
+const CODE_ROOTS = ['src', 'app', 'lib', 'components', 'game', 'server']
+  .map((d) => join(ROOT, d))
+  .filter((d) => existsSync(d));
+
+if (!CODE_ROOTS.length) {
+  console.log('no code directories found (looked for src, app, lib, components, game, server)');
+  process.exit(0);
+}
+
+/*
+ * "@/..." means different roots in different projects. Read it from tsconfig
+ * rather than guessing, or imports silently fail to resolve and every module
+ * looks dead.
+ */
+function aliasBase() {
+  for (const f of ['tsconfig.json', 'jsconfig.json']) {
+    const p = join(ROOT, f);
+    if (!existsSync(p)) continue;
+    try {
+      const raw = readFileSync(p, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+      const cfg = JSON.parse(raw);
+      const paths = cfg.compilerOptions?.paths?.['@/*'];
+      if (paths?.length) return join(ROOT, cfg.compilerOptions.baseUrl || '.', paths[0].replace(/\*$/, ''));
+    } catch { /* fall through to the default */ }
+  }
+  return existsSync(join(ROOT, 'src')) ? join(ROOT, 'src') : ROOT;
+}
+const ALIAS = aliasBase();
 
 function walk(dir, out = []) {
   for (const e of readdirSync(dir)) {
     const p = join(dir, e);
+    if (SKIP.test(p.replace(/\\/g, '/'))) continue;
     if (statSync(p).isDirectory()) walk(p, out);
-    else if (/\.(ts|tsx|mjs|js)$/.test(p) && !/\.d\.ts$/.test(p)) out.push(p);
+    else if (/\.(ts|tsx|mjs|js|jsx)$/.test(p) && !/\.d\.ts$/.test(p)) out.push(p);
   }
   return out;
 }
 
-const files = walk(SRC);
+const files = [...new Set(CODE_ROOTS.flatMap((d) => walk(d)))];
 const text = new Map(files.map((f) => [f, readFileSync(f, 'utf8')]));
 
 // ── who imports whom ────────────────────────────────────────────────────────
 const importedBy = new Map(files.map((f) => [f, new Set()]));
 const resolveSpec = (from, spec) => {
   let base;
-  if (spec.startsWith('@/')) base = join(SRC, spec.slice(2));
+  if (spec.startsWith('@/')) base = join(ALIAS, spec.slice(2));
   else if (spec.startsWith('.')) base = resolve(dirname(from), spec);
   else return null;
   for (const c of ['.ts', '.tsx', '.js', '.mjs', '/index.ts', '/index.tsx']) {
